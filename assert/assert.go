@@ -27,17 +27,22 @@ func fail(t *testing.T, expected, actual interface{}, messages ...interface{}) {
 	file, line := fileLine()
 	content := []string{
 		fmt.Sprintf("\n\t%v:%v:", file, line),
-		fmt.Sprintf("expected:\t%#v", expected),
-		fmt.Sprintf("  actual:\t%#v", actual),
 	}
-	if msg := msg(messages...); len(msg) > 0 {
-		content = append(content, msg)
+	content = append(content, expectAndActual(expected, actual)...)
+	if m := formatMsg(messages...); len(m) > 0 {
+		content = append(content, m)
 	}
-	//t.Fatal(strings.Join(content, "\n"))
-	content[len(content)-1] += "\n"
-	tt := (*common)(unsafe.Pointer(t))
-	tt.output = append([]byte(nil), strings.Join(content, "\n\t")...)
-	t.FailNow()
+	if kHOOK {
+		content[len(content)-1] += "\n"
+		output := strings.Join(content, "\n\t")
+		tt := (*common)(unsafe.Pointer(t))
+		tt.su.Lock()
+		tt.output = append([]byte(nil), output...)
+		tt.su.Unlock()
+		t.FailNow()
+	} else {
+		t.Fatal(strings.Join(content, "\n"))
+	}
 }
 
 func fileLine() (string, int) {
@@ -55,7 +60,20 @@ func fileLine() (string, int) {
 	return file, line
 }
 
-func msg(m ...interface{}) string {
+func expectAndActual(expected, actual interface{}) []string {
+	if reflect.TypeOf(expected) != reflect.TypeOf(actual) {
+		return []string{
+			fmt.Sprintf("expected:\t%T(%#v)", expected, expected),
+			fmt.Sprintf("  actual:\t%T(%#v)", actual, actual),
+		}
+	}
+	return []string{
+		fmt.Sprintf("expected:\t%#v", expected),
+		fmt.Sprintf("  actual:\t%#v", actual),
+	}
+}
+
+func formatMsg(m ...interface{}) string {
 	if len(m) < 1 {
 		return ""
 	}
