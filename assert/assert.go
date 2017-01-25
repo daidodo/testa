@@ -16,6 +16,13 @@ func True(t *testing.T, actual bool, messages ...interface{}) {
 	fail(t, true, actual, messages...)
 }
 
+func False(t *testing.T, actual bool, messages ...interface{}) {
+	if !actual {
+		return
+	}
+	fail(t, false, actual, messages...)
+}
+
 func Equal(t *testing.T, expected, actual interface{}, messages ...interface{}) {
 	if reflect.DeepEqual(expected, actual) {
 		return
@@ -25,8 +32,11 @@ func Equal(t *testing.T, expected, actual interface{}, messages ...interface{}) 
 
 func fail(t *testing.T, expected, actual interface{}, messages ...interface{}) {
 	file, line := fileLine()
-	content := []string{
-		fmt.Sprintf("\n\t%v:%v:", file, line),
+	var content []string
+	if kHOOK {
+		content = append(content, fmt.Sprintf("\t%v:%v:", file, line))
+	} else {
+		content = append(content, fmt.Sprintf("\n%v:%v:", file, line))
 	}
 	content = append(content, expectAndActual(expected, actual)...)
 	if m := formatMsg(messages...); len(m) > 0 {
@@ -34,7 +44,7 @@ func fail(t *testing.T, expected, actual interface{}, messages ...interface{}) {
 	}
 	if kHOOK {
 		content[len(content)-1] += "\n"
-		output := strings.Join(content, "\n\t")
+		output := strings.Join(content, "\n\t\t")
 		tt := (*common)(unsafe.Pointer(t))
 		tt.su.Lock()
 		tt.output = append([]byte(nil), output...)
