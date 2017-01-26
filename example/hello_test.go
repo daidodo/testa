@@ -1,16 +1,27 @@
 package hello
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 )
 
+func TestArray(t *testing.T) {
+	a := [...]int{1, 2, 3, 4, 5}
+	b := a
+	assert.Equal(t, b, a)
+	c := [...]int{1, 2, 3, 4, 6}
+	assert.Equal(t, c, a, "a=%T(%v) is not %T(%v)", a, a, c, c)
+}
+
 func TestInt(t *testing.T) {
-	var a int8
+	var a uintptr
 	a = 'A'
+	fmt.Printf("\t%v\n", a)
 	assert.Equal(t, 'A', a, "a=%v is not 'A'", a)
 }
+
 func TestMap(t *testing.T) {
 	m1 := make(map[int]string)
 	m2 := make(map[int]string)

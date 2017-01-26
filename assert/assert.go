@@ -31,12 +31,18 @@ func Equal(t *testing.T, expected, actual interface{}, messages ...interface{}) 
 }
 
 func fail(t *testing.T, expected, actual interface{}, messages ...interface{}) {
-	file, line := fileLine()
+	function, file, line := codeInfo()
 	var content []string
-	if kHOOK {
-		content = append(content, fmt.Sprintf("\t%v:%v:", file, line))
+	var m string
+	if len(function) > 0 {
+		m = fmt.Sprintf("%v:%v: in %v:", file, line, function)
 	} else {
-		content = append(content, fmt.Sprintf("\n%v:%v:", file, line))
+		m = fmt.Sprintf("%v:%v:", file, line)
+	}
+	if kHOOK {
+		content = append(content, "\t"+m)
+	} else {
+		content = append(content, "\n"+m)
 	}
 	content = append(content, expectAndActual(expected, actual)...)
 	if m := formatMsg(messages...); len(m) > 0 {
@@ -55,32 +61,67 @@ func fail(t *testing.T, expected, actual interface{}, messages ...interface{}) {
 	}
 }
 
-func fileLine() (string, int) {
-	_, file, line, ok := runtime.Caller(3)
+func codeInfo() (function, file string, line int) {
+	pc, file, line, ok := runtime.Caller(3)
 	if ok {
-		if index := strings.LastIndex(file, "/"); index >= 0 {
-			file = file[index+1:]
-		} else if index = strings.LastIndex(file, "\\"); index >= 0 {
-			file = file[index+1:]
+		if fp := runtime.FuncForPC(pc); fp != nil {
+			function = lastPartOf(fp.Name())
 		}
+		file = lastPartOf(file)
 	} else {
 		file = "???"
 		line = 1
 	}
-	return file, line
+	return
+}
+
+func lastPartOf(str string) string {
+	if index := strings.LastIndex(str, "/"); index >= 0 {
+		return str[index+1:]
+	} else if index = strings.LastIndex(str, "\\"); index >= 0 {
+		return str[index+1:]
+	}
+	return str
 }
 
 func expectAndActual(expected, actual interface{}) []string {
-	if reflect.TypeOf(expected) != reflect.TypeOf(actual) {
+	t := reflect.TypeOf(expected)
+	if t != reflect.TypeOf(actual) {
 		return []string{
-			fmt.Sprintf("expected:\t%T(%#v)", expected, expected),
-			fmt.Sprintf("  actual:\t%T(%#v)", actual, actual),
+			fmt.Sprintf("expected:\t%v", toStr(expected, true)),
+			fmt.Sprintf("  actual:\t%v", toStr(actual, true)),
+		}
+	}
+	switch t.Kind() {
+	case reflect.Array:
+		e, a := diffStr(expected, actual)
+		return []string{
+			fmt.Sprintf("expected:\t%v", e),
+			fmt.Sprintf("  actual:\t%v", a),
 		}
 	}
 	return []string{
-		fmt.Sprintf("expected:\t%#v", expected),
-		fmt.Sprintf("  actual:\t%#v", actual),
+		fmt.Sprintf("expected:\t%v", toStr(expected, false)),
+		fmt.Sprintf("  actual:\t%v", toStr(actual, false)),
 	}
+}
+
+func toStr(val interface{}, withType bool) string {
+	switch reflect.TypeOf(val).Kind() {
+	case reflect.Uintptr:
+		if withType {
+			return fmt.Sprintf("%T(%#v)", val, val)
+		}
+		return fmt.Sprintf("%#v", val)
+	}
+	if withType {
+		return fmt.Sprintf("%T(%v)", val, val)
+	}
+	return fmt.Sprintf("%v", val)
+}
+
+func diffStr(v1, v2 interface{}) (s1, s2 string) {
+
 }
 
 func formatMsg(m ...interface{}) string {
