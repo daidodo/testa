@@ -217,20 +217,19 @@ func writeDiffArrayShort(b1, b2 *FeatureBuf, v1, v2 reflect.Value) {
 func writeDiffArrayLong(b1, b2 *FeatureBuf, v1, v2 reflect.Value) {
 	b1.Write(v1.Type(), "{")
 	b2.Write(v2.Type(), "{")
-	for i := 0; i < v1.Len(); i++ {
-		if i > 0 {
+	for i, j := 0, 0; i < v1.Len(); i++ {
+		e1, e2 := v1.Index(i), v2.Index(i)
+		if reflect.DeepEqual(e1.Interface(), e2.Interface()) {
+			continue
+		}
+		if j > 0 {
 			b1.Write(", ")
 			b2.Write(", ")
 		}
+		j++
 		b1.Write(i, ":")
 		b2.Write(i, ":")
-		e1, e2 := v1.Index(i), v2.Index(i)
-		if reflect.DeepEqual(e1.Interface(), e2.Interface()) {
-			writeValue(b1, e1)
-			writeValue(b2, e2)
-		} else {
-			writeDiffValues(b1, b2, e1, e2)
-		}
+		writeDiffValues(b1, b2, e1, e2)
 	}
 	b1.Write("}")
 	b2.Write("}")
@@ -243,14 +242,18 @@ func writeDiffArrayComposite(b1, b2 *FeatureBuf, v1, v2 reflect.Value) {
 	b2.Tab++
 	idx := v1.Len() > 10
 	for i := 0; i < v1.Len(); i++ {
+		e1, e2 := v1.Index(i), v2.Index(i)
+		eq := reflect.DeepEqual(e1.Interface(), e2.Interface())
+		if eq && idx {
+			continue
+		}
 		b1.NL()
 		b2.NL()
 		if idx {
 			b1.Write(i, ":")
 			b2.Write(i, ":")
 		}
-		e1, e2 := v1.Index(i), v2.Index(i)
-		if reflect.DeepEqual(e1.Interface(), e2.Interface()) {
+		if eq {
 			writeValue(b1, e1)
 			writeValue(b2, e2)
 		} else {
