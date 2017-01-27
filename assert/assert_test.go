@@ -4,30 +4,148 @@ import (
 	"testing"
 )
 
-func TestEqualArray(t *testing.T) {
-	a := [...]int{1, 2, 3, 4, 5}
+func TestEqualArrayLong3(t *testing.T) {
+	var a [15][15][15]int
+	for i := range a {
+		for j := range a[0] {
+			for k := range a[0][0] {
+				a[i][j][k] = 100 + i*j + j
+			}
+		}
+	}
 	b := a
 	Equal(t, b, a)
-	c := [...]int{1, 2, 3, 4, 6}
-	Equal(t, c, a, "\033[31ma=%T(%v)\033[0m is not %T(%v)", a, a, c, c)
-
+	b[0][0][0]++
+	b[len(b)/2][len(b[0])/2][len(b[0][0])/3]++
+	b[len(b)-1][len(b[0])-1][len(b[0][0])-2]++
+	b[len(b)-1][len(b[0])-1][len(b[0][0])-1]++
+	Equal(t, b, a, "a is not b")
 }
 
-/*
+func TestEqualArrayShort3(t *testing.T) {
+	var a [5][5][5]int
+	for i := range a {
+		for j := range a[0] {
+			for k := range a[0][0] {
+				a[i][j][k] = 100 + i*j + j
+			}
+		}
+	}
+	b := a
+	Equal(t, b, a)
+	b[0][0][0]++
+	b[len(b)/2][len(b[0])/2][len(b[0][0])/3]++
+	b[len(b)-1][len(b[0])-1][len(b[0][0])-2]++
+	b[len(b)-1][len(b[0])-1][len(b[0][0])-1]++
+	Equal(t, b, a, "a is not b")
+}
+
+func TestEqualArrayLong2(t *testing.T) {
+	var a [14][14]int
+	for i := range a {
+		for j := range a[0] {
+			a[i][j] = 100 + i*j + j
+		}
+	}
+	b := a
+	Equal(t, b, a)
+	b[0][0]++
+	b[len(b)/2][len(b[0])/2]++
+	b[len(b)-1][len(b[0])-2]++
+	b[len(b)-1][len(b[0])-1]++
+	Equal(t, b, a, "a is not b")
+}
+
+func TestEqualArrayShort2(t *testing.T) {
+	var a [10][10]int
+	for i := range a {
+		for j := range a[0] {
+			a[i][j] = 100 + i*j + j
+		}
+	}
+	b := a
+	Equal(t, b, a)
+	b[0][0]++
+	b[len(b)/2][len(b[0])/2]++
+	b[len(b)-1][len(b[0])-2]++
+	b[len(b)-1][len(b[0])-1]++
+	Equal(t, b, a, "a is not b")
+}
+
+func TestEqualArrayLong1(t *testing.T) {
+	var a [14]int
+	for i := range a {
+		a[i] = 100 + i
+	}
+	b := a
+	Equal(t, b, a)
+	b[0]++
+	b[len(b)/2]++
+	b[len(b)-2]++
+	b[len(b)-1]++
+	Equal(t, b, a, "a=%#v is not %#v", a, b)
+}
+
+func TestEqualArrayShort1(t *testing.T) {
+	var a [10]int
+	for i := range a {
+		a[i] = 100 + i
+	}
+	b := a
+	Equal(t, b, a)
+	b[0]++
+	b[len(b)/2]++
+	b[len(b)-2]++
+	b[len(b)-1]++
+	Equal(t, b, a, "a=%#v is not %#v", a, b)
+}
+
 func TestEqualComplex128(t *testing.T) {
 	a := complex(float64(100.123), float64(12.345))
 	b := a
 	Equal(t, b, a)
-	b = complex(real(a), imag(b)+1)
-	Equal(t, b, a, "a=%T(%v) is not %T(%v)", a, a, b, b)
+	b = complex(real(a)+.01, imag(b)+.1)
+	Equal(t, b, a, "a=%T%#v is not %T%#v", a, a, b, b)
+}
+
+func TestEqualComplex128Imag(t *testing.T) {
+	a := complex(float64(100.123), float64(12.345))
+	b := a
+	Equal(t, b, a)
+	b = complex(real(a), imag(b)+.1)
+	Equal(t, b, a, "a=%T%#v is not %T%#v", a, a, b, b)
+}
+
+func TestEqualComplex128Real(t *testing.T) {
+	a := complex(float64(100.123), float64(12.345))
+	b := a
+	Equal(t, b, a)
+	b = complex(real(a)+.1, imag(b))
+	Equal(t, b, a, "a=%T%#v is not %T%#v", a, a, b, b)
 }
 
 func TestEqualComplex64(t *testing.T) {
 	a := complex(float32(100.123), float32(12.345))
 	b := a
 	Equal(t, b, a)
-	b = complex(real(a), imag(b)+1)
-	Equal(t, b, a, "a=%T(%v) is not %T(%v)", a, a, b, b)
+	b = complex(real(a)+.01, imag(b)+.1)
+	Equal(t, b, a, "a=%T%v is not %T%v", a, a, b, b)
+}
+
+func TestEqualComplex64Imag(t *testing.T) {
+	a := complex(float32(100.123), float32(12.345))
+	b := a
+	Equal(t, b, a)
+	b = complex(real(a), imag(b)+.1)
+	Equal(t, b, a, "a=%T%v is not %T%v", a, a, b, b)
+}
+
+func TestEqualComplex64Real(t *testing.T) {
+	a := complex(float32(100.123), float32(12.345))
+	b := a
+	Equal(t, b, a)
+	b = complex(real(a)+.1, imag(b))
+	Equal(t, b, a, "a=%T%v is not %T%v", a, a, b, b)
 }
 
 func TestEqualFloat64(t *testing.T) {
@@ -51,7 +169,7 @@ func TestEqualUIntptr(t *testing.T) {
 	b := a
 	Equal(t, b, a)
 	b++
-	Equal(t, b, a, "a=%T(%v) is not %T(%v)", a, a, b, b)
+	Equal(t, b, a, "a=%T(%#v) is not %T(%#v)", a, a, b, b)
 }
 
 func TestEqualUInt64(t *testing.T) {
@@ -157,7 +275,6 @@ func TestTrue(t *testing.T) {
 	a := false
 	True(t, a)
 }
-*/
 
 //func TestEqualInt8(t *testing.T) {
 //    a := int8(100)
