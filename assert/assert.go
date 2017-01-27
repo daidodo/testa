@@ -31,7 +31,19 @@ func Equal(t *testing.T, expected, actual interface{}, messages ...interface{}) 
 }
 
 func fail(t *testing.T, expected, actual interface{}, messages ...interface{}) {
+	//var buf FeatureBuf
+	//if kHOOK {
+	//    buf.WriteRune('\t')
+	//} else {
+	//    buf.WriteRune('\n')
+	//}
 	function, file, line := codeInfo()
+	//if len(function) > 0 {
+	//    m = buf.Writef("%v:%v: in %v:", file, line, function)
+	//} else {
+	//    m = fmt.Writef("%v:%v:", file, line)
+	//}
+
 	var content []string
 	var m string
 	if len(function) > 0 {
@@ -88,8 +100,8 @@ func expectAndActual(expected, actual interface{}) []string {
 	t := reflect.TypeOf(expected)
 	if t != reflect.TypeOf(actual) {
 		return []string{
-			fmt.Sprintf("expected:\t%v", toStr(expected, true)),
-			fmt.Sprintf("  actual:\t%v", toStr(actual, true)),
+			fmt.Sprintf("expected:\t%v", toTypeStr(expected)),
+			fmt.Sprintf("  actual:\t%v", toTypeStr(actual)),
 		}
 	}
 	switch t.Kind() {
@@ -101,27 +113,66 @@ func expectAndActual(expected, actual interface{}) []string {
 		}
 	}
 	return []string{
-		fmt.Sprintf("expected:\t%v", toStr(expected, false)),
-		fmt.Sprintf("  actual:\t%v", toStr(actual, false)),
+		fmt.Sprintf("expected:\t%v", toStr(expected)),
+		fmt.Sprintf("  actual:\t%v", toStr(actual)),
 	}
 }
 
-func toStr(val interface{}, withType bool) string {
+func toTypeStr(val interface{}) string {
 	switch reflect.TypeOf(val).Kind() {
 	case reflect.Uintptr:
-		if withType {
-			return fmt.Sprintf("%T(%#v)", val, val)
-		}
-		return fmt.Sprintf("%#v", val)
+		return fmt.Sprintf("%T(%#v)", val, val)
 	}
-	if withType {
-		return fmt.Sprintf("%T(%v)", val, val)
+	return fmt.Sprintf("%T(%v)", val, val)
+}
+
+func toStr(val interface{}) string {
+	switch reflect.TypeOf(val).Kind() {
+	case reflect.Uintptr:
+		return fmt.Sprintf("%#v", val)
 	}
 	return fmt.Sprintf("%v", val)
 }
 
-func diffStr(v1, v2 interface{}) (s1, s2 string) {
+func diffStr(var1, var2 interface{}) (string, string) {
+	v1, v2 := reflect.ValueOf(var1), reflect.ValueOf(var2)
+	if v1.Type() != v2.Type() {
+		panic(fmt.Sprintf("Should be the same type, but var1 is %T, var2 is %T", var1, var2))
+	}
+	var b1, b2 []byte
+	switch v1.Kind() {
+	case reflect.Array:
+		for i := 0; i < v1.Len(); i++ { // v1.Len() == v2.Len()
+			e1, e2 := v1.Index(i), v2.Index(i)
+			if reflect.DeepEqual(e1.Interface(), e2.Interface()) {
+				b1 = appendValueStr(b1, toStr(e1), false)
+				b2 = appendValueStr(b2, toStr(e2), false)
+			} else {
+				b1 = appendValueStr(b1, toStr(e1), true)
+				b2 = appendValueStr(b2, toStr(e2), true)
+			}
+		}
+		return string(b1), string(b2)
+	}
+	return toStr(var1), toStr(var2)
+}
 
+func appendValueStr(buf []byte, str string, highlight bool) []byte {
+	if len(str) < 1 {
+		return buf
+	}
+	sp := len(buf) > 0
+	if highlight {
+		buf = append(buf, 033, '[', '3', '1', 'm')
+	}
+	if sp {
+		buf = append(buf, ' ')
+	}
+	buf = append(buf, str...)
+	if highlight {
+		buf = append(buf, 033, '[', '0', 'm')
+	}
+	return buf
 }
 
 func formatMsg(m ...interface{}) string {
