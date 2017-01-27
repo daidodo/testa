@@ -9,13 +9,13 @@ func TestEqualArrayLong3(t *testing.T) {
 	for i := range a {
 		for j := range a[0] {
 			for k := range a[0][0] {
-				a[i][j][k] = 100 + i*j + j
+				a[i][j][k] = 100 + i + j*j + k*k*k
 			}
 		}
 	}
 	b := a
 	Equal(t, b, a)
-	b[0][0][0]++
+	b[1][1][1]++
 	b[len(b)/2][len(b[0])/2][len(b[0][0])/3]++
 	b[len(b)-1][len(b[0])-1][len(b[0][0])-2]++
 	b[len(b)-1][len(b[0])-1][len(b[0][0])-1]++
@@ -27,13 +27,13 @@ func TestEqualArrayShort3(t *testing.T) {
 	for i := range a {
 		for j := range a[0] {
 			for k := range a[0][0] {
-				a[i][j][k] = 100 + i*j + j
+				a[i][j][k] = 100 + i + j*j + k*k*k
 			}
 		}
 	}
 	b := a
 	Equal(t, b, a)
-	b[0][0][0]++
+	b[1][1][1]++
 	b[len(b)/2][len(b[0])/2][len(b[0][0])/3]++
 	b[len(b)-1][len(b[0])-1][len(b[0][0])-2]++
 	b[len(b)-1][len(b[0])-1][len(b[0][0])-1]++
@@ -44,12 +44,12 @@ func TestEqualArrayLong2(t *testing.T) {
 	var a [14][14]int
 	for i := range a {
 		for j := range a[0] {
-			a[i][j] = 100 + i*j + j
+			a[i][j] = 100 + i + j*j
 		}
 	}
 	b := a
 	Equal(t, b, a)
-	b[0][0]++
+	b[1][1]++
 	b[len(b)/2][len(b[0])/2]++
 	b[len(b)-1][len(b[0])-2]++
 	b[len(b)-1][len(b[0])-1]++
@@ -60,12 +60,12 @@ func TestEqualArrayShort2(t *testing.T) {
 	var a [10][10]int
 	for i := range a {
 		for j := range a[0] {
-			a[i][j] = 100 + i*j + j
+			a[i][j] = 100 + i + j*j
 		}
 	}
 	b := a
 	Equal(t, b, a)
-	b[0][0]++
+	b[1][1]++
 	b[len(b)/2][len(b[0])/2]++
 	b[len(b)-1][len(b[0])-2]++
 	b[len(b)-1][len(b[0])-1]++
@@ -75,11 +75,11 @@ func TestEqualArrayShort2(t *testing.T) {
 func TestEqualArrayLong1(t *testing.T) {
 	var a [14]int
 	for i := range a {
-		a[i] = 100 + i
+		a[i] = 100 + i*i
 	}
 	b := a
 	Equal(t, b, a)
-	b[0]++
+	b[1]++
 	b[len(b)/2]++
 	b[len(b)-2]++
 	b[len(b)-1]++
@@ -93,7 +93,7 @@ func TestEqualArrayShort1(t *testing.T) {
 	}
 	b := a
 	Equal(t, b, a)
-	b[0]++
+	b[1]++
 	b[len(b)/2]++
 	b[len(b)-2]++
 	b[len(b)-1]++
@@ -275,20 +275,3 @@ func TestTrue(t *testing.T) {
 	a := false
 	True(t, a)
 }
-
-//func TestEqualInt8(t *testing.T) {
-//    a := int8(100)
-//    Equal(t, int8(100), a)
-//    Equal(t, 101, a, "TestEqualInt8: a=%v is not 101", a)
-//}
-
-//type II int
-
-//func TestEqual(t *testing.T) {
-//    a := 3
-//    b := int32(3)
-//    c := II(3)
-//    Equal(t, c, a, "You've messed up a=%T(%v), c=%T(%v)", a, a, c, c)
-//    Equal(t, b, a, "You've messed up a=%T(%v), b=%T(%v)", a, a, b, b)
-//    Equal(t, 2, a, "You've messed up a=%T(%v)", a, a)
-//}
