@@ -4,6 +4,40 @@ import (
 	"testing"
 )
 
+func TestEqualChan(t *testing.T) {
+	a := make(chan int)
+	b := a
+	Equal(t, b, a)
+	b = make(chan int)
+	Equal(t, b, a, "Is a=%#v same as %v", a, b)
+}
+
+func TestEqualArrayLong3Dense(t *testing.T) {
+	var a, b [15][15][15]int
+	for i := range a {
+		for j := range a[0] {
+			for k := range a[0][0] {
+				a[i][j][k] = 100 + i + j*j + k*k*k
+				b[i][j][k] = 100 + i*i + j*j*j + k
+			}
+		}
+	}
+	Equal(t, b, a, "a is not b")
+}
+
+func TestEqualArrayShort3Dense(t *testing.T) {
+	var a, b [5][5][5]int
+	for i := range a {
+		for j := range a[0] {
+			for k := range a[0][0] {
+				a[i][j][k] = 100 + i + j*j + k*k*k
+				b[i][j][k] = 100 + i*i + j*j*j + k
+			}
+		}
+	}
+	Equal(t, b, a, "a is not b")
+}
+
 func TestEqualArrayLong3(t *testing.T) {
 	var a [15][15][15]int
 	for i := range a {
