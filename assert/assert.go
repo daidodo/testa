@@ -1,6 +1,7 @@
 package assert
 
 import (
+	"fmt"
 	"reflect"
 	"runtime"
 	"strings"
@@ -66,30 +67,51 @@ func writeCodeInfo(buf *FeatureBuf) {
 }
 
 func writeVariables(buf *FeatureBuf, expected, actual interface{}) {
+	if expected == nil {
+		buf.NL().Write("expected:\t").Highlight(nil)
+		buf.NL().Write("  actual:\t")
+		// TODO
+		return
+	} else if actual == nil {
+		buf.NL().Write("expected:\t")
+		// TODO
+		buf.NL().Write("  actual:\t").Highlight(nil)
+		return
+	}
 	e, a := reflect.ValueOf(expected), reflect.ValueOf(actual)
 	var b1, b2 FeatureBuf
 	b1.Tab = buf.Tab + 1
 	b2.Tab = buf.Tab + 1
-	nl := false
+	var nl, omit, fn bool
 	if e.Type() != a.Type() {
-		nl = writeDiffTypeValues(&b1, &b2, e, a)
+		nl, omit, fn = writeDiffTypeValues(&b1, &b2, e, a)
 	} else {
-		nl = writeDiffValues(&b1, &b2, e, a)
+		nl, omit, fn = writeDiffValues(&b1, &b2, e, a)
 	}
 	if nl {
 		buf.NL().Write("expected:\t")
+		if omit {
+			buf.Write("(").Highlight("Only diffs are shown").Write(")")
+		}
 		buf.Tab++
 		buf.NL().Write(b1.String())
 		buf.Tab--
 		buf.NL().Write("  actual:\t")
 		buf.Tab++
 		buf.NL().Write(b2.String())
+		//if fn {
+		//    buf.NL().Write("(").Highlight("func can only be compared to nil").Write(")")
+		//}
 		buf.Tab--
 	} else {
-		buf.NL().Write("expected:\t")
-		buf.Write(b1.String())
-		buf.NL().Write("  actual:\t")
-		buf.Write(b2.String())
+		buf.NL().Writef("expected:\t%v", b1.String())
+		buf.NL().Writef("  actual:\t%v", b2.String())
+		if omit {
+			buf.NL().Write("\t\t(").Highlight("Only diffs are shown").Write(")")
+		}
+		if fn {
+			buf.NL().Write("\t\t(").Highlight("func can only be compared to nil").Write(")")
+		}
 	}
 }
 
@@ -105,8 +127,8 @@ func writeMessages(buf *FeatureBuf, messages ...interface{}) {
 	}
 }
 
-func writeDiffTypeValues(b1, b2 *FeatureBuf, v1, v2 reflect.Value) bool {
-	return false
+func writeDiffTypeValues(b1, b2 *FeatureBuf, v1, v2 reflect.Value) (nl, omit, fn bool) {
+	return
 	//switch v1.Kind() {
 	//case reflect.Array:
 
@@ -141,17 +163,79 @@ func writeDiffTypeValues(b1, b2 *FeatureBuf, v1, v2 reflect.Value) bool {
 //    return b.String()
 //}
 
-func writeDiffValues(b1, b2 *FeatureBuf, v1, v2 reflect.Value) bool {
+func writeDiffValues(b1, b2 *FeatureBuf, v1, v2 reflect.Value) (nl, omit, fn bool) {
 	switch v1.Kind() {
 	case reflect.Complex64, reflect.Complex128:
 		writeDiffComplexValue(b1, b2, v1, v2)
 	case reflect.Array:
-		return writeDiffArrayValue(b1, b2, v1, v2)
+		nl, omit, fn = writeDiffArrayValue(b1, b2, v1, v2)
+	case reflect.Chan:
+		b1.Writef("(%v)(", v1.Type()).Highlight(v1).Write(")")
+		b2.Writef("(%v)(", v2.Type()).Highlight(v2).Write(")")
+	case reflect.Func:
+		fn = writeDiffFuncValue(b1, b2, v1, v2)
+	case reflect.Map:
+		writeDiffMapValue(b1, b2, v1, v2)
 	default:
 		b1.Highlightf("%#v", v1)
 		b2.Highlightf("%#v", v2)
 	}
-	return false
+	return
+}
+
+func writeDiffMapValue(b1, b2 *FeatureBuf, v1, v2 reflect.Value) {
+	b1.Write(v1.Type(), "{")
+	b2.Write(v2.Type(), "{")
+	var m1, m2 []reflect.Value
+	i1, i2 := 0, 0
+	for _, k := range v1.MapKeys() {
+		e1, e2 := v1.MapIndex(k), v2.MapIndex(k)
+		if !e2.IsValid() {
+			m1 = append(m1, k)
+		} else if !reflect.DeepEqual(e1.Interface(), e2.Interface()) {
+			if i1 > 0 {
+				b1.Write(", ")
+			}
+			i1++
+			writeValue(b1, k)
+			b1.Write(":")
+			if i2 > 0 {
+				b2.Write(", ")
+			}
+			i2++
+			writeValue(b2, k)
+			b2.Write(":")
+			writeDiffValues(b1, b2, e1, e2)
+		}
+	}
+	// TODO
+	_ = m2
+	b1.Write("}")
+	b2.Write("}")
+}
+
+func writeDiffFuncValue(b1, b2 *FeatureBuf, v1, v2 reflect.Value) (fn bool) {
+	t := fmt.Sprint(v1.Type())
+	b1.Writef("(%v)(", t)
+	b2.Writef("(%v)(", t)
+	fn = writeDiffFuncValueShort(b1, b2, v1, v2)
+	b1.Writef(")")
+	b2.Writef(")")
+	return
+}
+
+func writeDiffFuncValueShort(b1, b2 *FeatureBuf, v1, v2 reflect.Value) (fn bool) {
+	p1, p2 := "nil", "nil"
+	if !v1.IsNil() {
+		p1 = fmt.Sprint(v1)
+	}
+	if !v2.IsNil() {
+		p2 = fmt.Sprint(v2)
+	}
+	fn = p1 == p2
+	b1.Highlight(p1)
+	b2.Highlight(p2)
+	return
 }
 
 func writeDiffComplexValue(b1, b2 *FeatureBuf, v1, v2 reflect.Value) {
@@ -178,16 +262,18 @@ func writeDiffComplexValue(b1, b2 *FeatureBuf, v1, v2 reflect.Value) {
 	b2.Write(")")
 }
 
-func writeDiffArrayValue(b1, b2 *FeatureBuf, v1, v2 reflect.Value) bool {
+func writeDiffArrayValue(b1, b2 *FeatureBuf, v1, v2 reflect.Value) (nl, omit, fn bool) {
 	if v1.Len() < 1 || (v1.Len() <= 10 && isSimpleType(v1.Index(0).Kind())) {
 		writeDiffArrayShort(b1, b2, v1, v2)
 	} else if isSimpleType(v1.Index(0).Kind()) {
-		writeDiffArrayLong(b1, b2, v1, v2)
+		omit = writeDiffArrayLong(b1, b2, v1, v2)
+	} else if v1.Index(0).Kind() == reflect.Func {
+		omit, fn = writeDiffArrayFunc(b1, b2, v1, v2)
 	} else {
-		writeDiffArrayComposite(b1, b2, v1, v2)
-		return true
+		omit = writeDiffArrayComposite(b1, b2, v1, v2)
+		nl = true
 	}
-	return false
+	return
 }
 
 func writeDiffArrayShort(b1, b2 *FeatureBuf, v1, v2 reflect.Value) {
@@ -214,13 +300,14 @@ func writeDiffArrayShort(b1, b2 *FeatureBuf, v1, v2 reflect.Value) {
 	b2.Write("]")
 }
 
-func writeDiffArrayLong(b1, b2 *FeatureBuf, v1, v2 reflect.Value) {
+func writeDiffArrayLong(b1, b2 *FeatureBuf, v1, v2 reflect.Value) (omit bool) {
 	b1.Write(v1.Type(), "{")
 	b2.Write(v2.Type(), "{")
 	for i, j := 0, 0; i < v1.Len(); i++ {
 		e1, e2 := v1.Index(i), v2.Index(i)
 		if reflect.DeepEqual(e1.Interface(), e2.Interface()) {
-			continue
+			omit = true
+			continue // Only diffs are shown
 		}
 		if j > 0 {
 			b1.Write(", ")
@@ -233,9 +320,71 @@ func writeDiffArrayLong(b1, b2 *FeatureBuf, v1, v2 reflect.Value) {
 	}
 	b1.Write("}")
 	b2.Write("}")
+	return
 }
 
-func writeDiffArrayComposite(b1, b2 *FeatureBuf, v1, v2 reflect.Value) {
+func writeDiffArrayFunc(b1, b2 *FeatureBuf, v1, v2 reflect.Value) (omit, fn bool) {
+	if v1.Len() <= 10 {
+		fn = writeDiffArrayFuncShort(b1, b2, v1, v2)
+	} else {
+		omit, fn = writeDiffArrayFuncLong(b1, b2, v1, v2)
+	}
+	return
+}
+
+func writeDiffArrayFuncShort(b1, b2 *FeatureBuf, v1, v2 reflect.Value) (fn bool) {
+	b1.Write(v1.Type(), "[")
+	b2.Write(v2.Type(), "[")
+	for i := 0; i < v1.Len(); i++ {
+		e1, e2 := v1.Index(i), v2.Index(i)
+		if reflect.DeepEqual(e1.Interface(), e2.Interface()) {
+			if i > 0 {
+				b1.Write(" ")
+				b2.Write(" ")
+			}
+			writeValue(b1, e1)
+			writeValue(b2, e2)
+		} else {
+			if i > 0 {
+				b1.Plain(" ")
+				b2.Plain(" ")
+			}
+			if writeDiffFuncValueShort(b1, b2, e1, e2) {
+				fn = true
+			}
+		}
+	}
+	b1.Write("]")
+	b2.Write("]")
+	return
+}
+
+func writeDiffArrayFuncLong(b1, b2 *FeatureBuf, v1, v2 reflect.Value) (omit, fn bool) {
+	b1.Write(v1.Type(), "{")
+	b2.Write(v1.Type(), "{")
+	for i, j := 0, 0; i < v1.Len(); i++ {
+		e1, e2 := v1.Index(i), v2.Index(i)
+		if reflect.DeepEqual(e1.Interface(), e2.Interface()) {
+			omit = true
+			continue
+		}
+		if j > 0 {
+			b1.Write(", ")
+			b2.Write(", ")
+		}
+		j++
+		b1.Write(i, ":")
+		b2.Write(i, ":")
+		if writeDiffFuncValueShort(b1, b2, e1, e2) {
+			fn = true
+		}
+	}
+	b1.Write("}")
+	b2.Write("}")
+	return
+}
+
+func writeDiffArrayComposite(b1, b2 *FeatureBuf, v1, v2 reflect.Value) (omit bool) {
 	b1.Write(v1.Type(), "{")
 	b2.Write(v2.Type(), "{")
 	b1.Tab++
@@ -245,7 +394,8 @@ func writeDiffArrayComposite(b1, b2 *FeatureBuf, v1, v2 reflect.Value) {
 		e1, e2 := v1.Index(i), v2.Index(i)
 		eq := reflect.DeepEqual(e1.Interface(), e2.Interface())
 		if eq && idx {
-			continue
+			omit = true
+			continue // Only diffs are shown
 		}
 		b1.NL()
 		b2.NL()
@@ -264,12 +414,15 @@ func writeDiffArrayComposite(b1, b2 *FeatureBuf, v1, v2 reflect.Value) {
 	b2.Tab--
 	b1.NL().Write("}")
 	b2.NL().Write("}")
+	return
 }
 
 func writeValue(b *FeatureBuf, v reflect.Value) {
 	switch v.Kind() {
 	case reflect.Array:
 		writeArrayValue(b, v)
+	case reflect.Func:
+		b.Write(v)
 	default:
 		b.Writef("%#v", v)
 	}
@@ -305,7 +458,7 @@ func writeArrayValue(b *FeatureBuf, v reflect.Value) {
 }
 
 func isSimpleType(k reflect.Kind) bool {
-	return !(k == reflect.Array)
+	return k != reflect.Array && k != reflect.Func
 }
 
 func lastPartOf(str string) string {

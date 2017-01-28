@@ -1,8 +1,70 @@
 package assert
 
-import (
-	"testing"
-)
+import "testing"
+
+func TestEqualMap(t *testing.T) {
+	a := map[int]string{1: "abc", 2: "cde", 3: "xyz"}
+	b := map[int]string{1: "abc", 2: "cde", 3: "xyz"}
+	Equal(t, b, a)
+	b[2] = "aaa"
+	Equal(t, b, a, "a=%#v is not b=%#v", a, b)
+}
+
+func TestEqualInterface(t *testing.T) {
+	var a, b interface{}
+	Equal(t, b, a)
+	a = int(3)
+	b = a
+	Equal(t, b, a)
+	b = int(4)
+	Equal(t, b, a, "Is a=%#v same as %v?", a, b)
+}
+
+func TestEqualFuncArrayLong(t *testing.T) {
+	f := func(int) string { return "1" }
+	g := func(int) string { return "2" }
+	a := [11]func(int) string{f, g, nil, f, nil, f, g, f}
+	b := a
+	Equal(t, b, a, "Is a same as b?")
+}
+
+func TestEqualFuncArray(t *testing.T) {
+	f := func(int) string { return "1" }
+	g := func(int) string { return "2" }
+	a := [...]func(int) string{f, g, nil}
+	b := a
+	Equal(t, b, a, "Is a=%#v same as %#v?", a, b)
+}
+
+func TestEqualFunc(t *testing.T) {
+	a := func(int) string { return "1" }
+	b := a
+	Equal(t, b, a, "Is a=%#v same as %v?", a, b)
+}
+
+func TestEqualFuncNil2(t *testing.T) {
+	var a, b func(int) string
+	a = nil
+	b = nil
+	Equal(t, b, a)
+	b = func(int) string { return "1" }
+	Equal(t, b, a, "Is a=%#v same as %v?", a, b)
+}
+
+func TestEqualFuncNil1(t *testing.T) {
+	var a, b func(int) string
+	a = func(int) string { return "1" }
+	b = nil
+	Equal(t, b, a, "Is a=%#v same as %v?", a, b)
+}
+
+func TestEqualChanRO(t *testing.T) {
+	a := make(<-chan int)
+	b := a
+	Equal(t, b, a)
+	b = make(chan int)
+	Equal(t, b, a, "Is a=%#v same as %v", a, b)
+}
 
 func TestEqualChan(t *testing.T) {
 	a := make(chan int)
@@ -13,12 +75,12 @@ func TestEqualChan(t *testing.T) {
 }
 
 func TestEqualArrayLong3Dense(t *testing.T) {
-	var a, b [15][15][15]int
+	var a, b [11][5][11]int
 	for i := range a {
 		for j := range a[0] {
 			for k := range a[0][0] {
-				a[i][j][k] = 100 + i + j*j + k*k*k
-				b[i][j][k] = 100 + i*i + j*j*j + k
+				a[i][j][k] = 0 + i + j*j + k*k*k
+				b[i][j][k] = 0 + i*i + j*j*j + k
 			}
 		}
 	}
@@ -30,8 +92,8 @@ func TestEqualArrayShort3Dense(t *testing.T) {
 	for i := range a {
 		for j := range a[0] {
 			for k := range a[0][0] {
-				a[i][j][k] = 100 + i + j*j + k*k*k
-				b[i][j][k] = 100 + i*i + j*j*j + k
+				a[i][j][k] = 1 + i + j*j + k*k*k
+				b[i][j][k] = 1 + i*i + j*j*j + k
 			}
 		}
 	}
@@ -309,3 +371,31 @@ func TestTrue(t *testing.T) {
 	a := false
 	True(t, a)
 }
+
+//func TestEqualChanRW(t *testing.T) {
+//    a := make(chan int)
+//    var b <-chan int = a
+//    Equal(t, b, a, "Is a=%#v same as %v", a, b)
+//}
+
+//func TestEqualChanDiffType(t *testing.T) {
+//    a := make(chan int)
+//    b := make(chan string)
+//    Equal(t, b, a, "Is a=%#v same as %v", a, b)
+//}
+
+//func TestEqualFuncNilDiffType(t *testing.T) {
+//    var a func(int) string
+//    var b func(string) int
+//    a = nil
+//    b = nil
+//    Equal(t, b, a, "Is a=%#v same as %#v?", a, b)
+//}
+
+//func TestEqualInterfaceNil1(t *testing.T) {
+//    var a, b interface{}
+//    Equal(t, b, a)
+//    i := 3
+//    a = &i
+//    Equal(t, b, a, "Is a=%#v same as %v?", a, b)
+//}
