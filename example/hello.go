@@ -16,5 +16,6 @@ func main() {
 	fmt.Printf(f, reflect.ValueOf(complex(12, 5)))
 	fmt.Printf(f, reflect.ValueOf(complex(0, 5)))
 	fmt.Printf(f, reflect.ValueOf(complex(12, 0)))
+	fmt.Printf(f, make(chan int))
 
 }
