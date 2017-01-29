@@ -43,6 +43,7 @@ func main() {
 	a = nil
 	fmt.Println(reflect.DeepEqual(nil, a), " ", a == nil)
 	fd()
+	fmt.Printf(f, [...]string{"Ab c", "Def", "G hi"})
 }
 
 func fa(a <-chan int, b chan int) {
@@ -192,7 +193,11 @@ func fd() {
 	if true {
 		var a map[int]string
 		fmt.Printf(f, a)
-		a = map[int]string{1: "abc", 2: "bcd", 3: "efg"}
+		a = make(map[int]string)
+		fmt.Printf(f, a)
+		a[1] = "abc"
+		a[2] = "bcd"
+		a[3] = "ddf"
 		fmt.Printf(f, a)
 		pa := &a
 		fmt.Printf(f, pa)
@@ -249,5 +254,9 @@ func fd() {
 		fmt.Printf(f, up)
 		up = unsafe.Pointer(&a)
 		fmt.Printf(f, up)
+		a = A{a: 100, b: "abc", c: 200.123, d: struct {
+			aa string
+			bb [3]int
+		}{aa: "123", bb: [3]int{0, 0, 0}}}
 	}
 }
