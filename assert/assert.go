@@ -9,28 +9,48 @@ import (
 	"unsafe"
 )
 
-func True(t *testing.T, actual bool, messages ...interface{}) {
+func Equal(t *testing.T, expected, actual interface{}, messages ...interface{}) {
+	caller{1, 1}.Equal(t, expected, actual, messages...)
+}
+
+func Caller(level int) caller {
+	return caller{0, level}
+}
+
+func (c caller) True(t *testing.T, actual bool, messages ...interface{}) {
 	if actual {
 		return
 	}
-	fail(t, true, actual, messages...)
+	fail(c, t, true, actual, messages...)
 }
 
-func False(t *testing.T, actual bool, messages ...interface{}) {
+func (c caller) False(t *testing.T, actual bool, messages ...interface{}) {
 	if !actual {
 		return
 	}
-	fail(t, false, actual, messages...)
+	fail(c, t, false, actual, messages...)
 }
 
-func Equal(t *testing.T, expected, actual interface{}, messages ...interface{}) {
+func (c caller) Equal(t *testing.T, expected, actual interface{}, messages ...interface{}) {
 	if reflect.DeepEqual(expected, actual) {
 		return
 	}
-	fail(t, expected, actual, messages...)
+	fail(c, t, expected, actual, messages...)
 }
 
-func fail(t *testing.T, expected, actual interface{}, messages ...interface{}) {
+//func NotEqual(t *testing.T, expected, actual interface{}, messages ...interface{}) {
+//    if !reflect.DeepEqual(expected, actual) {
+//        return
+//    }
+// TODO
+//    fail(c, t, expected, actual, messages...)
+//}
+
+type caller struct {
+	from, to int
+}
+
+func fail(c caller, t *testing.T, expected, actual interface{}, messages ...interface{}) {
 	var buf FeatureBuf
 	if kHOOK {
 		buf.Write("\t")
@@ -38,7 +58,7 @@ func fail(t *testing.T, expected, actual interface{}, messages ...interface{}) {
 	} else {
 		buf.Write("\n")
 	}
-	writeCodeInfo(&buf)
+	writeCodeInfo(c, &buf)
 	writeVariables(&buf, expected, actual)
 	writeMessages(&buf, messages...)
 	if kHOOK {
@@ -54,48 +74,112 @@ func fail(t *testing.T, expected, actual interface{}, messages ...interface{}) {
 	}
 }
 
-func writeCodeInfo(buf *FeatureBuf) {
-	pc, file, line, ok := runtime.Caller(3)
-	if ok {
-		buf.Writef("%v:%v:", lastPartOf(file), line)
-		if fp := runtime.FuncForPC(pc); fp != nil {
-			buf.Writef(" in %v:", lastPartOf(fp.Name()))
+func narrow(i *int, min, max int) {
+	if *i < min {
+		*i = min
+	}
+	if *i > max {
+		*i = max
+	}
+}
+
+func writeCodeInfo(c caller, buf *FeatureBuf) {
+	narrow(&c.from, 0, 100)
+	narrow(&c.to, c.from, 100)
+	for find := false; c.to >= c.from; c.to-- {
+		if find {
+			buf.NL()
 		}
-	} else {
-		buf.Write("???:1:")
+		pc, file, line, ok := runtime.Caller(3 + c.to)
+		if ok {
+			buf.Writef("%v:%v:", lastPartOf(file), line)
+			if fp := runtime.FuncForPC(pc); fp != nil {
+				buf.Writef(" in %v:", lastPartOf(fp.Name()))
+			}
+			find = true
+		} else if find || c.to == c.from {
+			buf.Write("???:1:")
+		}
 	}
 }
 
 func writeVariables(buf *FeatureBuf, expected, actual interface{}) {
-	e, a := reflect.ValueOf(expected), reflect.ValueOf(actual)
-	var v ValueDiffer
-	v.Tab = buf.Tab + 1
-	v.WriteDiff(e, a)
-	if v.Attrs[NewLine] {
+	if expected == nil {
+		buf.NL().Write("expected:\t").Highlight(nil)
+		buf.NL().Write("  actual:\t")
+		// TODO
+		return
+	} else if actual == nil {
 		buf.NL().Write("expected:\t")
-		if v.Attrs[Omit] {
+		// TODO
+		buf.NL().Write("  actual:\t").Highlight(nil)
+		return
+	}
+	e, a := reflect.ValueOf(expected), reflect.ValueOf(actual)
+	var b1, b2 FeatureBuf
+	b1.Tab = buf.Tab + 1
+	b2.Tab = buf.Tab + 1
+	var nl, omit, fn bool
+	if e.Type() != a.Type() {
+		nl, omit, fn = writeDiffTypeValues(&b1, &b2, e, a)
+	} else {
+		nl, omit, fn = writeDiffValues(&b1, &b2, e, a)
+	}
+	if nl {
+		buf.NL().Write("expected:\t")
+		if omit {
 			buf.Write("(").Highlight("Only diffs are shown").Write(")")
 		}
 		buf.Tab++
-		buf.NL().Write(v.String1())
+		buf.NL().Write(b1.String())
 		buf.Tab--
 		buf.NL().Write("  actual:\t")
 		buf.Tab++
-		buf.NL().Write(v.String2())
-		if v.Attrs[CompFunc] {
-			buf.NL().Write("(").Highlight("func can only be compared to nil").Write(")")
-		}
+		buf.NL().Write(b2.String())
+		//if fn {
+		//    buf.NL().Write("(").Highlight("func can only be compared to nil").Write(")")
+		//}
 		buf.Tab--
 	} else {
-		buf.NL().Writef("expected:\t%v", v.String1())
-		buf.NL().Writef("  actual:\t%v", v.String2())
-		if v.Attrs[Omit] {
+		buf.NL().Writef("expected:\t%v", b1.String())
+		buf.NL().Writef("  actual:\t%v", b2.String())
+		if omit {
 			buf.NL().Write("\t\t(").Highlight("Only diffs are shown").Write(")")
 		}
-		if v.Attrs[CompFunc] {
+		if fn {
 			buf.NL().Write("\t\t(").Highlight("func can only be compared to nil").Write(")")
 		}
 	}
+	/*
+		e, a := reflect.ValueOf(expected), reflect.ValueOf(actual)
+		var v ValueDiffer
+		v.WriteDiff(e, a, buf.Tab+1)
+		if v.Attrs[NewLine] {
+			buf.NL().Write("expected:\t")
+			if v.Attrs[Omit] {
+				buf.Write("(").Highlight("Only diffs are shown").Write(")")
+			}
+			buf.Tab++
+			buf.NL().Write(v.String(0))
+			buf.Tab--
+			buf.NL().Write("  actual:\t")
+			buf.Tab++
+			buf.NL().Write(v.String(0))
+			if v.Attrs[CompFunc] {
+				buf.NL().Write("(").Highlight("func can only be compared to nil").Write(")")
+			}
+			buf.Tab--
+		} else {
+			buf.NL().Writef("expected:\t%v", v.String1())
+			buf.NL().Writef("  actual:\t%v", v.String2())
+			if v.Attrs[Omit] {
+				buf.NL().Write("\t\t(").Highlight("Only diffs are shown").Write(")")
+			}
+			if v.Attrs[CompFunc] {
+				buf.NL().Write("\t\t(").Highlight("func can only be compared to nil").Write(")")
+			}
+		}
+	*/
 }
 
 func writeMessages(buf *FeatureBuf, messages ...interface{}) {
