@@ -67,49 +67,32 @@ func writeCodeInfo(buf *FeatureBuf) {
 }
 
 func writeVariables(buf *FeatureBuf, expected, actual interface{}) {
-	if expected == nil {
-		buf.NL().Write("expected:\t").Highlight(nil)
-		buf.NL().Write("  actual:\t")
-		// TODO
-		return
-	} else if actual == nil {
-		buf.NL().Write("expected:\t")
-		// TODO
-		buf.NL().Write("  actual:\t").Highlight(nil)
-		return
-	}
 	e, a := reflect.ValueOf(expected), reflect.ValueOf(actual)
-	var b1, b2 FeatureBuf
-	b1.Tab = buf.Tab + 1
-	b2.Tab = buf.Tab + 1
-	var nl, omit, fn bool
-	if e.Type() != a.Type() {
-		nl, omit, fn = writeDiffTypeValues(&b1, &b2, e, a)
-	} else {
-		nl, omit, fn = writeDiffValues(&b1, &b2, e, a)
-	}
-	if nl {
+	var v ValueDiffer
+	v.Tab = buf.Tab + 1
+	v.WriteDiff(e, a)
+	if v.Attrs[NewLine] {
 		buf.NL().Write("expected:\t")
-		if omit {
+		if v.Attrs[Omit] {
 			buf.Write("(").Highlight("Only diffs are shown").Write(")")
 		}
 		buf.Tab++
-		buf.NL().Write(b1.String())
+		buf.NL().Write(v.String1())
 		buf.Tab--
 		buf.NL().Write("  actual:\t")
 		buf.Tab++
-		buf.NL().Write(b2.String())
-		//if fn {
-		//    buf.NL().Write("(").Highlight("func can only be compared to nil").Write(")")
-		//}
+		buf.NL().Write(v.String2())
+		if v.Attrs[CompFunc] {
+			buf.NL().Write("(").Highlight("func can only be compared to nil").Write(")")
+		}
 		buf.Tab--
 	} else {
-		buf.NL().Writef("expected:\t%v", b1.String())
-		buf.NL().Writef("  actual:\t%v", b2.String())
-		if omit {
+		buf.NL().Writef("expected:\t%v", v.String1())
+		buf.NL().Writef("  actual:\t%v", v.String2())
+		if v.Attrs[Omit] {
 			buf.NL().Write("\t\t(").Highlight("Only diffs are shown").Write(")")
 		}
-		if fn {
+		if v.Attrs[CompFunc] {
 			buf.NL().Write("\t\t(").Highlight("func can only be compared to nil").Write(")")
 		}
 	}

@@ -55,6 +55,12 @@ func (b *FeatureBuf) Bytes() []byte {
 	return b.buf.Bytes()
 }
 
+func (b *FeatureBuf) Reset() {
+	b.buf.Reset()
+	b.code = ""
+	b.Tab = 0
+}
+
 func (b *FeatureBuf) writeNormalString(s string) *FeatureBuf {
 	if len(s) > 0 {
 		b.normal()
