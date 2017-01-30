@@ -102,6 +102,7 @@ func TestWriteKey(t *testing.T) {
 		testWriteKey(t, "<nil>", []int(nil))
 		testWriteKey(t, "[]", []int{})
 		testWriteKey(t, "[1 2 3]", []int{1, 2, 3})
+		testWriteKey(t, "[\"A bc\" \"De f\" \"Gh\"]", []string{"A bc", "De f", "Gh"})
 		testWriteKey(t, "[[1 2 3] [3 4 5]]", [][3]int{{1, 2, 3}, {3, 4, 5}})
 		testWriteKey(t, "[[1 2 3] [3 4 5]]", [][]int{{1, 2, 3}, {3, 4, 5}})
 		testWriteKey(t, "[map[1:\"abc\"] map[3:\"jjl\"]]", []map[int]string{{1: "abc"}, {3: "jjl"}})
