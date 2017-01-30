@@ -44,6 +44,24 @@ func main() {
 	fmt.Println(reflect.DeepEqual(nil, a), " ", a == nil)
 	fd()
 	fmt.Printf(f, [...]string{"Ab c", "Def", "G hi"})
+	ff()
+	fmt.Printf(f, map[*int]string{})
+}
+
+func ff() {
+	if true {
+		var a A
+		fmt.Printf(f, a)
+		fmt.Println(reflect.ValueOf(a).Type().Name())
+	}
+	if true {
+		a := struct {
+			a int
+			b string
+		}{b: "Ab c"}
+		fmt.Printf(f, a)
+		fmt.Println(reflect.ValueOf(a).Type().Name())
+	}
 }
 
 func fa(a <-chan int, b chan int) {
