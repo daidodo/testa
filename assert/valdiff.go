@@ -60,7 +60,7 @@ func (vd *ValueDiffer) writeHTypeValue(idx int, v reflect.Value) {
 			b.Writef(")(%v)", v)
 		}
 	case reflect.Interface:
-		panic(fmt.Sprintf("Should not come here, v=%T(%#v)", v))
+		panic(fmt.Sprintf("Should not come here, v=%v(%#v)", v.Type(), v))
 	case reflect.Map:
 		vd.writeHTypeValueMap(idx, v)
 	case reflect.Ptr:
@@ -127,7 +127,7 @@ func (vd *ValueDiffer) writeValue(idx int, v reflect.Value) {
 		case reflect.Array:
 			vd.writeValueArray(idx, v)
 		case reflect.Interface:
-			panic(fmt.Sprintf("Should not come here, v=%T(%#v)", v))
+			panic(fmt.Sprintf("Should not come here, v=%v(%#v)", v.Type(), v))
 		case reflect.Map:
 			vd.writeValueMap(idx, v)
 		case reflect.Ptr:
@@ -270,7 +270,7 @@ func (vd *ValueDiffer) writeElem(idx int, v reflect.Value) {
 		case reflect.Array:
 			vd.writeElemArray(idx, v)
 		case reflect.Interface:
-			panic(fmt.Sprintf("Should not come here, v=%T(%#v)", v))
+			panic(fmt.Sprintf("Should not come here, v=%v(%#v)", v.Type(), v))
 		case reflect.Map:
 			vd.writeElemMap(idx, v)
 		case reflect.Slice:
@@ -396,16 +396,24 @@ func (vd *ValueDiffer) writeKey(idx int, v reflect.Value) {
 		case reflect.Array:
 			vd.writeKeyArray(idx, v)
 		case reflect.Interface:
-			panic(fmt.Sprintf("Should not come here, v=%T(%#v)", v))
+			if !v.CanInterface() {
+				b.Write(v)
+			} else {
+				vd.writeKey(idx, reflect.ValueOf(v.Interface()))
+			}
 		case reflect.Map:
 			vd.writeKeyMap(idx, v)
 		case reflect.Ptr:
-			vd.writeKeyPtr(idx, v)
+			if v.IsNil() {
+				b.Write(nil)
+			} else {
+				b.Writef("%#v", v.Pointer())
+			}
 		case reflect.Slice:
 			vd.writeKeySlice(idx, v)
 		case reflect.Struct:
 			vd.writeKeyStruct(idx, v)
-		default: // bool, integer, float, complex, channel, function, unsafe pointer
+		default: // bool, integer, float, complex, channel, function, pointer
 			b.Write(v)
 		}
 	}
@@ -423,19 +431,19 @@ func (vd *ValueDiffer) writeKeyArray(idx int, v reflect.Value) {
 	b.Write("]")
 }
 
-func (vd *ValueDiffer) writeKeyPtr(idx int, v reflect.Value) {
-	b := &vd.b[idx]
-	if v.IsNil() {
-		b.Write(v)
-		return
-	}
-	if e := v.Elem(); isComposite(e.Type()) {
-		b.Write("&")
-		vd.writeKey(idx, e)
-	} else {
-		b.Write(v)
-	}
-}
+//func (vd *ValueDiffer) writeKeyPtr(idx int, v reflect.Value) {
+//    b := &vd.b[idx]
+//    if v.IsNil() {
+//        b.Write(v)
+//        return
+//    }
+//    if e := v.Elem(); isComposite(e.Type()) {
+//        b.Write("&")
+//        vd.writeKey(idx, e)
+//    } else {
+//        b.Write(v)
+//    }
+//}
 
 func (vd *ValueDiffer) writeKeySlice(idx int, v reflect.Value) {
 	b := &vd.b[idx]
@@ -492,6 +500,11 @@ func isComposite(t reflect.Type) bool {
 func isReference(t reflect.Type) bool {
 	k := t.Kind()
 	return isComposite(t) || k == reflect.Chan || k == reflect.Func || k == reflect.Ptr || k == reflect.UnsafePointer
+}
+
+func isTrivial(v reflect.Value) bool {
+	// TODO
+	return false
 }
 
 func structName(v reflect.Value) string {

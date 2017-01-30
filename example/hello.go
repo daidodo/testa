@@ -12,7 +12,7 @@ type A struct {
 	a int
 	b string
 	c float32
-	d struct {
+	d *struct {
 		aa string
 		bb [3]int
 	}
@@ -46,6 +46,33 @@ func main() {
 	fmt.Printf(f, [...]string{"Ab c", "Def", "G hi"})
 	ff()
 	fmt.Printf(f, map[*int]string{})
+	fg()
+	fh()
+}
+
+func fh() {
+	b := make(map[[3]int]bool)
+	b[[3]int{1, 2, 3}] = true
+	b[[3]int{1, 2, 3}] = false
+	fmt.Println(b)
+
+	c := make(map[*[]int]bool)
+	d := []int{1, 2, 3}
+	e := d
+	c[&d] = true
+	c[&e] = false
+	fmt.Println(c)
+}
+
+func fg() {
+	v := reflect.ValueOf(struct {
+		a int
+		b string
+	}{})
+	for i := 0; i < v.NumField(); i++ {
+		t := v.Field(i)
+		fmt.Printf("%v\t%v\t%+v\n", t.CanInterface(), t.Type(), t)
+	}
 }
 
 func ff() {
@@ -258,7 +285,10 @@ func fd() {
 		var a A
 		fmt.Printf(f, a)
 		a = A{a: 100, b: "abc", c: 200.123}
-		a.d.aa = "123"
+		a.d = &struct {
+			aa string
+			bb [3]int
+		}{"123", [3]int{1, 2, 3}}
 		fmt.Printf(f, a)
 		pa := &a
 		fmt.Printf(f, pa)
@@ -272,9 +302,9 @@ func fd() {
 		fmt.Printf(f, up)
 		up = unsafe.Pointer(&a)
 		fmt.Printf(f, up)
-		a = A{a: 100, b: "abc", c: 200.123, d: struct {
+		a = A{a: 100, b: "abc", c: 200.123, d: &struct {
 			aa string
 			bb [3]int
-		}{aa: "123", bb: [3]int{0, 0, 0}}}
+		}{aa: "123", bb: [3]int{1, 2, 3}}}
 	}
 }
