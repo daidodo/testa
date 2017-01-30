@@ -49,6 +49,12 @@ func TestWriteKey(t *testing.T) {
 	// function
 	test("<nil>", (func(int) string)(nil))
 	test("", func(int) string { return "1" })
+	// struct
+	test("{a:0x64 b:[1 2 3] c:<nil>}", struct {
+		a uintptr
+		b interface{}
+		c []byte
+	}{100, []int{1, 2, 3}, nil})
 	// interface
 	test("<nil>", nil)
 	// array
