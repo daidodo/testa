@@ -42,16 +42,6 @@ func TestWriteKey(t *testing.T) {
 	testWriteKey(t, "0x64", uintptr(100))
 	testWriteKey(t, "1.23", 1.23)
 	testWriteKey(t, "(1.23+3.45i)", 1.23+3.45i)
-	// array
-	testWriteKey(t, "[]", [0]int{})
-	testWriteKey(t, "[1 2 3]", [...]int{1, 2, 3})
-	testWriteKey(t, "[[1 2 3] [3 4 5]]", [...][3]int{{1, 2, 3}, {3, 4, 5}})
-	testWriteKey(t, "[[1 2 3] [3 4 5]]", [...][]int{{1, 2, 3}, {3, 4, 5}})
-	testWriteKey(t, "[map[1:\"abc\"] map[3:\"jjl\"]]", [...]map[int]string{{1: "abc"}, {3: "jjl"}})
-	testWriteKey(t, "[{a:1 b:\"abc\"} {a:3 b:\"jjl\"}]", [...]struct {
-		a int
-		b string
-	}{{1, "abc"}, {3, "jjl"}})
 	// channel
 	testWriteKey(t, "<nil>", chan int(nil))
 	testWriteKey(t, "", make(chan int))
@@ -62,15 +52,140 @@ func TestWriteKey(t *testing.T) {
 	testWriteKey(t, "", func(int) string { return "1" })
 	// interface
 	testWriteKey(t, "<nil>", nil)
+	// array
+	if true {
+		testWriteKey(t, "[]", [0]int{})
+		testWriteKey(t, "[1 2 3]", [...]int{1, 2, 3})
+		testWriteKey(t, "[[1 2 3] [3 4 5]]", [...][3]int{{1, 2, 3}, {3, 4, 5}})
+		testWriteKey(t, "[[1 2 3] [3 4 5]]", [...][]int{{1, 2, 3}, {3, 4, 5}})
+		testWriteKey(t, "[map[1:\"abc\"] map[3:\"jjl\"]]", [...]map[int]string{{1: "abc"}, {3: "jjl"}})
+		testWriteKey(t, "[{a:1 b:\"abc\"} {a:3 b:\"jjl\"}]", [...]struct {
+			a int
+			b string
+		}{{1, "abc"}, {3, "jjl"}})
+		testWriteKey(t, "[<nil>]", [...]*int{nil})
+		a := 100
+		testWriteKey(t, fmt.Sprintf("[%v <nil> %[1]v]", &a), [...]*int{&a, nil, &a})
+		testWriteKey(t, "[&[1 2 3] <nil> &[3 4 5]]", [...]*[3]int{&[3]int{1, 2, 3}, nil, &[3]int{3, 4, 5}})
+		testWriteKey(t, "[&[1 2 3] <nil> &[3 4 5]]", [...]*[]int{&[]int{1, 2, 3}, nil, &[]int{3, 4, 5}})
+		testWriteKey(t, "[&map[1:\"abc\"] <nil> &map[3:\"jjl\"]]", [...]*map[int]string{&map[int]string{1: "abc"}, nil, &map[int]string{3: "jjl"}})
+		testWriteKey(t, "[&{a:1 b:\"abc\"} <nil> &{a:3 b:\"jjl\"}]", [...]*struct {
+			a int
+			b string
+		}{&struct {
+			a int
+			b string
+		}{1, "abc"}, nil, &struct {
+			a int
+			b string
+		}{3, "jjl"}})
+		b := &a
+		testWriteKey(t, fmt.Sprintf("[%v <nil> %[1]v]", &b), [...]**int{&b, nil, &b})
+		c := &[3]int{1, 2, 3}
+		testWriteKey(t, fmt.Sprintf("[%v <nil>]", &c), [...]**[3]int{&c, nil})
+		d := &[]int{1, 2, 3}
+		testWriteKey(t, fmt.Sprintf("[%v <nil>]", &d), [...]**[]int{&d, nil})
+		e := &map[int]string{1: "abc"}
+		testWriteKey(t, fmt.Sprintf("[%v <nil>]", &e), [...]**map[int]string{&e, nil})
+		f := &struct {
+			a int
+			b string
+		}{1, "abc"}
+		testWriteKey(t, fmt.Sprintf("[%v <nil>]", &f), [...]**struct {
+			a int
+			b string
+		}{&f, nil})
+	}
+	// slice
+	if true {
+		testWriteKey(t, "<nil>", []int(nil))
+		testWriteKey(t, "[]", []int{})
+		testWriteKey(t, "[1 2 3]", []int{1, 2, 3})
+		testWriteKey(t, "[[1 2 3] [3 4 5]]", [][3]int{{1, 2, 3}, {3, 4, 5}})
+		testWriteKey(t, "[[1 2 3] [3 4 5]]", [][]int{{1, 2, 3}, {3, 4, 5}})
+		testWriteKey(t, "[map[1:\"abc\"] map[3:\"jjl\"]]", []map[int]string{{1: "abc"}, {3: "jjl"}})
+		testWriteKey(t, "[{a:1 b:\"abc\"} {a:3 b:\"jjl\"}]", []struct {
+			a int
+			b string
+		}{{1, "abc"}, {3, "jjl"}})
+		testWriteKey(t, "[<nil>]", []*int{nil})
+		a := 100
+		testWriteKey(t, fmt.Sprintf("[%v <nil> %[1]v]", &a), []*int{&a, nil, &a})
+		testWriteKey(t, "[&[1 2 3] <nil> &[3 4 5]]", []*[3]int{&[3]int{1, 2, 3}, nil, &[3]int{3, 4, 5}})
+		testWriteKey(t, "[&[1 2 3] <nil> &[3 4 5]]", []*[]int{&[]int{1, 2, 3}, nil, &[]int{3, 4, 5}})
+		testWriteKey(t, "[&map[1:\"abc\"] <nil> &map[3:\"jjl\"]]", []*map[int]string{&map[int]string{1: "abc"}, nil, &map[int]string{3: "jjl"}})
+		testWriteKey(t, "[&{a:1 b:\"abc\"} <nil> &{a:3 b:\"jjl\"}]", []*struct {
+			a int
+			b string
+		}{&struct {
+			a int
+			b string
+		}{1, "abc"}, nil, &struct {
+			a int
+			b string
+		}{3, "jjl"}})
+		b := &a
+		testWriteKey(t, fmt.Sprintf("[%v <nil> %[1]v]", &b), []**int{&b, nil, &b})
+		c := &[3]int{1, 2, 3}
+		testWriteKey(t, fmt.Sprintf("[%v <nil>]", &c), []**[3]int{&c, nil})
+		d := &[]int{1, 2, 3}
+		testWriteKey(t, fmt.Sprintf("[%v <nil>]", &d), []**[]int{&d, nil})
+		e := &map[int]string{1: "abc"}
+		testWriteKey(t, fmt.Sprintf("[%v <nil>]", &e), []**map[int]string{&e, nil})
+		f := &struct {
+			a int
+			b string
+		}{1, "abc"}
+		testWriteKey(t, fmt.Sprintf("[%v <nil>]", &f), []**struct {
+			a int
+			b string
+		}{&f, nil})
+	}
 	// map
-	testWriteKey(t, "<nil>", map[int]string(nil))
-	testWriteKey(t, "map[]", map[int]string{})
-	testWriteKey(t, "map[1:\"abc\"]", map[int]string{1: "abc"})
-	testWriteKey(t, "map[[1 2]:\"abc\"]", map[[2]int]string{{1, 2}: "abc"})
-	testWriteKey(t, "map[{a:1 b:\"kkk\"}:\"abc\"]", map[struct {
-		a int
-		b string
-	}]string{{1, "kkk"}: "abc"})
+	if true {
+		testWriteKey(t, "<nil>", map[int]string(nil))
+		testWriteKey(t, "map[]", map[int]string{})
+		testWriteKey(t, "map[1:\"abc\"]", map[int]string{1: "abc"})
+		testWriteKey(t, "map[[1 2]:\"abc\"]", map[[2]int]string{{1, 2}: "abc"})
+		testWriteKey(t, "map[{a:1 b:\"kkk\"}:\"abc\"]", map[struct {
+			a int
+			b string
+		}]string{{1, "kkk"}: "abc"})
+		testWriteKey(t, "map[<nil>:\"abc\"]", map[*int]string{nil: "abc"})
+		a := 100
+		testWriteKey(t, fmt.Sprintf("map[%v:\"abc\"]", &a), map[*int]string{&a: "abc"})
+		testWriteKey(t, "map[<nil>:\"abc\"]", map[*[3]int]string{nil: "abc"})
+		testWriteKey(t, "map[&[2 3 4]:\"abc\"]", map[*[3]int]string{&[3]int{2, 3, 4}: "abc"})
+		testWriteKey(t, "map[<nil>:\"abc\"]", map[*[]int]string{nil: "abc"})
+		testWriteKey(t, "map[&[2 3 4]:\"abc\"]", map[*[]int]string{&[]int{2, 3, 4}: "abc"})
+		testWriteKey(t, "map[<nil>:\"abc\"]", map[*map[float64]int]string{nil: "abc"})
+		testWriteKey(t, "map[&map[100.456:2]:\"abc\"]", map[*map[float64]int]string{&map[float64]int{100.456: 2}: "abc"})
+		testWriteKey(t, "map[<nil>:\"abc\"]", map[*struct {
+			a int
+			b string
+		}]string{nil: "abc"})
+		testWriteKey(t, "map[&{a:1 b:\"kkk\"}:\"abc\"]", map[*struct {
+			a int
+			b string
+		}]string{&struct {
+			a int
+			b string
+		}{1, "kkk"}: "abc"})
+		b := &[3]int{2, 3, 4}
+		testWriteKey(t, fmt.Sprintf("map[%v:\"abc\"]", &b), map[**[3]int]string{&b: "abc"})
+		c := &[]int{2, 3, 4}
+		testWriteKey(t, fmt.Sprintf("map[%v:\"abc\"]", &c), map[**[]int]string{&c: "abc"})
+		d := &map[float64]int{100.456: 2}
+		testWriteKey(t, fmt.Sprintf("map[%v:\"abc\"]", &d), map[**map[float64]int]string{&d: "abc"})
+		e := &struct {
+			a int
+			b string
+		}{1, "kkk"}
+		testWriteKey(t, fmt.Sprintf("map[%v:\"abc\"]", &e), map[**struct {
+			a int
+			b string
+		}]string{&e: "abc"})
+	}
 	// pointer
 	if true {
 		a := true
