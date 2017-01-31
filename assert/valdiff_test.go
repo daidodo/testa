@@ -24,6 +24,50 @@ func TestStructName(t *testing.T) {
 }
 
 func TestWriteKey(t *testing.T) {
+	eq := func(e string, a interface{}) {
+		var v ValueDiffer
+		v.writeKey(0, reflect.ValueOf(a))
+		Caller(1).Equal(t, e, v.String(0))
+	}
+	ep := func(e string, a interface{}) {
+		var v ValueDiffer
+		v.writeKey(0, reflect.ValueOf(a))
+		Caller(1).Equal(t, fmt.Sprintf(e, a), v.String(0))
+	}
+	// nil
+	eq("<nil>", nil)
+	// bool
+	eq("true", true)
+	eq("false", false)
+	// number
+	eq("100", int(100))
+	eq("100", int8(100))
+	eq("100", int16(100))
+	eq("100", int32(100))
+	eq("100", int64(100))
+	eq("100", uint(100))
+	eq("100", uint8(100))
+	eq("100", uint16(100))
+	eq("100", uint32(100))
+	eq("100", uint64(100))
+	eq("0x64", uintptr(100))
+	eq("1.23", float32(1.23))
+	eq("1.23", float64(1.23))
+	eq("(1.23+3.45i)", complex(float32(1.23), float32(3.45)))
+	eq("(1.23+3.45i)", complex(float64(1.23), float64(3.45)))
+	// string
+	eq("A bc", string("A bc"))
+	// channel
+	eq("<nil>", chan int(nil))
+	ep("%v", make(chan int))
+	ep("%v", make(<-chan int))
+	ep("%v", make(chan<- int))
+	// function
+	eq("<nil>", (func(int) string)(nil))
+	ep("%v", func(int) string { return "1" })
+	// interface
+	eq("<nil>", interface{}(nil))
+
 	test := func(e string, a interface{}) {
 		var v ValueDiffer
 		v.writeKey(0, reflect.ValueOf(a))
@@ -32,31 +76,12 @@ func TestWriteKey(t *testing.T) {
 		}
 		Caller(1).Equal(t, e, v.String(0))
 	}
-	// bool
-	test("true", true)
-	test("false", false)
-	// number
-	test("100", 100)
-	test("100", uint(100))
-	test("0x64", uintptr(100))
-	test("1.23", 1.23)
-	test("(1.23+3.45i)", 1.23+3.45i)
-	// channel
-	test("<nil>", chan int(nil))
-	test("", make(chan int))
-	test("", make(<-chan int))
-	test("", make(chan<- int))
-	// function
-	test("<nil>", (func(int) string)(nil))
-	test("", func(int) string { return "1" })
 	// struct
 	test("{a:0x64 b:[1 2 3] c:<nil>}", struct {
 		a uintptr
 		b interface{}
 		c []byte
 	}{100, []int{1, 2, 3}, nil})
-	// interface
-	test("<nil>", nil)
 	// array
 	if true {
 		test("[]", [0]int{})
@@ -142,11 +167,11 @@ func TestWriteKey(t *testing.T) {
 				}{a})
 				var v ValueDiffer
 				v.writeKey(0, b.Field(0))
-				Equal(t, e, v.String(0))
+				Caller(1).Equal(t, e, v.String(0))
 			}
 			test("100", 100)
 			test("100", uint(100))
-			test("100", uintptr(100))
+			test("0x64", uintptr(100))
 			// TODO
 		}
 	}
