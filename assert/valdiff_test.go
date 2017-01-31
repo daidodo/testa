@@ -172,14 +172,16 @@ func TestWriteKey(t *testing.T) {
 	ep("[] [<nil> %[3]v] %[3]v <nil>", []interface{}{}, []interface{}{nil, j}, j, []interface{}(nil))
 	//TODO
 	// map
+	eq("<nil> map[] map[100:101]", map[int]int(nil), map[int]int{}, map[int]int{100: 101}) // TODO
 	eq("<nil> map[] map[100:101]", map[uint]int(nil), map[uint]int{}, map[uint]int{100: 101})
-	eq("<nil> map[] map[0x64:101]", map[uintptr]int(nil), map[uintptr]int{}, map[uintptr]int{100: 101})
-	eq("<nil> map[] map[100.123:101]", map[float64]int(nil), map[float64]int{}, map[float64]int{100.123: 101})
-	eq("<nil> map[] map[(100.1+200.2i):101]", map[complex128]int(nil), map[complex128]int{}, map[complex128]int{100.1 + 200.2i: 101})
-	eq(`<nil> map[] map["A bc":101]`, map[string]int(nil), map[string]int{}, map[string]int{"A bc": 101})
-	ep("<nil> map[] map[%[4]p:101] %[4]p", map[chan int]int(nil), map[chan int]int{}, map[chan int]int{g: 101}, g)
-	ep("<nil> map[] map[%[4]p:101] %[4]p", map[unsafe.Pointer]int(nil), map[unsafe.Pointer]int{}, map[unsafe.Pointer]int{i: 101}, i)
-	eq("<nil> map[] map[2017:101]", map[interface{}]int(nil), map[interface{}]int{}, map[interface{}]int{j: 101})
+	eq("<nil> map[] map[0x64:101]", map[uintptr]uint(nil), map[uintptr]uint{}, map[uintptr]uint{100: 101})
+	eq("<nil> map[] map[100.123:0x65]", map[float64]uintptr(nil), map[float64]uintptr{}, map[float64]uintptr{100.123: 101})
+	eq("<nil> map[] map[(100.1+200.2i):101.123]", map[complex128]float64(nil), map[complex128]float64{}, map[complex128]float64{100.1 + 200.2i: 101.123})
+	eq(`<nil> map[] map["A bc":(300.3+0i)]`, map[string]complex128(nil), map[string]complex128{}, map[string]complex128{"A bc": 100.1 + 200.2})
+	ep(`<nil> map[] map[%[4]p:"A bc"] %[4]p`, map[chan int]string(nil), map[chan int]string{}, map[chan int]string{g: "A bc"}, g)
+	//map[func(int)string]...
+	ep("<nil> map[] map[%[4]p:%[5]p] %[4]p %[5]p", map[unsafe.Pointer]chan int(nil), map[unsafe.Pointer]chan int{}, map[unsafe.Pointer]chan int{i: g}, i, g)
+	ep("<nil> map[] map[2017:%[4]p] %[4]p", map[interface{}]func(int) string(nil), map[interface{}]func(int) string{}, map[interface{}]func(int) string{j: h}, h)
 	// struct
 	// reflect.Value
 
