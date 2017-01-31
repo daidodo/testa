@@ -46,8 +46,11 @@ func main() {
 	fmt.Printf(f, [...]string{"Ab c", "Def", "G hi"})
 	ff()
 	fmt.Printf(f, map[*int]string{})
-	fg()
 	fh()
+	fg()
+	var b interface{} = &a
+	fmt.Printf(f, b)
+
 }
 
 func fh() {
@@ -66,13 +69,14 @@ func fh() {
 
 func fg() {
 	v := reflect.ValueOf(struct {
-		a int
-		b string
-	}{})
-	for i := 0; i < v.NumField(); i++ {
-		t := v.Field(i)
-		fmt.Printf("%v\t%v\t%+v\n", t.CanInterface(), t.Type(), t)
-	}
+		a interface{}
+	}{int32(100)})
+	b := v.Field(0)
+	a := b.Elem()
+	fmt.Printf(f, a)
+	fmt.Printf(f, a.Kind())
+	fmt.Printf(f, a.Type())
+	fmt.Printf(f, a.CanInterface())
 }
 
 func ff() {
