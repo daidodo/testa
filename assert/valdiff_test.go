@@ -24,49 +24,164 @@ func TestStructName(t *testing.T) {
 }
 
 func TestWriteKey(t *testing.T) {
-	eq := func(e string, a interface{}) {
-		var v ValueDiffer
-		v.writeKey(0, reflect.ValueOf(a))
-		Caller(1).Equal(t, e, v.String(0))
+	eq := func(e string, xx ...interface{}) {
+		if true { // value
+			var v ValueDiffer
+			for i, x := range xx {
+				if i > 0 {
+					v.b[0].Write(" ")
+				}
+				v.writeKey(0, reflect.ValueOf(x))
+			}
+			Caller(1).Equal(t, e, v.String(0))
+		}
+		if true { // interface
+			var v ValueDiffer
+			for i, x := range xx {
+				if i > 0 {
+					v.b[0].Write(" ")
+					v.b[1].Write(" ")
+				}
+				s := reflect.ValueOf(struct {
+					A interface{}
+					a interface{}
+				}{x, x})
+				v.writeKey(0, s.Field(0))
+				v.writeKey(1, s.Field(1))
+			}
+			Caller(1).Equal(t, e, v.String(0))
+			Caller(1).Equal(t, e, v.String(1))
+		}
 	}
-	ep := func(e string, a interface{}) {
-		var v ValueDiffer
-		v.writeKey(0, reflect.ValueOf(a))
-		Caller(1).Equal(t, fmt.Sprintf(e, a), v.String(0))
+	ep := func(e string, xx ...interface{}) {
+		e = fmt.Sprintf(e, xx...)
+		if true { // value
+			var v ValueDiffer
+			for i, x := range xx {
+				if i > 0 {
+					v.b[0].Write(" ")
+				}
+				v.writeKey(0, reflect.ValueOf(x))
+			}
+			Caller(1).Equal(t, e, v.String(0))
+		}
+		if true { // interface
+			var v ValueDiffer
+			for i, x := range xx {
+				if i > 0 {
+					v.b[0].Write(" ")
+					v.b[1].Write(" ")
+				}
+				s := reflect.ValueOf(struct {
+					A interface{}
+					a interface{}
+				}{x, x})
+				v.writeKey(0, s.Field(0))
+				v.writeKey(1, s.Field(1))
+			}
+			Caller(1).Equal(t, e, v.String(0))
+			Caller(1).Equal(t, e, v.String(1))
+		}
 	}
+	a := int(100)
+	pa := &a
+	b := uint(100)
+	pb := &b
+	c := uintptr(100)
+	pc := &c
+	d := float64(1.23)
+	pd := &d
+	e := complex(float64(1.23), float64(3.45))
+	pe := &e
+	f := string("A bc")
+	pf := &f
+	g := make(chan int)
+	pg := &g
+	h := func(int) string { return "1" }
+	ph := &h
+	i := unsafe.Pointer(pa)
+	pi := &i
+	j := interface{}(2017)
+	pj := &j
 	// nil
 	eq("<nil>", nil)
 	// bool
 	eq("true", true)
 	eq("false", false)
 	// number
-	eq("100", int(100))
+	eq("100", a)
 	eq("100", int8(100))
 	eq("100", int16(100))
 	eq("100", int32(100))
 	eq("100", int64(100))
-	eq("100", uint(100))
+	eq("100", b)
 	eq("100", uint8(100))
 	eq("100", uint16(100))
 	eq("100", uint32(100))
 	eq("100", uint64(100))
-	eq("0x64", uintptr(100))
+	eq("0x64", c)
 	eq("1.23", float32(1.23))
-	eq("1.23", float64(1.23))
+	eq("1.23", d)
 	eq("(1.23+3.45i)", complex(float32(1.23), float32(3.45)))
-	eq("(1.23+3.45i)", complex(float64(1.23), float64(3.45)))
+	eq("(1.23+3.45i)", e)
 	// string
-	eq("A bc", string("A bc"))
+	eq(`"A bc"`, f) // TODO: A bc?
 	// channel
 	eq("<nil>", chan int(nil))
-	ep("%v", make(chan int))
-	ep("%v", make(<-chan int))
-	ep("%v", make(chan<- int))
+	ep("%p", g)
+	ep("%p", make(<-chan int))
+	ep("%p", make(chan<- int))
 	// function
 	eq("<nil>", (func(int) string)(nil))
-	ep("%v", func(int) string { return "1" })
+	ep("%p", h)
 	// interface
-	eq("<nil>", interface{}(nil))
+	eq("2017", j)
+	// pointer
+	eq("<nil>", unsafe.Pointer(nil))
+	ep("<nil> %[2]p <nil> %[4]p %[5]p", (*int)(nil), pa, (**int)(nil), &pa, unsafe.Pointer(pa))
+	ep("<nil> %[2]p <nil> %[4]p %[5]p", (*uint)(nil), pb, (**uint)(nil), &pb, unsafe.Pointer(pb))
+	ep("<nil> %[2]p <nil> %[4]p %[5]p", (*uintptr)(nil), pc, (**uintptr)(nil), &pc, unsafe.Pointer(pc))
+	ep("<nil> %[2]p <nil> %[4]p %[5]p", (*float64)(nil), pd, (**float64)(nil), &pd, unsafe.Pointer(pd))
+	ep("<nil> %[2]p <nil> %[4]p %[5]p", (*complex64)(nil), pe, (**complex64)(nil), &pe, unsafe.Pointer(pe))
+	ep("<nil> %[2]p <nil> %[4]p %[5]p", (*string)(nil), pf, (**string)(nil), &pf, unsafe.Pointer(pf))
+	ep("<nil> %[2]p <nil> %[4]p %[5]p", (*chan int)(nil), pg, (**chan int)(nil), &pg, unsafe.Pointer(pg))
+	ep("<nil> %[2]p <nil> %[4]p %[5]p", (*func(int) string)(nil), ph, (**func(int) string)(nil), &ph, unsafe.Pointer(ph))
+	ep("<nil> %[2]p <nil> %[4]p %[5]p", (*unsafe.Pointer)(nil), pi, (**unsafe.Pointer)(nil), &pi, unsafe.Pointer(pi))
+	ep("<nil> %[2]p <nil> %[4]p %[5]p", (*interface{})(nil), pj, (**interface{})(nil), &pj, unsafe.Pointer(pj))
+	//TODO
+	// array & slice
+	eq("[] [101 102 103]", [...]int{}, [...]int{101, 102, 103})
+	eq("[] [101 102 103] <nil>", []int{}, []int{101, 102, 103}, []int(nil))
+	eq("[] [101 102 103]", [...]uint{}, [...]uint{101, 102, 103})
+	eq("[] [101 102 103] <nil>", []uint{}, []uint{101, 102, 103}, []uint(nil))
+	eq("[] [0x65 0x66 0x67]", [...]uintptr{}, [...]uintptr{101, 102, 103})
+	eq("[] [0x65 0x66 0x67] <nil>", []uintptr{}, []uintptr{101, 102, 103}, []uintptr(nil))
+	eq("[] [101.123 102.234 103.345]", [...]float64{}, [...]float64{101.123, 102.234, 103.345})
+	eq("[] [101.123 102.234 103.345] <nil>", []float64{}, []float64{101.123, 102.234, 103.345}, []float64(nil))
+	eq("[] [(101.1+102.2i) (103.3+104.4i)]", [...]complex128{}, [...]complex128{101.1 + 102.2i, 103.3 + 104.4i})
+	eq("[] [(101.1+102.2i) (103.3+104.4i)] <nil>", []complex128{}, []complex128{101.1 + 102.2i, 103.3 + 104.4i}, []complex128(nil))
+	eq(`[] ["A bc" "De f" "Gh"]`, [...]string{}, [...]string{"A bc", "De f", "Gh"})
+	eq(`[] ["A bc" "De f" "Gh"] <nil>`, []string{}, []string{"A bc", "De f", "Gh"}, []string(nil))
+	ep("[] [<nil> %[3]v] %[3]v", [...]chan int{}, [...]chan int{nil, g}, g)
+	ep("[] [<nil> %[3]v] %[3]v <nil>", []chan int{}, []chan int{nil, g}, g, []chan int(nil))
+	ep("[] [<nil> %[3]v] %[3]v", [...]func(int) string{}, [...]func(int) string{nil, h}, h)
+	ep("[] [<nil> %[3]v] %[3]v <nil>", []func(int) string{}, []func(int) string{nil, h}, h, []func(int) string(nil))
+	ep("[] [<nil> %[3]v] %[3]v", [...]unsafe.Pointer{}, [...]unsafe.Pointer{nil, i}, i)
+	ep("[] [<nil> %[3]v] %[3]v <nil>", []unsafe.Pointer{}, []unsafe.Pointer{nil, i}, i, []unsafe.Pointer(nil))
+	ep("[] [<nil> %[3]v] %[3]v", [...]interface{}{}, [...]interface{}{nil, j}, j)
+	ep("[] [<nil> %[3]v] %[3]v <nil>", []interface{}{}, []interface{}{nil, j}, j, []interface{}(nil))
+	//TODO
+	// map
+	eq("<nil> map[] map[100:101]", map[uint]int(nil), map[uint]int{}, map[uint]int{100: 101})
+	eq("<nil> map[] map[0x64:101]", map[uintptr]int(nil), map[uintptr]int{}, map[uintptr]int{100: 101})
+	eq("<nil> map[] map[100.123:101]", map[float64]int(nil), map[float64]int{}, map[float64]int{100.123: 101})
+	eq("<nil> map[] map[(100.1+200.2i):101]", map[complex128]int(nil), map[complex128]int{}, map[complex128]int{100.1 + 200.2i: 101})
+	eq(`<nil> map[] map["A bc":101]`, map[string]int(nil), map[string]int{}, map[string]int{"A bc": 101})
+	ep("<nil> map[] map[%[4]p:101] %[4]p", map[chan int]int(nil), map[chan int]int{}, map[chan int]int{g: 101}, g)
+	ep("<nil> map[] map[%[4]p:101] %[4]p", map[unsafe.Pointer]int(nil), map[unsafe.Pointer]int{}, map[unsafe.Pointer]int{i: 101}, i)
+	eq("<nil> map[] map[2017:101]", map[interface{}]int(nil), map[interface{}]int{}, map[interface{}]int{j: 101})
+	// struct
+	// reflect.Value
 
 	test := func(e string, a interface{}) {
 		var v ValueDiffer
