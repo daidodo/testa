@@ -396,10 +396,10 @@ func (vd *ValueDiffer) writeKey(idx int, v reflect.Value) {
 		case reflect.Array:
 			vd.writeKeyArray(idx, v)
 		case reflect.Interface:
-			if !v.CanInterface() {
-				b.Write(v)
+			if v.IsNil() {
+				b.Write(nil)
 			} else {
-				vd.writeKey(idx, reflect.ValueOf(v.Interface()))
+				vd.writeKey(idx, v.Elem())
 			}
 		case reflect.Map:
 			vd.writeKeyMap(idx, v)
