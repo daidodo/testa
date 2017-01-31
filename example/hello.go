@@ -48,8 +48,10 @@ func main() {
 	fmt.Printf(f, map[*int]string{})
 	fh()
 	fg()
-	var b interface{} = &a
+	var b interface{} = &[]int{1, 2, 3}
 	fmt.Printf(f, b)
+	b = []int{1, 2, 3}
+	fmt.Printf(f, &b)
 
 }
 
