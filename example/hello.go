@@ -67,6 +67,17 @@ func fh() {
 	c[&d] = true
 	c[&e] = false
 	fmt.Println(c)
+
+	ff := make(map[reflect.Value]bool)
+	f1, f2 := reflect.ValueOf(b), reflect.ValueOf(b)
+	ff[f1] = true
+	ff[f2] = false
+	fmt.Printf(f, ff)
+
+	v1 := reflect.ValueOf(b)
+	v2 := reflect.ValueOf(v1)
+	fmt.Printf(f, v1)
+	fmt.Printf(f, v2)
 }
 
 func fg() {
