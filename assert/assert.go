@@ -243,11 +243,30 @@ func writeDiffValues(b1, b2 *FeatureBuf, v1, v2 reflect.Value) (nl, omit, fn boo
 		fn = writeDiffFuncValue(b1, b2, v1, v2)
 	case reflect.Map:
 		writeDiffMapValue(b1, b2, v1, v2)
+	case reflect.String:
+		writeDiffStringValue(b1, b2, v1, v2)
 	default:
 		b1.Highlightf("%#v", v1)
 		b2.Highlightf("%#v", v2)
 	}
 	return
+}
+
+func writeDiffStringValue(b1, b2 *FeatureBuf, v1, v2 reflect.Value) {
+	s1, s2 := fmt.Sprintf("%#v", v1), fmt.Sprintf("%#v", v2)
+	for i := 0; i < len(s1) || i < len(s2); i++ {
+		if i >= len(s1) {
+			b2.Highlight(s2[i:])
+		} else if i >= len(s2) {
+			b1.Highlight(s1[i:])
+		} else if s1[i] == s2[i] {
+			b1.Write(s1[i : i+1])
+			b2.Write(s2[i : i+1])
+		} else {
+			b1.Highlight(s1[i : i+1])
+			b2.Highlight(s2[i : i+1])
+		}
+	}
 }
 
 func writeDiffMapValue(b1, b2 *FeatureBuf, v1, v2 reflect.Value) {
