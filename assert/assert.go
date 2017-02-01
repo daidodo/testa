@@ -257,8 +257,10 @@ func writeDiffStringValue(b1, b2 *FeatureBuf, v1, v2 reflect.Value) {
 	for i := 0; i < len(s1) || i < len(s2); i++ {
 		if i >= len(s1) {
 			b2.Highlight(s2[i:])
+			break
 		} else if i >= len(s2) {
 			b1.Highlight(s1[i:])
+			break
 		} else if s1[i] == s2[i] {
 			b1.Write(s1[i : i+1])
 			b2.Write(s2[i : i+1])
