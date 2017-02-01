@@ -460,7 +460,11 @@ func (vd *ValueDiffer) writeKeyMap(idx int, v reflect.Value) {
 		b.Write(nil)
 		return
 	}
-	b.Write("map[")
+	ks := v.MapKeys()
+	if len(ks) < 1 {
+		b.Write("map")
+	}
+	b.Write("[")
 	for i, k := range v.MapKeys() {
 		if i > 0 {
 			b.Write(" ")
