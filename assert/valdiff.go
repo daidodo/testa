@@ -7,13 +7,15 @@ import (
 
 const (
 	NewLine = iota
-	Omit
+	OmitSame
 	CompFunc
+
+	kAttrSize
 )
 
 type ValueDiffer struct {
 	b     [2]FeatureBuf
-	Attrs map[int]bool
+	Attrs [kAttrSize]bool
 }
 
 func (vd *ValueDiffer) String(i int) string {
@@ -86,7 +88,7 @@ func (vd *ValueDiffer) writeHTypeValueArray(idx int, v reflect.Value) {
 				if id {
 					b.Write(i, ":")
 				}
-				vd.writeValue(idx, v.Index(i))
+				vd.writeValue(idx, v.Index(i)) // writeElem?
 			}
 			b.Tab--
 			b.NL()
@@ -99,7 +101,7 @@ func (vd *ValueDiffer) writeHTypeValueArray(idx int, v reflect.Value) {
 				if id {
 					b.Write(i, ":")
 				}
-				vd.writeValue(idx, v.Index(i))
+				vd.writeValue(idx, v.Index(i)) // TODO: writeElem?
 			}
 		}
 	}
@@ -118,6 +120,7 @@ func (vd *ValueDiffer) writeHTypeValuePtr(idx int, v reflect.Value) {
 func (vd *ValueDiffer) writeHTypeValueStruct(idx int, v reflect.Value) {
 }
 
+// TODO: writeField?
 func (vd *ValueDiffer) writeValue(idx int, v reflect.Value) {
 	b := &vd.b[idx]
 	if !v.IsValid() {
@@ -186,6 +189,18 @@ func (vd *ValueDiffer) writeValueArray(idx int, v reflect.Value) {
 
 func (vd *ValueDiffer) writeValuePtr(idx int, v reflect.Value) {
 }
+
+//func (vd *ValueDiffer) writeElemPtr(idx int, v reflect.Value) {
+//    b := &vd.b[idx]
+//    if v.IsNil() {
+//        b.Write(v)
+//    } else if e := v.Elem(); isComposite(e.Type()) {
+//        b.Write("&")
+//        vd.writeElem(idx, e)
+//    } else {
+//        b.Write(v)
+//    }
+//}
 
 func (vd *ValueDiffer) writeValueSlice(idx int, v reflect.Value) {
 	b := &vd.b[idx]
@@ -267,14 +282,18 @@ func (vd *ValueDiffer) writeElem(idx int, v reflect.Value) {
 		b.Write(nil)
 	} else {
 		switch v.Kind() {
+		case reflect.Interface:
+			if v.IsNil() {
+				b.Write(nil)
+			} else {
+				vd.writeElem(idx, v.Elem())
+			}
 		case reflect.Array:
 			vd.writeElemArray(idx, v)
-		case reflect.Interface:
-			panic(fmt.Sprintf("Should not come here, v=%v(%#v)", v.Type(), v))
-		case reflect.Map:
-			vd.writeElemMap(idx, v)
 		case reflect.Slice:
 			vd.writeElemSlice(idx, v)
+		case reflect.Map:
+			vd.writeElemMap(idx, v)
 		case reflect.Struct:
 			vd.writeElemStruct(idx, v)
 		default: // bool, integer, float, complex, channel, function, pointer, string
@@ -288,32 +307,38 @@ func (vd *ValueDiffer) writeElemArray(idx int, v reflect.Value) {
 	var id, tp, ml bool
 	if v.Len() > 0 {
 		id = v.Len() > 10
-		t := v.Index(0).Type()
-		tp = isReference(t)
-		if isComposite(t) {
-			for i := 0; i < v.Len() && !ml; i++ {
-				ml = !v.Index(i).IsNil()
-			}
+		for i := 0; i < v.Len() && !ml; i++ {
+			ml = isNonTrivialElem(v.Index(i))
 		}
-	}
-	if tp {
-		b.Write(v.Type())
+		tp = id || ml || isReference(v.Type().Elem())
 	}
 	if ml {
-		b.Write("{")
+		b.Write(v.Type(), "{")
 		b.Tab++
+		p := false
 		for i := 0; i < v.Len(); i++ {
-			b.NL()
+			e := v.Index(i)
+			t := isNonTrivialElem(e)
+			t, p = (id || i == 0 || p || t), t
+			if i > 0 {
+				b.Write(",")
+			}
+			if t {
+				b.NL()
+			} else {
+				b.Write(" ")
+			}
+
 			if id {
 				b.Write(i, ":")
 			}
-			vd.writeElem(idx, v.Index(i))
+			vd.writeElem(idx, e)
 		}
 		b.Tab--
 		b.NL().Write("}")
 		vd.Attrs[NewLine] = true
 	} else if id {
-		b.Write("{")
+		b.Write(v.Type(), "{")
 		for i := 0; i < v.Len(); i++ {
 			if i > 0 {
 				b.Write(", ")
@@ -322,11 +347,20 @@ func (vd *ValueDiffer) writeElemArray(idx int, v reflect.Value) {
 			vd.writeElem(idx, v.Index(i))
 		}
 		b.Write("}")
+	} else if tp {
+		b.Write(v.Type(), "{")
+		for i := 0; i < v.Len(); i++ {
+			if i > 0 {
+				b.Write(", ")
+			}
+			vd.writeElem(idx, v.Index(i))
+		}
+		b.Write("}")
 	} else {
 		b.Write("[")
 		for i := 0; i < v.Len(); i++ {
 			if i > 0 {
-				b.Write(", ")
+				b.Write(" ")
 			}
 			vd.writeElem(idx, v.Index(i))
 		}
@@ -334,40 +368,52 @@ func (vd *ValueDiffer) writeElemArray(idx int, v reflect.Value) {
 	}
 }
 
+func (vd *ValueDiffer) writeElemSlice(idx int, v reflect.Value) {
+	b := &vd.b[idx]
+	if v.IsNil() {
+		b.Write(nil)
+		return
+	}
+	vd.writeElemArray(idx, v)
+}
+
 func (vd *ValueDiffer) writeElemMap(idx int, v reflect.Value) {
-	// TODO
 	b := &vd.b[idx]
 	if v.IsNil() {
 		b.Write(nil)
 		return
 	}
 	var tp, ml bool
+	ks := v.MapKeys()
 	if v.Len() > 0 {
-		k := v.MapKeys()[0]
-		tp = isReference(k.Type()) || isReference(v.MapIndex(k).Type())
-		_ = tp
-		_ = ml
-
+		for _, k := range ks {
+			if ml = isNonTrivialElem(k); ml {
+				break
+			}
+			if ml = isNonTrivialElem(v.MapIndex(k)); ml {
+				break
+			}
+		}
+		t := v.Type()
+		tp = ml || isReference(t.Key()) || isReference(t.Elem())
 	}
-
-	if v.Len() < 1 {
-		b.Write("map[]")
-		return
-	}
-	b.Write(v.Type(), "{")
-	keys := v.MapKeys()
-	if isComposite(keys[0].Type()) || isComposite(v.MapIndex(keys[0]).Type()) {
+	if ml {
+		b.Write(v.Type(), "{")
 		b.Tab++
-		for _, k := range keys {
+		for i, k := range ks {
+			if i > 0 {
+				b.Write(",")
+			}
 			b.NL()
 			vd.writeKey(idx, k)
 			b.Write(":")
 			vd.writeElem(idx, v.MapIndex(k))
 		}
 		b.Tab--
-		b.NL()
-	} else {
-		for i, k := range keys {
+		b.NL().Write("}")
+	} else if tp {
+		b.Write(v.Type(), "{")
+		for i, k := range ks {
 			if i > 0 {
 				b.Write(", ")
 			}
@@ -375,14 +421,41 @@ func (vd *ValueDiffer) writeElemMap(idx int, v reflect.Value) {
 			b.Write(":")
 			vd.writeElem(idx, v.MapIndex(k))
 		}
+		b.Write("}")
+	} else {
+		b.Write("map[")
+		for i, k := range ks {
+			if i > 0 {
+				b.Write(" ")
+			}
+			vd.writeKey(idx, k)
+			b.Write(":")
+			vd.writeElem(idx, v.MapIndex(k))
+		}
+		b.Write("]")
 	}
-	b.Write("}")
-}
-
-func (vd *ValueDiffer) writeElemSlice(idx int, v reflect.Value) {
 }
 
 func (vd *ValueDiffer) writeElemStruct(idx int, v reflect.Value) {
+}
+
+func isNonTrivialElem(v reflect.Value) bool {
+	return !isTrivialElem(v)
+}
+
+func isTrivialElem(v reflect.Value) bool {
+	if !v.IsValid() || !isComposite(v.Type()) {
+		return true
+	}
+	switch v.Kind() {
+	case reflect.Interface:
+		return isTrivialElem(v.Elem())
+	case reflect.Array:
+		return v.Len() < 1
+	case reflect.Slice, reflect.Map:
+		return v.IsNil() || v.Len() < 1
+	}
+	return false // struct
 }
 
 func (vd *ValueDiffer) writeKey(idx int, v reflect.Value) {
@@ -430,20 +503,6 @@ func (vd *ValueDiffer) writeKeyArray(idx int, v reflect.Value) {
 	}
 	b.Write("]")
 }
-
-//func (vd *ValueDiffer) writeKeyPtr(idx int, v reflect.Value) {
-//    b := &vd.b[idx]
-//    if v.IsNil() {
-//        b.Write(v)
-//        return
-//    }
-//    if e := v.Elem(); isComposite(e.Type()) {
-//        b.Write("&")
-//        vd.writeKey(idx, e)
-//    } else {
-//        b.Write(v)
-//    }
-//}
 
 func (vd *ValueDiffer) writeKeySlice(idx int, v reflect.Value) {
 	b := &vd.b[idx]
@@ -498,17 +557,12 @@ func (vd *ValueDiffer) writeTypeDiffValues(v1, v2 reflect.Value) {
 
 func isComposite(t reflect.Type) bool {
 	k := t.Kind()
-	return k == reflect.Array || k == reflect.Map || k == reflect.Slice || k == reflect.Struct
+	return k == reflect.Array || k == reflect.Map || k == reflect.Slice || k == reflect.Struct || k == reflect.Interface
 }
 
 func isReference(t reflect.Type) bool {
 	k := t.Kind()
-	return isComposite(t) || k == reflect.Chan || k == reflect.Func || k == reflect.Ptr || k == reflect.UnsafePointer
-}
-
-func isTrivial(v reflect.Value) bool {
-	// TODO
-	return false
+	return k == reflect.Chan || k == reflect.Func || k == reflect.Ptr || k == reflect.UnsafePointer || isComposite(t)
 }
 
 func structName(v reflect.Value) string {

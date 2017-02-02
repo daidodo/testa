@@ -90,9 +90,9 @@ func TestWriteKey(t *testing.T) {
 	pb := &b
 	c := uintptr(100)
 	pc := &c
-	d := float64(1.23)
+	d := float64(100.23)
 	pd := &d
-	e := complex(float64(1.23), float64(3.45))
+	e := complex(float64(100.23), float64(300.45))
 	pe := &e
 	f := string("A bc")
 	pf := &f
@@ -239,9 +239,9 @@ func TestWriteKey(t *testing.T) {
 	eq("100", uint64(100))
 	eq("0x64", c)
 	eq("1.23", float32(1.23))
-	eq("1.23", d)
-	eq("(1.23+3.45i)", complex(float32(1.23), float32(3.45)))
-	eq("(1.23+3.45i)", e)
+	eq("100.23", d)
+	eq("(100.23+300.45i)", complex(float32(100.23), float32(300.45)))
+	eq("(100.23+300.45i)", e)
 	// string
 	eq(`"A bc"`, f) // TODO: A bc?
 	// channel
@@ -365,14 +365,14 @@ func TestWriteKey(t *testing.T) {
 		ep("[] [<nil> map[] [%[3]p:%[4]p]] %[3]p %[4]p", [...]map[unsafe.Pointer]chan int{}, [...]map[unsafe.Pointer]chan int{nil, map[unsafe.Pointer]chan int{}, map[unsafe.Pointer]chan int{i: g}}, i, g)
 		ep("[] [<nil> map[] [2017:%[3]p]] %[3]p", [...]map[interface{}]func(int) string{}, [...]map[interface{}]func(int) string{nil, map[interface{}]func(int) string{}, map[interface{}]func(int) string{j: h}}, h)
 		// array of struct
-		ep(`[] [{a:0 b:0 c:0x0 d:0 e:(0+0i) f:"" g:<nil> h:<nil> i:<nil> j:<nil>} {a:100 b:100 c:0x64 d:1.23 e:(1.23+3.45i) f:"A bc" g:%[3]p h:%[4]p i:%[5]p j:2017}] %[3]p %[4]p %[5]p`, [...]A{}, [...]A{A{}, *sa}, g, h, i)
+		ep(`[] [{a:0 b:0 c:0x0 d:0 e:(0+0i) f:"" g:<nil> h:<nil> i:<nil> j:<nil>} {a:100 b:100 c:0x64 d:100.23 e:(100.23+300.45i) f:"A bc" g:%[3]p h:%[4]p i:%[5]p j:2017}] %[3]p %[4]p %[5]p`, [...]A{}, [...]A{A{}, *sa}, g, h, i)
 		ep(`[] [{a:<nil> b:<nil> c:<nil> d:<nil> e:<nil> f:<nil> g:<nil> h:<nil> i:<nil> j:<nil>} {a:%[3]p b:%[4]p c:%[5]p d:%[6]p e:%[7]p f:%[8]p g:%[9]p h:%[10]p i:%[11]p j:%[12]p}] %[3]p %[4]p %[5]p %[6]p %[7]p %[8]p %[9]p %[10]p %[11]p %[12]p`, [...]B{}, [...]B{B{}, *sb}, pa, pb, pc, pd, pe, pf, pg, ph, pi, pj)
 		eq("[] [{a:[] b:[] c:[] d:[] e:[] f:[] g:[] h:[] i:[] j:[]} {a:[] b:[] c:[] d:[] e:[] f:[] g:[] h:[] i:[] j:[]}]", [...]C{}, [...]C{C{}, *sc})
 		ep(`[] [{a:[0 0 0] b:[0 0 0] c:[0x0 0x0 0x0] d:[0 0 0] e:[(0+0i) (0+0i)] f:["" "" ""] g:[<nil> <nil>] h:[<nil> <nil>] i:[<nil> <nil>] j:[<nil> <nil>]} {a:[101 102 103] b:[101 102 103] c:[0x65 0x66 0x67] d:[101.123 102.234 103.345] e:[(101.1+102.2i) (103.3+104.4i)] f:["A bc" "De f" "Gh"] g:[<nil> %[3]p] h:[<nil> %[4]p] i:[<nil> %[5]p] j:[<nil> 2017]}] %[3]p %[4]p %[5]p`, [...]D{}, [...]D{D{}, *sd}, g, h, i)
 		ep(`[] [{a:<nil> b:<nil> c:<nil> d:<nil> e:<nil> f:<nil> g:<nil> h:<nil> i:<nil> j:<nil>} {a:[101 102 103] b:[101 102 103] c:[0x65 0x66 0x67] d:[101.123 102.234 103.345] e:[(101.1+102.2i) (103.3+104.4i)] f:["A bc" "De f" "Gh"] g:[<nil> %[3]p] h:[<nil> %[4]p] i:[<nil> %[5]p] j:[<nil> 2017]}] %[3]p %[4]p %[5]p`, [...]E{}, [...]E{E{}, *se}, g, h, i)
 		eq("[] [{a:<nil> b:<nil> c:<nil> d:<nil> e:<nil> f:<nil> g:<nil> h:<nil> i:<nil>} {a:map[] b:map[] c:map[] d:map[] e:map[] f:map[] g:map[] h:map[] i:map[]}]", [...]F{}, [...]F{F{}, *sf0})
 		ep(`[] [{a:<nil> b:<nil> c:<nil> d:<nil> e:<nil> f:<nil> g:<nil> h:<nil> i:<nil>} {a:[100:%[3]p] b:[100:101] c:[0x64:101] d:[10.123:0x65] e:[(100.1+200.2i):101.123] f:["A bc":(100.1+200.2i)] g:[%[4]p:"A bc"] h:[%[3]p:%[4]p] i:[2017:%[5]p]}] %[3]p %[4]p %[5]p`, [...]F{}, [...]F{F{}, *sf1}, i, g, h)
-		ep(`[{a:{a:0 b:0 c:0x0 d:0 e:(0+0i) f:"" g:<nil> h:<nil> i:<nil> j:<nil>} b:{a:<nil> b:<nil> c:<nil> d:<nil> e:<nil> f:<nil> g:<nil> h:<nil> i:<nil> j:<nil>} c:{a:[] b:[] c:[] d:[] e:[] f:[] g:[] h:[] i:[] j:[]} d:{a:[0 0 0] b:[0 0 0] c:[0x0 0x0 0x0] d:[0 0 0] e:[(0+0i) (0+0i)] f:["" "" ""] g:[<nil> <nil>] h:[<nil> <nil>] i:[<nil> <nil>] j:[<nil> <nil>]} e:{a:<nil> b:<nil> c:<nil> d:<nil> e:<nil> f:<nil> g:<nil> h:<nil> i:<nil> j:<nil>} f0:{a:<nil> b:<nil> c:<nil> d:<nil> e:<nil> f:<nil> g:<nil> h:<nil> i:<nil>} f1:{a:<nil> b:<nil> c:<nil> d:<nil> e:<nil> f:<nil> g:<nil> h:<nil> i:<nil>}} {a:{a:100 b:100 c:0x64 d:1.23 e:(1.23+3.45i) f:"A bc" g:%[2]p h:%[3]p i:%[4]p j:2017} b:{a:%[4]p b:%[5]p c:%[6]p d:%[7]p e:%[8]p f:%[9]p g:%[10]p h:%[11]p i:%[12]p j:%[13]p} c:{a:[] b:[] c:[] d:[] e:[] f:[] g:[] h:[] i:[] j:[]} d:{a:[101 102 103] b:[101 102 103] c:[0x65 0x66 0x67] d:[101.123 102.234 103.345] e:[(101.1+102.2i) (103.3+104.4i)] f:["A bc" "De f" "Gh"] g:[<nil> %[2]p] h:[<nil> %[3]p] i:[<nil> %[4]p] j:[<nil> 2017]} e:{a:[101 102 103] b:[101 102 103] c:[0x65 0x66 0x67] d:[101.123 102.234 103.345] e:[(101.1+102.2i) (103.3+104.4i)] f:["A bc" "De f" "Gh"] g:[<nil> %[2]p] h:[<nil> %[3]p] i:[<nil> %[4]p] j:[<nil> 2017]} f0:{a:map[] b:map[] c:map[] d:map[] e:map[] f:map[] g:map[] h:map[] i:map[]} f1:{a:[100:%[4]p] b:[100:101] c:[0x64:101] d:[10.123:0x65] e:[(100.1+200.2i):101.123] f:["A bc":(100.1+200.2i)] g:[%[2]p:"A bc"] h:[%[4]p:%[2]p] i:[2017:%[3]p]}}] %[2]p %[3]p %[4]p %[5]p %[6]p %[7]p %[8]p %[9]p %[10]p %[11]p %[12]p %[13]p []`, [...]G{G{}, *sg}, g, h, i, pb, pc, pd, pe, pf, pg, ph, pi, pj, [...]G{})
+		ep(`[{a:{a:0 b:0 c:0x0 d:0 e:(0+0i) f:"" g:<nil> h:<nil> i:<nil> j:<nil>} b:{a:<nil> b:<nil> c:<nil> d:<nil> e:<nil> f:<nil> g:<nil> h:<nil> i:<nil> j:<nil>} c:{a:[] b:[] c:[] d:[] e:[] f:[] g:[] h:[] i:[] j:[]} d:{a:[0 0 0] b:[0 0 0] c:[0x0 0x0 0x0] d:[0 0 0] e:[(0+0i) (0+0i)] f:["" "" ""] g:[<nil> <nil>] h:[<nil> <nil>] i:[<nil> <nil>] j:[<nil> <nil>]} e:{a:<nil> b:<nil> c:<nil> d:<nil> e:<nil> f:<nil> g:<nil> h:<nil> i:<nil> j:<nil>} f0:{a:<nil> b:<nil> c:<nil> d:<nil> e:<nil> f:<nil> g:<nil> h:<nil> i:<nil>} f1:{a:<nil> b:<nil> c:<nil> d:<nil> e:<nil> f:<nil> g:<nil> h:<nil> i:<nil>}} {a:{a:100 b:100 c:0x64 d:100.23 e:(100.23+300.45i) f:"A bc" g:%[2]p h:%[3]p i:%[4]p j:2017} b:{a:%[4]p b:%[5]p c:%[6]p d:%[7]p e:%[8]p f:%[9]p g:%[10]p h:%[11]p i:%[12]p j:%[13]p} c:{a:[] b:[] c:[] d:[] e:[] f:[] g:[] h:[] i:[] j:[]} d:{a:[101 102 103] b:[101 102 103] c:[0x65 0x66 0x67] d:[101.123 102.234 103.345] e:[(101.1+102.2i) (103.3+104.4i)] f:["A bc" "De f" "Gh"] g:[<nil> %[2]p] h:[<nil> %[3]p] i:[<nil> %[4]p] j:[<nil> 2017]} e:{a:[101 102 103] b:[101 102 103] c:[0x65 0x66 0x67] d:[101.123 102.234 103.345] e:[(101.1+102.2i) (103.3+104.4i)] f:["A bc" "De f" "Gh"] g:[<nil> %[2]p] h:[<nil> %[3]p] i:[<nil> %[4]p] j:[<nil> 2017]} f0:{a:map[] b:map[] c:map[] d:map[] e:map[] f:map[] g:map[] h:map[] i:map[]} f1:{a:[100:%[4]p] b:[100:101] c:[0x64:101] d:[10.123:0x65] e:[(100.1+200.2i):101.123] f:["A bc":(100.1+200.2i)] g:[%[2]p:"A bc"] h:[%[4]p:%[2]p] i:[2017:%[3]p]}}] %[2]p %[3]p %[4]p %[5]p %[6]p %[7]p %[8]p %[9]p %[10]p %[11]p %[12]p %[13]p []`, [...]G{G{}, *sg}, g, h, i, pb, pc, pd, pe, pf, pg, ph, pi, pj, [...]G{})
 		// array of pointer
 		ep("[] [<nil> %[6]p] [] [<nil> %[6]p] <nil> %[6]p", [...]*int{}, [...]*int{nil, pa}, []*int{}, []*int{nil, pa}, []*int(nil), pa)
 		ep("[] [<nil> %[6]p] [] [<nil> %[6]p] <nil> %[6]p", [...]*uint{}, [...]*uint{nil, pb}, []*uint{}, []*uint{nil, pb}, []*uint(nil), pb)
@@ -440,7 +440,7 @@ func TestWriteKey(t *testing.T) {
 	// struct
 	if true {
 		eq(`{a:0 b:0 c:0x0 d:0 e:(0+0i) f:"" g:<nil> h:<nil> i:<nil> j:<nil>}`, A{})
-		ep(`{a:100 b:100 c:0x64 d:1.23 e:(1.23+3.45i) f:"A bc" g:%[2]p h:%[3]p i:%[4]p j:2017} %[2]p %[3]p %[4]p`, *sa, g, h, i)
+		ep(`{a:100 b:100 c:0x64 d:100.23 e:(100.23+300.45i) f:"A bc" g:%[2]p h:%[3]p i:%[4]p j:2017} %[2]p %[3]p %[4]p`, *sa, g, h, i)
 		eq("{a:<nil> b:<nil> c:<nil> d:<nil> e:<nil> f:<nil> g:<nil> h:<nil> i:<nil> j:<nil>}", B{})
 		ep("{a:%[2]p b:%[3]p c:%[4]p d:%[5]p e:%[6]p f:%[7]p g:%[8]p h:%[9]p i:%[10]p j:%[11]p} %[2]p %[3]p %[4]p %[5]p %[6]p %[7]p %[8]p %[9]p %[10]p %[11]p", *sb, pa, pb, pc, pd, pe, pf, pg, ph, pi, pj)
 		eq("{a:[] b:[] c:[] d:[] e:[] f:[] g:[] h:[] i:[] j:[]}", C{})
@@ -452,39 +452,193 @@ func TestWriteKey(t *testing.T) {
 		eq("{a:map[] b:map[] c:map[] d:map[] e:map[] f:map[] g:map[] h:map[] i:map[]}", *sf0)
 		ep(`{a:[100:%[2]p] b:[100:101] c:[0x64:101] d:[10.123:0x65] e:[(100.1+200.2i):101.123] f:["A bc":(100.1+200.2i)] g:[%[3]p:"A bc"] h:[%[2]p:%[3]p] i:[2017:%[4]p]} %[2]p %[3]p %[4]p`, *sf1, i, g, h)
 		eq(`{a:{a:0 b:0 c:0x0 d:0 e:(0+0i) f:"" g:<nil> h:<nil> i:<nil> j:<nil>} b:{a:<nil> b:<nil> c:<nil> d:<nil> e:<nil> f:<nil> g:<nil> h:<nil> i:<nil> j:<nil>} c:{a:[] b:[] c:[] d:[] e:[] f:[] g:[] h:[] i:[] j:[]} d:{a:[0 0 0] b:[0 0 0] c:[0x0 0x0 0x0] d:[0 0 0] e:[(0+0i) (0+0i)] f:["" "" ""] g:[<nil> <nil>] h:[<nil> <nil>] i:[<nil> <nil>] j:[<nil> <nil>]} e:{a:<nil> b:<nil> c:<nil> d:<nil> e:<nil> f:<nil> g:<nil> h:<nil> i:<nil> j:<nil>} f0:{a:<nil> b:<nil> c:<nil> d:<nil> e:<nil> f:<nil> g:<nil> h:<nil> i:<nil>} f1:{a:<nil> b:<nil> c:<nil> d:<nil> e:<nil> f:<nil> g:<nil> h:<nil> i:<nil>}}`, G{})
-		ep(`{a:{a:100 b:100 c:0x64 d:1.23 e:(1.23+3.45i) f:"A bc" g:%[2]p h:%[3]p i:%[4]p j:2017} b:{a:%[4]p b:%[5]p c:%[6]p d:%[7]p e:%[8]p f:%[9]p g:%[10]p h:%[11]p i:%[12]p j:%[13]p} c:{a:[] b:[] c:[] d:[] e:[] f:[] g:[] h:[] i:[] j:[]} d:{a:[101 102 103] b:[101 102 103] c:[0x65 0x66 0x67] d:[101.123 102.234 103.345] e:[(101.1+102.2i) (103.3+104.4i)] f:["A bc" "De f" "Gh"] g:[<nil> %[2]p] h:[<nil> %[3]p] i:[<nil> %[4]p] j:[<nil> 2017]} e:{a:[101 102 103] b:[101 102 103] c:[0x65 0x66 0x67] d:[101.123 102.234 103.345] e:[(101.1+102.2i) (103.3+104.4i)] f:["A bc" "De f" "Gh"] g:[<nil> %[2]p] h:[<nil> %[3]p] i:[<nil> %[4]p] j:[<nil> 2017]} f0:{a:map[] b:map[] c:map[] d:map[] e:map[] f:map[] g:map[] h:map[] i:map[]} f1:{a:[100:%[4]p] b:[100:101] c:[0x64:101] d:[10.123:0x65] e:[(100.1+200.2i):101.123] f:["A bc":(100.1+200.2i)] g:[%[2]p:"A bc"] h:[%[4]p:%[2]p] i:[2017:%[3]p]}} %[2]p %[3]p %[4]p %[5]p %[6]p %[7]p %[8]p %[9]p %[10]p %[11]p %[12]p %[13]p`, *sg, g, h, i, pb, pc, pd, pe, pf, pg, ph, pi, pj)
+		ep(`{a:{a:100 b:100 c:0x64 d:100.23 e:(100.23+300.45i) f:"A bc" g:%[2]p h:%[3]p i:%[4]p j:2017} b:{a:%[4]p b:%[5]p c:%[6]p d:%[7]p e:%[8]p f:%[9]p g:%[10]p h:%[11]p i:%[12]p j:%[13]p} c:{a:[] b:[] c:[] d:[] e:[] f:[] g:[] h:[] i:[] j:[]} d:{a:[101 102 103] b:[101 102 103] c:[0x65 0x66 0x67] d:[101.123 102.234 103.345] e:[(101.1+102.2i) (103.3+104.4i)] f:["A bc" "De f" "Gh"] g:[<nil> %[2]p] h:[<nil> %[3]p] i:[<nil> %[4]p] j:[<nil> 2017]} e:{a:[101 102 103] b:[101 102 103] c:[0x65 0x66 0x67] d:[101.123 102.234 103.345] e:[(101.1+102.2i) (103.3+104.4i)] f:["A bc" "De f" "Gh"] g:[<nil> %[2]p] h:[<nil> %[3]p] i:[<nil> %[4]p] j:[<nil> 2017]} f0:{a:map[] b:map[] c:map[] d:map[] e:map[] f:map[] g:map[] h:map[] i:map[]} f1:{a:[100:%[4]p] b:[100:101] c:[0x64:101] d:[10.123:0x65] e:[(100.1+200.2i):101.123] f:["A bc":(100.1+200.2i)] g:[%[2]p:"A bc"] h:[%[4]p:%[2]p] i:[2017:%[3]p]}} %[2]p %[3]p %[4]p %[5]p %[6]p %[7]p %[8]p %[9]p %[10]p %[11]p %[12]p %[13]p`, *sg, g, h, i, pb, pc, pd, pe, pf, pg, ph, pi, pj)
 		//TODO: field as pointer of struct
 	}
 }
 
-func testWriteElem(t *testing.T, e string, a interface{}) {
-	var v ValueDiffer
-	v.writeElem(0, reflect.ValueOf(a))
-	if e == "" {
-		e = fmt.Sprint(a)
-	}
-	Caller(1).Equal(t, e, v.String(0))
-}
-
 func TestWriteElem(t *testing.T) {
+	eq := func(e string, xx ...interface{}) {
+		if true { // value
+			var v ValueDiffer
+			for i, x := range xx {
+				if i > 0 {
+					v.b[0].Write(" ")
+				}
+				vx := reflect.ValueOf(x)
+				v.writeElem(0, vx)
+			}
+			Caller(1).Equal(t, e, v.String(0))
+		}
+		if true { // interface
+			var v ValueDiffer
+			for i, x := range xx {
+				if i > 0 {
+					v.b[0].Write(" ")
+					v.b[1].Write(" ")
+				}
+				s := reflect.ValueOf(struct {
+					A interface{}
+					a interface{}
+				}{x, x})
+				v.writeElem(0, s.Field(0))
+				v.writeElem(1, s.Field(1))
+			}
+			Caller(1).Equal(t, e, v.String(0))
+			Caller(1).Equal(t, e, v.String(1))
+		}
+	}
+	ep := func(e string, xx ...interface{}) {
+		e = fmt.Sprintf(e, xx...)
+		if true { // value
+			var v ValueDiffer
+			for i, x := range xx {
+				if i > 0 {
+					v.b[0].Write(" ")
+				}
+				v.writeElem(0, reflect.ValueOf(x))
+			}
+			Caller(1).Equal(t, e, v.String(0))
+		}
+		if true { // interface
+			var v ValueDiffer
+			for i, x := range xx {
+				if i > 0 {
+					v.b[0].Write(" ")
+					v.b[1].Write(" ")
+				}
+				s := reflect.ValueOf(struct {
+					A interface{}
+					a interface{}
+				}{x, x})
+				v.writeElem(0, s.Field(0))
+				v.writeElem(1, s.Field(1))
+			}
+			Caller(1).Equal(t, e, v.String(0))
+			Caller(1).Equal(t, e, v.String(1))
+		}
+	}
+	// nil
+	eq("<nil>", nil)
 	// bool
-	testWriteElem(t, "true", true)
-	testWriteElem(t, "false", false)
+	eq("true", true)
+	eq("false", false)
 	// number
-	testWriteElem(t, "100", 100)
-	testWriteElem(t, "100", uint(100))
-	testWriteElem(t, "0x64", uintptr(100))
-	testWriteElem(t, "1.23", 1.23)
-	testWriteElem(t, "(1.23+3.45i)", 1.23+3.45i)
+	eq("100", int(100))
+	eq("100", int8(100))
+	eq("100", int16(100))
+	eq("100", int32(100))
+	eq("100", int64(100))
+	eq("100", uint(100))
+	eq("100", uint8(100))
+	eq("100", uint16(100))
+	eq("100", uint32(100))
+	eq("100", uint64(100))
+	eq("0x64", uintptr(100))
+	eq("1.23", float32(1.23))
+	eq("100.23", float64(100.23))
+	eq("(100.23+300.45i)", complex(float32(100.23), float32(300.45)))
+	eq("(100.23+300.45i)", complex(float64(100.23), float64(300.45)))
+	// string
+	eq(`"A bc"`, string("A bc"))
 	// channel
-	testWriteElem(t, "<nil>", chan int(nil))
-	testWriteElem(t, "", make(chan int))
-	testWriteElem(t, "", make(<-chan int))
-	testWriteElem(t, "", make(chan<- int))
+	eq("<nil>", chan int(nil))
+	ep("%p", make(chan int))
+	ep("%p", make(<-chan int))
+	ep("%p", make(chan<- int))
 	// function
-	testWriteElem(t, "<nil>", (func(int) string)(nil))
-	testWriteElem(t, "", func(int) string { return "1" })
-	// interface
-	testWriteElem(t, "<nil>", nil)
+	eq("<nil>", (func(int) string)(nil))
+	ep("%p", func(int) string { return "1" })
+	// unsafe pointer
+	eq("<nil>", unsafe.Pointer(nil))
+	ep("%p", unsafe.Pointer(&[]int{}))
+	// pointer
+	if true {
+		a := 100
+		var b interface{} = &[0]int{}
+		ep("<nil> %[2]p %[3]p", (*int)(nil), &a, &b)
+		c := "A bc"
+		ep("%[1]p", &c)
+		ep("%[1]p", &[...]int{1, 2, 3})
+		ep("%[1]p", &[]int{1, 2, 3})
+		ep("%[1]p", &map[int]string{1: "abc"})
+		ep("%[1]p", &struct {
+			a int
+			b string
+		}{})
+	}
 	// array
+	if true {
+		eq("[]", [0]int{})
+		// short
+		eq("[1 2 3]", [...]int{1, 2, 3})
+		a := 100
+		ep("[2]*int{<nil>, %[2]p} %[2]p", [...]*int{nil, &a}, &a)
+		eq("[2]map[int]string{<nil>, map[]}", [...]map[int]string{nil, map[int]string{}})
+		eq(`[6]interface {}{
+	<nil>, map[],
+	[1 2 3],
+	[97 98],
+	[], <nil>
+}`, [...]interface{}{nil, map[int]string{}, [...]int{1, 2, 3}, [...]byte{'a', 'b'}, [0]int{}, nil})
+		// long
+		eq("[11]int{0:0, 1:0, 2:0, 3:0, 4:0, 5:0, 6:0, 7:0, 8:0, 9:0, 10:0}", [11]int{})
+		eq(`[11]interface {}{
+	0:<nil>,
+	1:map[],
+	2:[1 2 3],
+	3:[97 98],
+	4:[],
+	5:[1.2 0],
+	6:<nil>,
+	7:<nil>,
+	8:<nil>,
+	9:<nil>,
+	10:<nil>
+}`, [11]interface{}{nil, map[int]string{}, [...]int{1, 2, 3}, [...]byte{'a', 'b'}, [0]int{}, [2]float32{1.2}})
+	}
+	// slice
+	if true {
+		eq("<nil>", []int(nil))
+		eq("[]", []int{})
+		// short
+		eq("[1 2 3]", []int{1, 2, 3})
+		a := 100
+		ep("[]*int{<nil>, %[2]p} %[2]p", []*int{nil, &a}, &a)
+		eq("[]map[int]string{<nil>, map[]}", []map[int]string{nil, map[int]string{}})
+		eq(`[]interface {}{
+	<nil>, map[],
+	[1 2 3],
+	[97 98],
+	[], <nil>
+}`, []interface{}{nil, map[int]string{}, [...]int{1, 2, 3}, [...]byte{'a', 'b'}, [0]int{}, nil})
+		// long
+		var b [11]int
+		eq("[]int{0:0, 1:0, 2:0, 3:0, 4:0, 5:0, 6:0, 7:0, 8:0, 9:0, 10:0}", b[:])
+		c := [11]interface{}{nil, map[int]string{}, [...]int{1, 2, 3}, [...]byte{'a', 'b'}, [0]int{}, [2]float32{1.2}}
+		eq(`[]interface {}{
+	0:<nil>,
+	1:map[],
+	2:[1 2 3],
+	3:[97 98],
+	4:[],
+	5:[1.2 0],
+	6:<nil>,
+	7:<nil>,
+	8:<nil>,
+	9:<nil>,
+	10:<nil>
+}`, c[:])
+	}
+	// map
+	if true {
+		eq("<nil>", map[int]string(nil))
+		eq("map[]", map[int]string{})
+		eq(`map[10:"A bc"]`, map[int]string{10: "A bc"})
+		eq("map[interface {}]int{[]:30}", map[interface{}]int{[0]string{}: 30})
+		eq(`map[interface {}]int{
+	["A bc" "B cd"]:30
+}`, map[interface{}]int{[...]string{"A bc", "B cd"}: 30})
+	}
+	// struct
 }
