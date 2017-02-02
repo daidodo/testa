@@ -280,25 +280,25 @@ func (vd *ValueDiffer) writeElem(idx int, v reflect.Value) {
 	b := &vd.b[idx]
 	if !v.IsValid() {
 		b.Write(nil)
-	} else {
-		switch v.Kind() {
-		case reflect.Interface:
-			if v.IsNil() {
-				b.Write(nil)
-			} else {
-				vd.writeElem(idx, v.Elem())
-			}
-		case reflect.Array:
-			vd.writeElemArray(idx, v)
-		case reflect.Slice:
-			vd.writeElemSlice(idx, v)
-		case reflect.Map:
-			vd.writeElemMap(idx, v)
-		case reflect.Struct:
-			vd.writeElemStruct(idx, v)
-		default: // bool, integer, float, complex, channel, function, pointer, string
-			vd.writeKey(idx, v)
+		return
+	}
+	switch v.Kind() {
+	case reflect.Interface:
+		if v.IsNil() {
+			b.Write(nil)
+		} else {
+			vd.writeElem(idx, v.Elem())
 		}
+	case reflect.Array:
+		vd.writeElemArray(idx, v)
+	case reflect.Slice:
+		vd.writeElemSlice(idx, v)
+	case reflect.Map:
+		vd.writeElemMap(idx, v)
+	case reflect.Struct:
+		vd.writeElemStruct(idx, v)
+	default: // bool, integer, float, complex, channel, function, pointer, string
+		vd.writeKey(idx, v)
 	}
 }
 
@@ -437,6 +437,35 @@ func (vd *ValueDiffer) writeElemMap(idx int, v reflect.Value) {
 }
 
 func (vd *ValueDiffer) writeElemStruct(idx int, v reflect.Value) {
+	b := &vd.b[idx]
+	var ml bool
+	for i := 0; i < v.NumField() && !ml; i++ {
+		ml = isNonTrivialElem(v.Field(i))
+	}
+	t := v.Type()
+	if ml {
+		b.Write(structName(v), "{")
+		b.Tab++
+		for i := 0; i < v.NumField(); i++ {
+			if i > 0 {
+				b.Write(",")
+			}
+			b.NL().Write(t.Field(i).Name, ":")
+			vd.writeElem(idx, v.Field(i))
+		}
+		b.Tab--
+		b.NL()
+	} else {
+		b.Write("{")
+		for i := 0; i < v.NumField(); i++ {
+			if i > 0 {
+				b.Write(", ")
+			}
+			b.Write(t.Field(i).Name, ":")
+			vd.writeElem(idx, v.Field(i))
+		}
+	}
+	b.Write("}")
 }
 
 func isNonTrivialElem(v reflect.Value) bool {
@@ -454,8 +483,10 @@ func isTrivialElem(v reflect.Value) bool {
 		return v.Len() < 1
 	case reflect.Slice, reflect.Map:
 		return v.IsNil() || v.Len() < 1
+	case reflect.Struct:
+		return v.NumField() < 1
 	}
-	return false // struct
+	panic("Should not come here!")
 }
 
 func (vd *ValueDiffer) writeKey(idx int, v reflect.Value) {
@@ -566,9 +597,9 @@ func isReference(t reflect.Type) bool {
 }
 
 func structName(v reflect.Value) string {
-	n := v.Type().Name()
-	if n != "" {
-		return n
+	t := v.Type()
+	if t.Name() == "" {
+		return "struct"
 	}
-	return "struct"
+	return t.String()
 }

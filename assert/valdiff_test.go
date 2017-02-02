@@ -12,7 +12,7 @@ func TestStructName(t *testing.T) {
 		a int
 		b string
 	}
-	Equal(t, "A", structName(reflect.ValueOf(A{})))
+	Equal(t, "assert.A", structName(reflect.ValueOf(A{})))
 	a := struct {
 		a int
 		b string
@@ -641,4 +641,49 @@ func TestWriteElem(t *testing.T) {
 }`, map[interface{}]int{[...]string{"A bc", "B cd"}: 30})
 	}
 	// struct
+	if true {
+		eq("{}", struct{}{})
+		a := &[]int{1, 2, 3}
+		ep("{a:0, b:%[2]p, c:map[]} %[2]p", struct {
+			a int
+			b *[]int
+			c map[int]string
+		}{b: a, c: map[int]string{}}, a)
+		type A struct {
+			a uint
+			b *[]int
+			c map[uint]bool
+		}
+		ep(`struct{
+	a:0,
+	b:%[2]p,
+	c:map[10:"A bc"],
+	d:{a:0, b:<nil>, c:<nil>}
+} %[2]p`, struct {
+			a int
+			b *[]int
+			c map[int]string
+			d A
+		}{b: a, c: map[int]string{10: "A bc"}}, a)
+		ep(`struct{
+	a:0,
+	b:%[2]p,
+	c:map[10:"A bc"],
+	d:assert.A{
+		a:100,
+		b:%[2]p,
+		c:map[10:true]
+	}
+} %[2]p`, struct {
+			a int
+			b *[]int
+			c map[int]string
+			d A
+		}{b: a, c: map[int]string{10: "A bc"}, d: A{a: 100, b: a, c: map[uint]bool{10: true}}}, a)
+		ep(`assert.A{
+	a:100,
+	b:%[2]p,
+	c:map[10:true]
+} %[2]p`, A{a: 100, b: a, c: map[uint]bool{10: true}}, a)
+	}
 }
