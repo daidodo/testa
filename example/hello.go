@@ -23,10 +23,12 @@ type A struct {
 	}
 }
 
-func (A) Fun(int) string { return "3" }
+func (A) Fun(int) string  { return "3" }
+func (A) Fun2(int) string { return "3" }
 
 type I interface {
 	Fun(int) string
+	Fun2(int) string
 }
 
 func main() {
@@ -81,6 +83,10 @@ func fi() {
 	e := [...]int{1, 2, 3}
 	desc(reflect.TypeOf(a).Elem().Kind())
 	desc(reflect.TypeOf(e).Elem().Kind())
+	f := [...]I{A{}}
+	desc(reflect.ValueOf(f).Index(0).Kind())
+	g := [...]A{A{}, A{a: 100}}
+	desc(g, "\n")
 }
 
 func fh() {
@@ -354,7 +360,7 @@ func fd() {
 	}
 }
 
-func desc(a interface{}) {
+func desc(a interface{}, sep ...string) {
 	if _, _, ln, ok := runtime.Caller(1); ok {
 		fmt.Print(ln, ": ")
 	}
@@ -362,5 +368,9 @@ func desc(a interface{}) {
 	if v.IsValid() {
 		fmt.Print(v.Kind())
 	}
-	fmt.Printf("\t%[1]T\t%[1]v\t%+[1]v\t%#[1]v\n", a)
+	s := "\t"
+	if len(sep) > 0 {
+		s = sep[0]
+	}
+	fmt.Printf("%[2]v%[1]T%[2]v%[1]v%[2]v%+[1]v%[2]v%#[1]v\n", a, s)
 }
