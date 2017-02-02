@@ -41,6 +41,12 @@ func (vd *ValueDiffer) writeDiffKindValues(v1, v2 reflect.Value) {
 	vd.writeHTypeValue(1, v2)
 }
 
+func (vd *ValueDiffer) writeDiffTypeValues(v1, v2 reflect.Value) {
+}
+
+func (vd *ValueDiffer) writeTypeDiffValues(v1, v2 reflect.Value) {
+}
+
 func (vd *ValueDiffer) writeHTypeValue(idx int, v reflect.Value) {
 	b := &vd.b[idx]
 	if !v.IsValid() {
@@ -88,7 +94,7 @@ func (vd *ValueDiffer) writeHTypeValueArray(idx int, v reflect.Value) {
 				if id {
 					b.Write(i, ":")
 				}
-				vd.writeValue(idx, v.Index(i)) // writeElem?
+				vd.writeElem(idx, v.Index(i)) // writeElem?
 			}
 			b.Tab--
 			b.NL()
@@ -101,7 +107,7 @@ func (vd *ValueDiffer) writeHTypeValueArray(idx int, v reflect.Value) {
 				if id {
 					b.Write(i, ":")
 				}
-				vd.writeValue(idx, v.Index(i)) // TODO: writeElem?
+				vd.writeElem(idx, v.Index(i)) // TODO: writeElem?
 			}
 		}
 	}
@@ -120,74 +126,41 @@ func (vd *ValueDiffer) writeHTypeValuePtr(idx int, v reflect.Value) {
 func (vd *ValueDiffer) writeHTypeValueStruct(idx int, v reflect.Value) {
 }
 
-// TODO: writeField?
-func (vd *ValueDiffer) writeValue(idx int, v reflect.Value) {
+func (vd *ValueDiffer) writeField(idx int, v reflect.Value) {
 	b := &vd.b[idx]
 	if !v.IsValid() {
 		b.Write(nil)
-	} else {
-		switch v.Kind() {
-		case reflect.Array:
-			vd.writeValueArray(idx, v)
-		case reflect.Interface:
-			panic(fmt.Sprintf("Should not come here, v=%v(%#v)", v.Type(), v))
-		case reflect.Map:
-			vd.writeValueMap(idx, v)
-		case reflect.Ptr:
-			vd.writeValuePtr(idx, v)
-		case reflect.Slice:
-			vd.writeValueSlice(idx, v)
-		case reflect.Struct:
-			vd.writeValueStruct(idx, v)
-		default: // bool, integer, float, complex, channel, function, unsafe pointer, string
-			vd.writeKey(idx, v)
-		}
-	}
-}
-
-func (vd *ValueDiffer) writeValueArray(idx int, v reflect.Value) {
-	b := &vd.b[idx]
-	if v.Len() < 1 {
-		b.Write("[]")
 		return
 	}
-	id := v.Len() > 10
-	if isComposite(v.Index(0).Type()) {
-		b.Write(v.Type(), "{")
-		b.Tab++
-		for i := 0; i < v.Len(); i++ {
-			b.NL()
-			if id {
-				b.Write(i, ":")
-			}
-			vd.writeElem(idx, v.Index(i))
+	switch v.Kind() {
+	case reflect.Interface:
+		if v.IsNil() {
+			b.Write(nil)
+		} else {
+			vd.writeField(idx, v.Elem())
 		}
-		b.Tab--
-		b.NL().Write("}")
-		vd.Attrs[NewLine] = true
-	} else if id {
-		b.Write(v.Type(), "{")
-		for i := 0; i < v.Len(); i++ {
-			if i > 0 {
-				b.Write(", ")
-			}
-			b.Write(i, ":")
-			vd.writeElem(idx, v.Index(i))
-		}
-		b.Write("}")
-	} else {
-		b.Write("[")
-		for i := 0; i < v.Len(); i++ {
-			if i > 0 {
-				b.Write(", ")
-			}
-			vd.writeElem(idx, v.Index(i))
-		}
-		b.Write("]")
+	case reflect.Chan:
+		//TODO
+	case reflect.Func:
+		//TODO
+	case reflect.Ptr:
+		vd.writeFieldPtr(idx, v)
+	case reflect.UnsafePointer:
+		//TODO
+	case reflect.Array:
+		vd.writeElemArray(idx, v)
+	case reflect.Slice:
+		vd.writeElemSlice(idx, v)
+	case reflect.Map:
+		vd.writeElemMap(idx, v)
+	case reflect.Struct:
+		vd.writeFieldStruct(idx, v)
+	default: // bool, integer, float, complex, string
+		vd.writeKey(idx, v)
 	}
 }
 
-func (vd *ValueDiffer) writeValuePtr(idx int, v reflect.Value) {
+func (vd *ValueDiffer) writeFieldPtr(idx int, v reflect.Value) {
 }
 
 //func (vd *ValueDiffer) writeElemPtr(idx int, v reflect.Value) {
@@ -202,50 +175,7 @@ func (vd *ValueDiffer) writeValuePtr(idx int, v reflect.Value) {
 //    }
 //}
 
-func (vd *ValueDiffer) writeValueSlice(idx int, v reflect.Value) {
-	b := &vd.b[idx]
-	if v.IsNil() {
-		b.Write(v)
-		return
-	}
-	vd.writeValueArray(idx, v)
-}
-
-func (vd *ValueDiffer) writeValueMap(idx int, v reflect.Value) {
-	b := &vd.b[idx]
-	if v.IsNil() {
-		b.Write(v) //TODO: nil?
-		return
-	} else if v.Len() < 1 {
-		b.Write("map[]")
-		return
-	}
-	b.Write(v.Type(), "{")
-	keys := v.MapKeys()
-	if isComposite(keys[0].Type()) || isComposite(v.MapIndex(keys[0]).Type()) {
-		b.Tab++
-		for _, k := range keys {
-			b.NL()
-			vd.writeKey(idx, k)
-			b.Write(":")
-			vd.writeElem(idx, v.MapIndex(k))
-		}
-		b.Tab--
-		b.NL()
-	} else {
-		for i, k := range keys {
-			if i > 0 {
-				b.Write(", ")
-			}
-			vd.writeKey(idx, k)
-			b.Write(":")
-			vd.writeElem(idx, v.MapIndex(k))
-		}
-	}
-	b.Write("}")
-}
-
-func (vd *ValueDiffer) writeValueStruct(idx int, v reflect.Value) {
+func (vd *ValueDiffer) writeFieldStruct(idx int, v reflect.Value) {
 	b := &vd.b[idx]
 	b.Write(structName(v), "{")
 	comp := false
@@ -260,7 +190,7 @@ func (vd *ValueDiffer) writeValueStruct(idx int, v reflect.Value) {
 		b.Tab++
 		for i := 0; i < v.NumField(); i++ {
 			b.NL().Write(t.Field(i).Name, ":")
-			vd.writeValue(idx, v.Field(i))
+			vd.writeField(idx, v.Field(i))
 		}
 		b.Tab--
 		b.NL()
@@ -270,7 +200,7 @@ func (vd *ValueDiffer) writeValueStruct(idx int, v reflect.Value) {
 				b.Write(", ")
 			}
 			b.Write(t.Field(i).Name, ":")
-			vd.writeValue(idx, v.Field(i))
+			vd.writeField(idx, v.Field(i))
 		}
 	}
 	b.Write("}")
@@ -578,12 +508,6 @@ func (vd *ValueDiffer) writeKeyStruct(idx int, v reflect.Value) {
 		vd.writeKey(idx, v.Field(i))
 	}
 	b.Write("}")
-}
-
-func (vd *ValueDiffer) writeDiffTypeValues(v1, v2 reflect.Value) {
-}
-
-func (vd *ValueDiffer) writeTypeDiffValues(v1, v2 reflect.Value) {
 }
 
 func isComposite(t reflect.Type) bool {

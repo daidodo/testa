@@ -7,6 +7,68 @@ import (
 	"unsafe"
 )
 
+func eqTemplate(t *testing.T, fun func(*ValueDiffer, int, reflect.Value), e string, xx ...interface{}) {
+	if true { // value
+		var v ValueDiffer
+		for i, x := range xx {
+			if i > 0 {
+				v.b[0].Write(" ")
+			}
+			vx := reflect.ValueOf(x)
+			fun(&v, 0, vx)
+		}
+		Caller(2).Equal(t, e, v.String(0))
+	}
+	if true { // interface
+		var v ValueDiffer
+		for i, x := range xx {
+			if i > 0 {
+				v.b[0].Write(" ")
+				v.b[1].Write(" ")
+			}
+			s := reflect.ValueOf(struct {
+				A interface{}
+				a interface{}
+			}{x, x})
+			fun(&v, 0, s.Field(0))
+			fun(&v, 1, s.Field(1))
+		}
+		Caller(2).Equal(t, e, v.String(0))
+		Caller(2).Equal(t, e, v.String(1))
+	}
+}
+
+func epTemplate(t *testing.T, fun func(*ValueDiffer, int, reflect.Value), e string, xx ...interface{}) {
+	e = fmt.Sprintf(e, xx...)
+	if true { // value
+		var v ValueDiffer
+		for i, x := range xx {
+			if i > 0 {
+				v.b[0].Write(" ")
+			}
+			fun(&v, 0, reflect.ValueOf(x))
+		}
+		Caller(2).Equal(t, e, v.String(0))
+	}
+	if true { // interface
+		var v ValueDiffer
+		for i, x := range xx {
+			if i > 0 {
+				v.b[0].Write(" ")
+				v.b[1].Write(" ")
+			}
+			s := reflect.ValueOf(struct {
+				A interface{}
+				a interface{}
+			}{x, x})
+			fun(&v, 0, s.Field(0))
+			fun(&v, 1, s.Field(1))
+		}
+		Caller(2).Equal(t, e, v.String(0))
+		Caller(2).Equal(t, e, v.String(1))
+	}
+}
+
 func TestStructName(t *testing.T) {
 	type A struct {
 		a int
@@ -24,65 +86,14 @@ func TestStructName(t *testing.T) {
 }
 
 func TestWriteKey(t *testing.T) {
+	obj := func(d *ValueDiffer, i int, v reflect.Value) {
+		d.writeKey(i, v)
+	}
 	eq := func(e string, xx ...interface{}) {
-		if true { // value, reflect.Value
-			var v ValueDiffer
-			for i, x := range xx {
-				if i > 0 {
-					v.b[0].Write(" ")
-				}
-				vx := reflect.ValueOf(x)
-				v.writeKey(0, vx)
-			}
-			Caller(1).Equal(t, e, v.String(0))
-		}
-		if true { // interface
-			var v ValueDiffer
-			for i, x := range xx {
-				if i > 0 {
-					v.b[0].Write(" ")
-					v.b[1].Write(" ")
-				}
-				s := reflect.ValueOf(struct {
-					A interface{}
-					a interface{}
-				}{x, x})
-				v.writeKey(0, s.Field(0))
-				v.writeKey(1, s.Field(1))
-			}
-			Caller(1).Equal(t, e, v.String(0))
-			Caller(1).Equal(t, e, v.String(1))
-		}
+		eqTemplate(t, obj, e, xx...)
 	}
 	ep := func(e string, xx ...interface{}) {
-		e = fmt.Sprintf(e, xx...)
-		if true { // value
-			var v ValueDiffer
-			for i, x := range xx {
-				if i > 0 {
-					v.b[0].Write(" ")
-				}
-				v.writeKey(0, reflect.ValueOf(x))
-			}
-			Caller(1).Equal(t, e, v.String(0))
-		}
-		if true { // interface
-			var v ValueDiffer
-			for i, x := range xx {
-				if i > 0 {
-					v.b[0].Write(" ")
-					v.b[1].Write(" ")
-				}
-				s := reflect.ValueOf(struct {
-					A interface{}
-					a interface{}
-				}{x, x})
-				v.writeKey(0, s.Field(0))
-				v.writeKey(1, s.Field(1))
-			}
-			Caller(1).Equal(t, e, v.String(0))
-			Caller(1).Equal(t, e, v.String(1))
-		}
+		epTemplate(t, obj, e, xx...)
 	}
 	a := int(100)
 	pa := &a
@@ -458,65 +469,14 @@ func TestWriteKey(t *testing.T) {
 }
 
 func TestWriteElem(t *testing.T) {
+	obj := func(d *ValueDiffer, i int, v reflect.Value) {
+		d.writeElem(i, v)
+	}
 	eq := func(e string, xx ...interface{}) {
-		if true { // value
-			var v ValueDiffer
-			for i, x := range xx {
-				if i > 0 {
-					v.b[0].Write(" ")
-				}
-				vx := reflect.ValueOf(x)
-				v.writeElem(0, vx)
-			}
-			Caller(1).Equal(t, e, v.String(0))
-		}
-		if true { // interface
-			var v ValueDiffer
-			for i, x := range xx {
-				if i > 0 {
-					v.b[0].Write(" ")
-					v.b[1].Write(" ")
-				}
-				s := reflect.ValueOf(struct {
-					A interface{}
-					a interface{}
-				}{x, x})
-				v.writeElem(0, s.Field(0))
-				v.writeElem(1, s.Field(1))
-			}
-			Caller(1).Equal(t, e, v.String(0))
-			Caller(1).Equal(t, e, v.String(1))
-		}
+		eqTemplate(t, obj, e, xx...)
 	}
 	ep := func(e string, xx ...interface{}) {
-		e = fmt.Sprintf(e, xx...)
-		if true { // value
-			var v ValueDiffer
-			for i, x := range xx {
-				if i > 0 {
-					v.b[0].Write(" ")
-				}
-				v.writeElem(0, reflect.ValueOf(x))
-			}
-			Caller(1).Equal(t, e, v.String(0))
-		}
-		if true { // interface
-			var v ValueDiffer
-			for i, x := range xx {
-				if i > 0 {
-					v.b[0].Write(" ")
-					v.b[1].Write(" ")
-				}
-				s := reflect.ValueOf(struct {
-					A interface{}
-					a interface{}
-				}{x, x})
-				v.writeElem(0, s.Field(0))
-				v.writeElem(1, s.Field(1))
-			}
-			Caller(1).Equal(t, e, v.String(0))
-			Caller(1).Equal(t, e, v.String(1))
-		}
+		epTemplate(t, obj, e, xx...)
 	}
 	// nil
 	eq("<nil>", nil)
@@ -686,4 +646,39 @@ func TestWriteElem(t *testing.T) {
 	c:map[10:true]
 } %[2]p`, A{a: 100, b: a, c: map[uint]bool{10: true}}, a)
 	}
+}
+
+func TestWriteField(t *testing.T) {
+	obj := func(d *ValueDiffer, i int, v reflect.Value) {
+		d.writeField(i, v)
+	}
+	eq := func(e string, xx ...interface{}) {
+		eqTemplate(t, obj, e, xx...)
+	}
+	_ = func(e string, xx ...interface{}) {
+		epTemplate(t, obj, e, xx...)
+	}
+	// nil
+	eq("<nil>", nil)
+	// bool
+	eq("true", true)
+	eq("false", false)
+	// number
+	eq("100", int(100))
+	eq("100", int8(100))
+	eq("100", int16(100))
+	eq("100", int32(100))
+	eq("100", int64(100))
+	eq("100", uint(100))
+	eq("100", uint8(100))
+	eq("100", uint16(100))
+	eq("100", uint32(100))
+	eq("100", uint64(100))
+	eq("0x64", uintptr(100))
+	eq("1.23", float32(1.23))
+	eq("100.23", float64(100.23))
+	eq("(100.23+300.45i)", complex(float32(100.23), float32(300.45)))
+	eq("(100.23+300.45i)", complex(float64(100.23), float64(300.45)))
+	// string
+	eq(`"A bc"`, string("A bc"))
 }
