@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"reflect"
+	"runtime"
 	"unsafe"
 )
 
@@ -13,6 +14,10 @@ type A struct {
 	b string
 	c float32
 	d *struct {
+		aa string
+		bb [3]int
+	}
+	e struct {
 		aa string
 		bb [3]int
 	}
@@ -52,7 +57,30 @@ func main() {
 	fmt.Printf(f, b)
 	b = []int{1, 2, 3}
 	fmt.Printf(f, &b)
+	fi()
+}
 
+func fi() {
+	a := [3]I{nil, A{}, &A{}}
+	desc(a)
+	for _, i := range a {
+		desc(i)
+	}
+	b := [3]interface{}{nil, A{}, &A{}}
+	desc(b)
+	for _, i := range b {
+		desc(i)
+	}
+	c := "abc"
+	desc(&c)
+	d := struct {
+		a *[]int
+		b *A
+	}{&[]int{1, 2, 3}, &A{}}
+	desc(d)
+	e := [...]int{1, 2, 3}
+	desc(reflect.TypeOf(a).Elem().Kind())
+	desc(reflect.TypeOf(e).Elem().Kind())
 }
 
 func fh() {
@@ -239,7 +267,7 @@ func fd() {
 		fmt.Printf(f, a)
 		a = (*A)(nil)
 		fmt.Printf(f, a)
-		fmt.Println(reflect.TypeOf(a).Kind())
+		fmt.Println("242: ", reflect.TypeOf(a).Kind())
 		a = A{}
 		fmt.Printf(f, a)
 		fmt.Println(reflect.TypeOf(a).Kind())
@@ -324,4 +352,15 @@ func fd() {
 			bb [3]int
 		}{aa: "123", bb: [3]int{1, 2, 3}}}
 	}
+}
+
+func desc(a interface{}) {
+	if _, _, ln, ok := runtime.Caller(1); ok {
+		fmt.Print(ln, ": ")
+	}
+	v := reflect.ValueOf(a)
+	if v.IsValid() {
+		fmt.Print(v.Kind())
+	}
+	fmt.Printf("\t%[1]T\t%[1]v\t%+[1]v\t%#[1]v\n", a)
 }
