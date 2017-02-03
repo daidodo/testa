@@ -24,46 +24,107 @@ func (vd *ValueDiffer) WriteDiff(v1, v2 reflect.Value, tab int) {
 	b1.Reset()
 	b2.Reset()
 	b1.Tab, b2.Tab = tab, tab
-	if !v1.IsValid() || !v2.IsValid() || v1.Kind() != v2.Kind() {
-		vd.writeDiffKindValues(v1, v2)
-	} else if v1.Type() != v2.Type() {
-		vd.writeDiffTypeValues(v1, v2)
-	} else {
+	if !v1.IsValid() {
+		b1.Highlight(nil)
+		vd.writeHTypeValue(1, v2)
+	} else if !v2.IsValid() {
+		vd.writeHTypeValue(0, v1)
+		b2.Highlight(nil)
+	} else if v1.Type() == v2.Type() {
 		vd.writeTypeDiffValues(v1, v2)
+	} else {
+		v1, v2 = vd.writeDiffTypesBeforeValue(v1, v2)
+		vd.writeValueAfterType(0, v1)
+		vd.writeValueAfterType(1, v2)
 	}
 }
 
-func (vd *ValueDiffer) writeDiffKindValues(v1, v2 reflect.Value) {
-	vd.writeHTypeValue(0, v1)
-	vd.writeHTypeValue(1, v2)
-}
-
-func (vd *ValueDiffer) writeDiffTypeValues(v1, v2 reflect.Value) {
+func (vd *ValueDiffer) writeDiffTypesBeforeValue(v1, v2 reflect.Value) (r1, r2 reflect.Value) {
+	if v1.Kind() == v2.Kind() {
+		//TODO
+		r1, r2 = v1, v2
+		switch v1.Kind() {
+		case reflect.Interface:
+		case reflect.Ptr:
+		case reflect.Chan:
+		case reflect.Func:
+		case reflect.Array:
+		case reflect.Slice:
+		case reflect.Map:
+		case reflect.Struct:
+		}
+	} else {
+		r1 = vd.writeHTypeBeforeValue(0, v1)
+		r2 = vd.writeHTypeBeforeValue(1, v2)
+	}
+	return
 }
 
 func (vd *ValueDiffer) writeTypeDiffValues(v1, v2 reflect.Value) {
 }
 
 func (vd *ValueDiffer) writeHTypeValue(idx int, v reflect.Value) {
+	v = vd.writeHTypeBeforeValue(idx, v)
+	vd.writeValueAfterType(idx, v)
+}
+
+func (vd *ValueDiffer) writeHTypeBeforeValue(idx int, v reflect.Value) reflect.Value {
 	b := &vd.b[idx]
 	if !v.IsValid() {
 		b.Highlight(nil)
+	} else {
+		switch v.Kind() {
+		case reflect.Interface:
+			if v.IsNil() {
+				if n := interfaceName(v.Type()); n == "" {
+					b.Highlight(nil)
+				} else {
+					b.Highlight(n) //TODO: test?
+				}
+			} else {
+				v = vd.writeHTypeBeforeValue(idx, v.Elem())
+			}
+		case reflect.Ptr:
+			if v.IsNil() {
+				b.Write("(")
+				if e := v.Type().Elem(); e.Kind() == reflect.Struct {
+					b.Highlight("*", structName(e))
+				} else {
+					b.Highlight(v.Type())
+				}
+				b.Write(")")
+			} else if e := v.Elem(); isComposite(e.Type()) {
+				b.Highlight("&")
+				v = vd.writeHTypeBeforeValue(idx, e)
+			} else {
+				b.Write("(").Highlight(v.Type()).Write(")")
+			}
+		case reflect.Struct:
+			b.Highlight(structName(v.Type()))
+		default:
+			b.Highlight(v.Type())
+		}
+	}
+	return v
+}
+
+func (vd *ValueDiffer) writeValueAfterType(idx int, v reflect.Value) {
+	b := &vd.b[idx]
+	if !v.IsValid() {
 		return
 	}
 	switch v.Kind() {
 	case reflect.Uintptr, reflect.String:
-		b.Highlight(v.Type()).Writef("(%#v)", v)
+		b.Writef("(%#v)", v)
 	case reflect.Complex64, reflect.Complex128:
-		b.Highlight(v.Type()).Writef("%v", v)
+		b.Write(v)
 	case reflect.Chan, reflect.Func:
-		b.Highlight(v.Type())
 		if v.IsNil() {
 			b.Write("(nil)")
 		} else {
 			b.Writef("(%v)", v)
 		}
 	case reflect.UnsafePointer:
-		b.Highlight(v.Type())
 		if v.Pointer() == 0 {
 			b.Write("(nil)")
 		} else {
@@ -71,41 +132,33 @@ func (vd *ValueDiffer) writeHTypeValue(idx int, v reflect.Value) {
 		}
 	case reflect.Interface:
 		if v.IsNil() {
-			b.Highlight(nil)
+			if interfaceName(v.Type()) != "" {
+				b.Write("(nil)")
+			}
 		} else {
-			vd.writeHTypeValue(idx, v.Elem())
+			panic("Should not come here")
+			//vd.writeValueAfterType(idx, v.Elem()) //TODO: test?
 		}
 	case reflect.Ptr:
 		if v.IsNil() {
-			b.Write("(")
-			if e := v.Type().Elem(); e.Kind() == reflect.Struct {
-				b.Highlight("*", structName(e))
-			} else {
-				b.Highlight(v.Type())
-			}
-			b.Write(")(nil)")
-		} else if e := v.Elem(); isComposite(e.Type()) {
-			b.Highlight("&")
-			vd.writeHTypeValue(idx, e)
+			b.Write("(nil)")
 		} else {
-			b.Write("(").Highlight(v.Type()).Writef(")(%v)", v)
+			b.Writef("(%v)", v)
 		}
 	case reflect.Array:
-		vd.writeHTypeValueArray(idx, v)
+		vd.writeValueAfterTypeArray(idx, v)
 	case reflect.Slice:
-		vd.writeHTypeValueSlice(idx, v)
+		vd.writeValueAfterTypeSlice(idx, v)
 	case reflect.Map:
-		vd.writeHTypeValueMap(idx, v)
+		vd.writeValueAfterTypeMap(idx, v)
 	case reflect.Struct:
-		vd.writeHTypeValueStruct(idx, v)
-	default: // bool, integer, float
-		b.Highlight(v.Type()).Writef("(%v)", v)
+		vd.writeValueAfterTypeStruct(idx, v)
+	default:
+		b.Writef("(%v)", v)
 	}
 }
 
-func (vd *ValueDiffer) writeHTypeValueArray(idx int, v reflect.Value) {
-	b := &vd.b[idx]
-	b.Highlight(v.Type())
+func (vd *ValueDiffer) writeValueAfterTypeArray(idx int, v reflect.Value) {
 	if _, id, ml := attrElemArray(v); ml {
 		vd.writeElemArrayML(idx, v)
 	} else if id {
@@ -115,22 +168,21 @@ func (vd *ValueDiffer) writeHTypeValueArray(idx int, v reflect.Value) {
 	}
 }
 
-func (vd *ValueDiffer) writeHTypeValueSlice(idx int, v reflect.Value) {
+func (vd *ValueDiffer) writeValueAfterTypeSlice(idx int, v reflect.Value) {
 	b := &vd.b[idx]
 	if v.IsNil() {
-		b.Highlight(v.Type()).Write("(nil)")
+		b.Write("(nil)")
 		return
 	}
-	vd.writeHTypeValueArray(idx, v)
+	vd.writeValueAfterTypeArray(idx, v)
 }
 
-func (vd *ValueDiffer) writeHTypeValueMap(idx int, v reflect.Value) {
+func (vd *ValueDiffer) writeValueAfterTypeMap(idx int, v reflect.Value) {
 	b := &vd.b[idx]
 	if v.IsNil() {
-		b.Highlight(v.Type()).Write("(nil)")
+		b.Write("(nil)")
 		return
 	}
-	b.Highlight(v.Type())
 	if _, ml := attrElemMap(v); ml {
 		vd.writeElemMapML(idx, v)
 	} else {
@@ -138,9 +190,8 @@ func (vd *ValueDiffer) writeHTypeValueMap(idx int, v reflect.Value) {
 	}
 }
 
-func (vd *ValueDiffer) writeHTypeValueStruct(idx int, v reflect.Value) {
+func (vd *ValueDiffer) writeValueAfterTypeStruct(idx int, v reflect.Value) {
 	b := &vd.b[idx]
-	b.Highlight(structName(v.Type()))
 	if ml := attrElemStruct(v); ml {
 		vd.writeElemStructML(idx, v)
 	} else {
@@ -156,6 +207,68 @@ func (vd *ValueDiffer) writeHTypeValueStruct(idx int, v reflect.Value) {
 		b.Write("}")
 	}
 }
+
+//b := &vd.b[idx]
+//if !v.IsValid() {
+//    b.Highlight(nil)
+//    return
+//}
+//switch v.Kind() {
+//case reflect.Uintptr, reflect.String:
+//    b.Highlight(v.Type()).Writef("(%#v)", v)
+//case reflect.Complex64, reflect.Complex128:
+//    b.Highlight(v.Type()).Writef("%v", v)
+//case reflect.Chan, reflect.Func:
+//    b.Highlight(v.Type())
+//    if v.IsNil() {
+//        b.Write("(nil)")
+//    } else {
+//        b.Writef("(%v)", v)
+//    }
+//case reflect.UnsafePointer:
+//    b.Highlight(v.Type())
+//    if v.Pointer() == 0 {
+//        b.Write("(nil)")
+//    } else {
+//        b.Writef("(%v)", v)
+//    }
+//case reflect.Interface:
+//    if v.IsNil() {
+//        if n := interfaceName(v.Type()); n == "" {
+//            b.Highlight(nil)
+//        } else {
+//			b.Highlight(n).Write("(nil)") //TODO: test?
+//        }
+//    } else {
+//        vd.writeHTypeValue(idx, v.Elem())
+//    }
+//case reflect.Ptr:
+//    if v.IsNil() {
+//        b.Write("(")
+//        if e := v.Type().Elem(); e.Kind() == reflect.Struct {
+//            b.Highlight("*", structName(e))
+//        } else {
+//            b.Highlight(v.Type())
+//        }
+//        b.Write(")(nil)")
+//    } else if e := v.Elem(); isComposite(e.Type()) {
+//        b.Highlight("&")
+//        vd.writeHTypeValue(idx, e)
+//    } else {
+//        b.Write("(").Highlight(v.Type()).Writef(")(%v)", v)
+//    }
+//case reflect.Array:
+//    vd.writeHTypeValueArray(idx, v)
+//case reflect.Slice:
+//    vd.writeHTypeValueSlice(idx, v)
+//case reflect.Map:
+//    vd.writeHTypeValueMap(idx, v)
+//case reflect.Struct:
+//    vd.writeHTypeValueStruct(idx, v)
+//default: // bool, integer, float
+//    b.Highlight(v.Type()).Writef("(%v)", v)
+//}
+//}
 
 func (vd *ValueDiffer) writeElem(idx int, v reflect.Value) {
 	b := &vd.b[idx]
@@ -493,6 +606,13 @@ func isReference(t reflect.Type) bool {
 func structName(t reflect.Type) string {
 	if t.Name() == "" {
 		return "struct"
+	}
+	return t.String()
+}
+
+func interfaceName(t reflect.Type) string {
+	if t.Name() == "" {
+		return ""
 	}
 	return t.String()
 }
