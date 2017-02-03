@@ -65,8 +65,32 @@ func main() {
 
 func fj() {
 	a := [][]int{[]int{1, 2, 3}, []int{4, 5, 6}}
+	b := [][]int{[]int{1, 2}, []int{5, 6}}
 	desc(a, "\n")
-
+	desc(reflect.TypeOf(a))
+	desc(reflect.TypeOf(b))
+	c := map[int]string{}
+	d := map[uint]string{}
+	desc(reflect.TypeOf(c))
+	desc(reflect.TypeOf(d))
+	desc(reflect.TypeOf(c) == reflect.TypeOf(d))
+	e := map[int]int8{}
+	f := map[int]uint8{}
+	desc(reflect.TypeOf(e))
+	desc(reflect.TypeOf(f))
+	desc(reflect.TypeOf(e) == reflect.TypeOf(f))
+	g := reflect.TypeOf(struct {
+		a uint
+		b string
+	}{})
+	h := reflect.TypeOf(struct {
+		a int
+		b string
+	}{})
+	desc(g)
+	desc(h)
+	desc(g == h)
+	desc(reflect.ValueOf(struct{ i I }{}).Field(0).Type().Name())
 }
 
 func fi() {
@@ -383,8 +407,7 @@ func desc(a interface{}, sep ...string) {
 	if _, _, ln, ok := runtime.Caller(1); ok {
 		fmt.Print(ln, ": ")
 	}
-	v := reflect.ValueOf(a)
-	if v.IsValid() {
+	if v := reflect.ValueOf(a); v.IsValid() {
 		fmt.Print(v.Kind())
 	}
 	s := "\t"
