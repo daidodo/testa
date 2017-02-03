@@ -33,32 +33,48 @@ func (vd *ValueDiffer) WriteDiff(v1, v2 reflect.Value, tab int) {
 	} else if v1.Type() == v2.Type() {
 		vd.writeTypeDiffValues(v1, v2)
 	} else {
-		v1, v2 = vd.writeDiffTypesBeforeValue(v1, v2)
-		vd.writeValueAfterType(0, v1)
-		vd.writeValueAfterType(1, v2)
+		vd.writeHTypeValue(0, v1)
+		vd.writeHTypeValue(1, v2)
+		//v1, v2 = vd.writeDiffTypesBeforeValue(v1, v2)
+		//vd.writeValueAfterType(0, v1)
+		//vd.writeValueAfterType(1, v2)
 	}
 }
 
-func (vd *ValueDiffer) writeDiffTypesBeforeValue(v1, v2 reflect.Value) (r1, r2 reflect.Value) {
-	if v1.Kind() == v2.Kind() {
-		//TODO
-		r1, r2 = v1, v2
-		switch v1.Kind() {
-		case reflect.Interface:
-		case reflect.Ptr:
-		case reflect.Chan:
-		case reflect.Func:
-		case reflect.Array:
-		case reflect.Slice:
-		case reflect.Map:
-		case reflect.Struct:
-		}
-	} else {
-		r1 = vd.writeHTypeBeforeValue(0, v1)
-		r2 = vd.writeHTypeBeforeValue(1, v2)
-	}
-	return
-}
+//func (vd *ValueDiffer) writeDiffTypesBeforeValue(v1, v2 reflect.Value) (r1, r2 reflect.Value) {
+//    if !v1.IsValid() || !v2.IsValid() || v1.Kind() != v2.Kind() {
+//        r1 = vd.writeHTypeBeforeValue(0, v1)
+//        r2 = vd.writeHTypeBeforeValue(1, v2)
+//    } else {
+//        switch v1.Kind() {
+//        case reflect.Interface:
+//            r1, r2 = vd.writeDiffTypesBeforeValueInterface(v1, v2)
+//        case reflect.Ptr:
+//            r1, r2 = vd.writeDiffTypesBeforeValuePtr(v1, v2)
+//case reflect.Chan:
+//case reflect.Func:
+//case reflect.Array:
+//case reflect.Slice:
+//case reflect.Map:
+//case reflect.Struct:
+//        default:
+//            vd.writeDiffTypes(v1.Type(), v2.Type())
+//            r1, r2 = v1, v2
+//        }
+//    }
+//    return
+//}
+
+//func (vd *ValueDiffer) writeDiffTypesBeforeValueInterface(v1, v2 reflect.Value) (r1, r2 reflect.Value) {
+//    return
+//}
+
+//func (vd *ValueDiffer) writeDiffTypesBeforeValuePtr(v1, v2 reflect.Value) (r1, r2 reflect.Value) {
+//    return
+//}
+
+//func (vd *ValueDiffer) writeDiffTypes(t1, t2 reflect.Type) {
+//}
 
 func (vd *ValueDiffer) writeTypeDiffValues(v1, v2 reflect.Value) {
 }
