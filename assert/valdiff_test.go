@@ -648,37 +648,220 @@ func TestWriteElem(t *testing.T) {
 	}
 }
 
-func TestWriteField(t *testing.T) {
-	obj := func(d *ValueDiffer, i int, v reflect.Value) {
-		d.writeField(i, v)
-	}
-	eq := func(e string, xx ...interface{}) {
-		eqTemplate(t, obj, e, xx...)
-	}
-	_ = func(e string, xx ...interface{}) {
-		epTemplate(t, obj, e, xx...)
-	}
-	// nil
-	eq("<nil>", nil)
-	// bool
-	eq("true", true)
-	eq("false", false)
-	// number
-	eq("100", int(100))
-	eq("100", int8(100))
-	eq("100", int16(100))
-	eq("100", int32(100))
-	eq("100", int64(100))
-	eq("100", uint(100))
-	eq("100", uint8(100))
-	eq("100", uint16(100))
-	eq("100", uint32(100))
-	eq("100", uint64(100))
-	eq("0x64", uintptr(100))
-	eq("1.23", float32(1.23))
-	eq("100.23", float64(100.23))
-	eq("(100.23+300.45i)", complex(float32(100.23), float32(300.45)))
-	eq("(100.23+300.45i)", complex(float64(100.23), float64(300.45)))
-	// string
-	eq(`"A bc"`, string("A bc"))
-}
+//func TestWriteField(t *testing.T) {
+//    obj := func(d *ValueDiffer, i int, v reflect.Value) {
+//        d.writeField(i, v)
+//    }
+//    eq := func(e string, xx ...interface{}) {
+//        eqTemplate(t, obj, e, xx...)
+//    }
+//    ep := func(e string, xx ...interface{}) {
+//        epTemplate(t, obj, e, xx...)
+//    }
+// nil
+//    eq("<nil>", nil)
+// bool
+//    eq("true", true)
+//    eq("false", false)
+// number
+//    eq("100", int(100))
+//    eq("100", int8(100))
+//    eq("100", int16(100))
+//    eq("100", int32(100))
+//    eq("100", int64(100))
+//    eq("100", uint(100))
+//    eq("100", uint8(100))
+//    eq("100", uint16(100))
+//    eq("100", uint32(100))
+//    eq("100", uint64(100))
+//    eq("0x64", uintptr(100))
+//    eq("1.23", float32(1.23))
+//    eq("100.23", float64(100.23))
+//    eq("(100.23+300.45i)", complex(float32(100.23), float32(300.45)))
+//    eq("(100.23+300.45i)", complex(float64(100.23), float64(300.45)))
+// string
+//    eq(`"A bc"`, string("A bc"))
+// channel
+//    eq("chan int(nil)", chan int(nil))
+//    ep("chan int(%p)", make(chan int))
+//    ep("<-chan int(%p)", make(<-chan int))
+//    ep("chan<- int(%p)", make(chan<- int))
+// function
+//    eq("func(int) string(nil)", (func(int) string)(nil))
+//    ep("func(int) string(%p)", func(int) string { return "1" })
+// unsafe pointer
+//    eq("unsafe.Pointer(nil)", unsafe.Pointer(nil))
+//    ep("unsafe.Pointer(%p)", unsafe.Pointer(&[]int{}))
+// array
+//    if true {
+//        eq("[]", [0]int{})
+// short
+//        eq("[1 2 3]", [...]int{1, 2, 3})
+//        a := 100
+//        ep("[2]*int{<nil>, %[2]p} (*int)(%[2]p)", [...]*int{nil, &a}, &a)
+//        eq("[2]map[int]string{<nil>, map[]}", [...]map[int]string{nil, map[int]string{}})
+//        eq(`[6]interface {}{
+//    <nil>, map[],
+//    [1 2 3],
+//    [97 98],
+//    [], <nil>
+//}`, [...]interface{}{nil, map[int]string{}, [...]int{1, 2, 3}, [...]byte{'a', 'b'}, [0]int{}, nil})
+// long
+//        eq("[11]int{0:0, 1:0, 2:0, 3:0, 4:0, 5:0, 6:0, 7:0, 8:0, 9:0, 10:0}", [11]int{})
+//        eq(`[11]interface {}{
+//    0:<nil>,
+//    1:map[],
+//    2:[1 2 3],
+//    3:[97 98],
+//    4:[],
+//    5:[1.2 0],
+//    6:<nil>,
+//    7:<nil>,
+//    8:<nil>,
+//    9:<nil>,
+//    10:<nil>
+//}`, [11]interface{}{nil, map[int]string{}, [...]int{1, 2, 3}, [...]byte{'a', 'b'}, [0]int{}, [2]float32{1.2}})
+//    }
+// slice
+//    if true {
+//        eq("<nil>", []int(nil))
+//        eq("[]", []int{})
+// short
+//        eq("[1 2 3]", []int{1, 2, 3})
+//        a := 100
+//        ep("[]*int{<nil>, %[2]p} (*int)(%[2]p)", []*int{nil, &a}, &a)
+//        eq("[]map[int]string{<nil>, map[]}", []map[int]string{nil, map[int]string{}})
+//        eq(`[]interface {}{
+//    <nil>, map[],
+//    [1 2 3],
+//    [97 98],
+//    [], <nil>
+//}`, []interface{}{nil, map[int]string{}, [...]int{1, 2, 3}, [...]byte{'a', 'b'}, [0]int{}, nil})
+// long
+//        var b [11]int
+//        eq("[]int{0:0, 1:0, 2:0, 3:0, 4:0, 5:0, 6:0, 7:0, 8:0, 9:0, 10:0}", b[:])
+//        c := [11]interface{}{nil, map[int]string{}, [...]int{1, 2, 3}, [...]byte{'a', 'b'}, [0]int{}, [2]float32{1.2}}
+//        eq(`[]interface {}{
+//    0:<nil>,
+//    1:map[],
+//    2:[1 2 3],
+//    3:[97 98],
+//    4:[],
+//    5:[1.2 0],
+//    6:<nil>,
+//    7:<nil>,
+//    8:<nil>,
+//    9:<nil>,
+//    10:<nil>
+//}`, c[:])
+//    }
+// map
+//    if true {
+//        eq("<nil>", map[int]string(nil))
+//        eq("map[]", map[int]string{})
+//        eq(`map[10:"A bc"]`, map[int]string{10: "A bc"})
+//        eq("map[interface {}]int{[]:30}", map[interface{}]int{[0]string{}: 30})
+//        eq(`map[interface {}]int{
+//    ["A bc" "B cd"]:30
+//}`, map[interface{}]int{[...]string{"A bc", "B cd"}: 30})
+//    }
+// struct
+//    if true {
+//        eq("struct{}", struct{}{})
+//        eq(`struct{a:100, b:"A bc", c:(100.1+200.2i)}`, struct {
+//            a int
+//            b string
+//            c complex64
+//        }{100, "A bc", 100.1 + 200.2i})
+//        eq(`struct{
+//    a:func(int) string(nil),
+//    b:(*int)(nil),
+//    c:unsafe.Pointer(nil)
+//}`, struct {
+//            a func(int) string
+//            b *int
+//            c unsafe.Pointer
+//        }{})
+//        a := &[]int{1, 2, 3}
+//        eq(`struct{
+//    a:100,
+//    b:[1 2 3],
+//    c:map[20:"A bc"]
+//}`, struct {
+//            a int
+//            b []int
+//            c map[int]string
+//        }{a: 100, b: *a, c: map[int]string{20: "A bc"}})
+//        eq(`struct{
+//    a:100,
+//    b:&[1 2 3],
+//    c:&map[20:"A bc"]
+//}`, struct {
+//            a int
+//            b *[]int
+//            c *map[int]string
+//        }{a: 100, b: a, c: &map[int]string{20: "A bc"}})
+//        type A struct {
+//            a uint
+//            b *[]int
+//            c map[uint]bool
+//        }
+/*
+//                    ep(`struct{
+//                a:100,
+//                b:[]assert.A{
+//                    {a:0, b:<nil>, c:<nil>},
+//                    assert.A{
+//                        a:200,
+//                        b:(*[]int)(%[2]p),
+//                        c:map[20:false]
+//                    }
+//                },
+//                c:assert.A{
+//                    a:200,
+//                    b:(*[]int)(%[2]p)
+//                    c:map[10:true]
+//                }
+//            } &[1 2 3]`, struct {
+//                        a int
+//                        b []A
+//                        c A
+//                    }{a: 100, b: []A{A{}, A{a: 200, b: a, c: map[uint]bool{20: false}}}, c: A{a: 200, b: a, c: map[uint]bool{10: true}}}, a)
+//        */
+//        ep(`struct
+//    a:0,
+//    b:%[2]p,
+//    c:map[10:"A bc"],
+//    d:assert.A{
+//        a:100,
+//        b:%[2]p,
+//        c:map[10:true]
+//    }
+//} %[2]p`, struct {
+//            a int
+//            b *[]int
+//            c map[int]string
+//            d A
+//        }{b: a, c: map[int]string{10: "A bc"}, d: A{a: 100, b: a, c: map[uint]bool{10: true}}}, a)
+//        ep(`assert.A{
+//    a:100,
+//    b:%[2]p,
+//    c:map[10:true]
+//} %[2]p`, A{a: 100, b: a, c: map[uint]bool{10: true}}, a)
+//    }
+// pointer
+//    if true {
+//        a := 100
+//        var b interface{} = &[0]int{}
+//        ep("(*int)(nil) (*int)(%[2]p) (*interface {})(%[3]p)", (*int)(nil), &a, &b)
+//        c := "A bc"
+//        ep("(*string)(%[1]p)", &c)
+//        eq("&[1 2 3]", &[...]int{1, 2, 3})
+//        eq("&[1 2 3]", &[]int{1, 2, 3})
+//        eq(`&map[1:"abc"]`, &map[int]string{1: "abc"})
+//        eq(`&struct{a:0, b:""}`, &struct {
+//            a int
+//            b string
+//        }{})
+//    }
+//}
