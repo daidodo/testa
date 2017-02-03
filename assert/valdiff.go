@@ -139,14 +139,18 @@ func (vd *ValueDiffer) writeField(idx int, v reflect.Value) {
 		} else {
 			vd.writeField(idx, v.Elem())
 		}
-	case reflect.Chan:
-		//TODO
-	case reflect.Func:
-		//TODO
-	case reflect.Ptr:
-		vd.writeFieldPtr(idx, v)
+	case reflect.Chan, reflect.Func:
+		if v.IsNil() {
+			b.Writef("%v(nil)", v.Type())
+		} else {
+			b.Writef("%v(%v)", v.Type(), v)
+		}
 	case reflect.UnsafePointer:
-		//TODO
+		if v.Pointer() == 0 {
+			b.Writef("%v(nil)", v.Type())
+		} else {
+			b.Writef("%v(%v)", v.Type(), v)
+		}
 	case reflect.Array:
 		vd.writeElemArray(idx, v)
 	case reflect.Slice:
@@ -155,40 +159,42 @@ func (vd *ValueDiffer) writeField(idx int, v reflect.Value) {
 		vd.writeElemMap(idx, v)
 	case reflect.Struct:
 		vd.writeFieldStruct(idx, v)
+	case reflect.Ptr:
+		vd.writeFieldPtr(idx, v)
 	default: // bool, integer, float, complex, string
 		vd.writeKey(idx, v)
 	}
 }
 
 func (vd *ValueDiffer) writeFieldPtr(idx int, v reflect.Value) {
+	b := &vd.b[idx]
+	if v.IsNil() {
+		b.Writef("(%v)(nil)", v.Type())
+		return
+	}
+	e := v.Elem()
+	if isComposite(e.Type()) {
+		b.Write("&")
+		vd.writeField(idx, e)
+	} else {
+		b.Writef("(%v)(%v)", v.Type(), v)
+	}
 }
-
-//func (vd *ValueDiffer) writeElemPtr(idx int, v reflect.Value) {
-//    b := &vd.b[idx]
-//    if v.IsNil() {
-//        b.Write(v)
-//    } else if e := v.Elem(); isComposite(e.Type()) {
-//        b.Write("&")
-//        vd.writeElem(idx, e)
-//    } else {
-//        b.Write(v)
-//    }
-//}
 
 func (vd *ValueDiffer) writeFieldStruct(idx int, v reflect.Value) {
 	b := &vd.b[idx]
-	b.Write(structName(v), "{")
-	comp := false
-	for i := 0; i < v.NumField(); i++ {
-		if isComposite(v.Field(i).Type()) {
-			comp = true
-			break
-		}
+	var ml bool
+	for i := 0; i < v.NumField() && !ml; i++ {
+		ml = isNonTrivialField(v.Field(i))
 	}
 	t := v.Type()
-	if comp {
+	b.Write(structName(v), "{")
+	if ml {
 		b.Tab++
 		for i := 0; i < v.NumField(); i++ {
+			if i > 0 {
+				b.Write(",")
+			}
 			b.NL().Write(t.Field(i).Name, ":")
 			vd.writeField(idx, v.Field(i))
 		}
@@ -398,27 +404,6 @@ func (vd *ValueDiffer) writeElemStruct(idx int, v reflect.Value) {
 	b.Write("}")
 }
 
-func isNonTrivialElem(v reflect.Value) bool {
-	return !isTrivialElem(v)
-}
-
-func isTrivialElem(v reflect.Value) bool {
-	if !v.IsValid() || !isComposite(v.Type()) {
-		return true
-	}
-	switch v.Kind() {
-	case reflect.Interface:
-		return isTrivialElem(v.Elem())
-	case reflect.Array:
-		return v.Len() < 1
-	case reflect.Slice, reflect.Map:
-		return v.IsNil() || v.Len() < 1
-	case reflect.Struct:
-		return v.NumField() < 1
-	}
-	panic("Should not come here!")
-}
-
 func (vd *ValueDiffer) writeKey(idx int, v reflect.Value) {
 	b := &vd.b[idx]
 	if !v.IsValid() {
@@ -510,14 +495,43 @@ func (vd *ValueDiffer) writeKeyStruct(idx int, v reflect.Value) {
 	b.Write("}")
 }
 
+func isNonTrivialField(v reflect.Value) bool {
+	if !v.IsValid() || !isReference(v.Type()) {
+		return false
+	}
+	return true
+}
+
+func isNonTrivialElem(v reflect.Value) bool {
+	if !v.IsValid() || !isNonTrivial(v.Type()) {
+		return false
+	}
+	switch v.Kind() {
+	case reflect.Interface:
+		return isNonTrivialElem(v.Elem())
+	case reflect.Array:
+		return v.Len() > 0
+	case reflect.Slice, reflect.Map:
+		return !v.IsNil() && v.Len() > 0
+	case reflect.Struct:
+		return v.NumField() > 0
+	}
+	panic("Should not come here!")
+}
+
 func isComposite(t reflect.Type) bool {
 	k := t.Kind()
-	return k == reflect.Array || k == reflect.Map || k == reflect.Slice || k == reflect.Struct || k == reflect.Interface
+	return k == reflect.Array || k == reflect.Map || k == reflect.Slice || k == reflect.Struct
+}
+
+func isNonTrivial(t reflect.Type) bool {
+	k := t.Kind()
+	return k == reflect.Interface || isComposite(t)
 }
 
 func isReference(t reflect.Type) bool {
 	k := t.Kind()
-	return k == reflect.Chan || k == reflect.Func || k == reflect.Ptr || k == reflect.UnsafePointer || isComposite(t)
+	return k == reflect.Chan || k == reflect.Func || k == reflect.Ptr || k == reflect.UnsafePointer || isNonTrivial(t)
 }
 
 func structName(v reflect.Value) string {
