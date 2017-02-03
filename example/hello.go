@@ -58,8 +58,15 @@ func main() {
 	var b interface{} = &[]int{1, 2, 3}
 	fmt.Printf(f, b)
 	b = []int{1, 2, 3}
-	fmt.Printf(f, &b)
+	desc(&b)
 	fi()
+	fj()
+}
+
+func fj() {
+	a := [][]int{[]int{1, 2, 3}, []int{4, 5, 6}}
+	desc(a, "\n")
+
 }
 
 func fi() {
@@ -87,6 +94,18 @@ func fi() {
 	desc(reflect.ValueOf(f).Index(0).Kind())
 	g := [...]A{A{}, A{a: 100}}
 	desc(g, "\n")
+	type A struct {
+		a uint
+		b *[]int
+		c map[uint]bool
+	}
+	h := &[]int{1, 2, 3}
+	type B struct {
+		a int
+		b []A
+		c A
+	}
+	desc(B{a: 100, b: []A{A{}, A{a: 200, b: h, c: map[uint]bool{20: false}}}, c: A{a: 200, b: h, c: map[uint]bool{10: true}}}, "\n")
 }
 
 func fh() {
