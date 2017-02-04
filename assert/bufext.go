@@ -48,6 +48,7 @@ func (b *FeatureBuf) NL() *FeatureBuf {
 func (b *FeatureBuf) Finish() {
 	b.normal()
 }
+
 func (b *FeatureBuf) writeNormalString(s string) *FeatureBuf {
 	if len(s) > 0 {
 		b.normal()

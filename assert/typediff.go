@@ -2,7 +2,7 @@ package assert
 
 import "reflect"
 
-func (vd *ValueDiffer) WriteValue(idx int, v reflect.Value) {
+func (vd *ValueDiffer) WriteTypeValue(idx int, v reflect.Value) {
 	v = vd.writeTypeBeforeValue(idx, v, false)
 	vd.writeValueAfterType(idx, v)
 }

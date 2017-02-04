@@ -91,6 +91,9 @@ func fj() {
 	desc(h)
 	desc(g == h)
 	desc(reflect.ValueOf(struct{ i I }{}).Field(0).Type().Name())
+	i := &[...]int{1, 2, 3}
+	j := &[...]int{1, 2, 3}
+	desc(i == j)
 }
 
 func fi() {
