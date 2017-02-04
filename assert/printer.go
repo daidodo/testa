@@ -16,7 +16,6 @@ const (
 
 type printer struct {
 	res int
-	msg *string
 	t   *testing.T
 }
 
@@ -24,9 +23,9 @@ func (p printer) Fprint(w io.Writer, a ...interface{}) (n int, err error) {
 	if p.res == kSucc {
 		return
 	}
-	n, err = fmt.Fprint(w, fmt.Sprint(w, p.Sprint(a...)))
+	n, err = fmt.Fprint(w, p.sprint(a...))
 	if p.res == kAssertFail {
-		p.failNow()
+		p.t.FailNow()
 	}
 	return
 }
@@ -35,9 +34,9 @@ func (p printer) Fprintf(w io.Writer, format string, a ...interface{}) (n int, e
 	if p.res == kSucc {
 		return
 	}
-	n, err = fmt.Fprint(w, p.Sprintf(format, a...))
+	n, err = fmt.Fprint(w, p.sprintf(format, a...))
 	if p.res == kAssertFail {
-		p.failNow()
+		p.t.FailNow()
 	}
 	return
 }
@@ -64,18 +63,13 @@ func (p printer) format(s string) string {
 		return s
 	}
 	var buf bytes.Buffer
-	for i, l := range strings.Split(s, "\n") {
-		if i > 0 {
-			buf.WriteString("\n")
-			if l != "" {
-				buf.WriteString(heading)
-			}
+	for _, l := range strings.Split(s, "\n") {
+		buf.WriteString("\n")
+		if l != "" {
+			buf.WriteString(heading)
 		}
 		buf.WriteString(l)
 	}
+	buf.WriteString("\n")
 	return buf.String()
-}
-
-func (p printer) failNow() {
-
 }

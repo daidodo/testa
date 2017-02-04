@@ -3,16 +3,16 @@ package assert
 import "reflect"
 
 func (vd *ValueDiffer) WriteValue(idx int, v reflect.Value) {
-	v = vd.writeHTypeBeforeValue(idx, v, false)
+	v = vd.writeTypeBeforeValue(idx, v, false)
 	vd.writeValueAfterType(idx, v)
 }
 
 func (vd *ValueDiffer) writeHTypeValue(idx int, v reflect.Value) {
-	v = vd.writeHTypeBeforeValue(idx, v, true)
+	v = vd.writeTypeBeforeValue(idx, v, true)
 	vd.writeValueAfterType(idx, v)
 }
 
-func (vd *ValueDiffer) writeHTypeBeforeValue(idx int, v reflect.Value, hl bool) reflect.Value {
+func (vd *ValueDiffer) writeTypeBeforeValue(idx int, v reflect.Value, hl bool) reflect.Value {
 	b := &vd.b[idx]
 	var pt func(x ...interface{})
 	if hl {
@@ -36,7 +36,7 @@ func (vd *ValueDiffer) writeHTypeBeforeValue(idx int, v reflect.Value, hl bool) 
 					pt(n) //TODO: test?
 				}
 			} else {
-				v = vd.writeHTypeBeforeValue(idx, v.Elem())
+				v = vd.writeTypeBeforeValue(idx, v.Elem(), hl)
 			}
 		case reflect.Ptr:
 			if v.IsNil() {
@@ -49,7 +49,7 @@ func (vd *ValueDiffer) writeHTypeBeforeValue(idx int, v reflect.Value, hl bool) 
 				b.Write(")")
 			} else if e := v.Elem(); isComposite(e.Type()) {
 				pt("&")
-				v = vd.writeHTypeBeforeValue(idx, e)
+				v = vd.writeTypeBeforeValue(idx, e, hl)
 			} else {
 				b.Write("(")
 				pt(v.Type())

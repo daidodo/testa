@@ -1,6 +1,7 @@
 package assert
 
 import (
+	"bytes"
 	"fmt"
 	"reflect"
 )
@@ -14,18 +15,25 @@ const (
 )
 
 type ValueDiffer struct {
+	buf   [2]bytes.Buffer
 	b     [2]FeatureBuf
 	Attrs [kAttrSize]bool
 }
 
+func NewValueDiffer() *ValueDiffer {
+	var v ValueDiffer
+	v.b[0] = FeatureBuf{w: &v.buf[0]}
+	v.b[1] = FeatureBuf{w: &v.buf[1]}
+	return &v
+}
+
 func (vd *ValueDiffer) String(i int) string {
-	return vd.b[i].String()
+	vd.b[i].Finish()
+	return vd.buf[i].String()
 }
 
 func (vd *ValueDiffer) WriteDiff(v1, v2 reflect.Value, tab int) {
 	b1, b2 := &vd.b[0], &vd.b[1]
-	b1.Reset()
-	b2.Reset()
 	b1.Tab, b2.Tab = tab, tab
 	if !v1.IsValid() {
 		b1.Highlight(nil)

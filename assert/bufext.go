@@ -1,12 +1,12 @@
 package assert
 
 import (
-	"bytes"
 	"fmt"
+	"io"
 )
 
 type FeatureBuf struct {
-	buf  bytes.Buffer
+	w    io.Writer
 	code string
 	Tab  int
 }
@@ -28,12 +28,12 @@ func (b *FeatureBuf) Highlight(a ...interface{}) *FeatureBuf {
 }
 
 func (b *FeatureBuf) Plainf(format string, a ...interface{}) *FeatureBuf {
-	b.buf.WriteString(fmt.Sprintf(format, a...))
+	b.w.Write([]byte(fmt.Sprintf(format, a...)))
 	return b
 }
 
 func (b *FeatureBuf) Plain(a ...interface{}) *FeatureBuf {
-	b.buf.WriteString(fmt.Sprint(a...))
+	b.w.Write([]byte(fmt.Sprint(a...)))
 	return b
 }
 
@@ -45,26 +45,13 @@ func (b *FeatureBuf) NL() *FeatureBuf {
 	return b
 }
 
-func (b *FeatureBuf) String() string {
+func (b *FeatureBuf) Finish() {
 	b.normal()
-	return b.buf.String()
 }
-
-func (b *FeatureBuf) Bytes() []byte {
-	b.normal()
-	return b.buf.Bytes()
-}
-
-func (b *FeatureBuf) Reset() {
-	b.buf.Reset()
-	b.code = ""
-	b.Tab = 0
-}
-
 func (b *FeatureBuf) writeNormalString(s string) *FeatureBuf {
 	if len(s) > 0 {
 		b.normal()
-		b.buf.WriteString(s)
+		b.w.Write([]byte(s))
 	}
 	return b
 }
@@ -72,7 +59,7 @@ func (b *FeatureBuf) writeNormalString(s string) *FeatureBuf {
 func (b *FeatureBuf) writeHighlightString(s string) *FeatureBuf {
 	if len(s) > 0 {
 		b.highlight()
-		b.buf.WriteString(s)
+		b.w.Write([]byte(s))
 	}
 	return b
 }
@@ -84,7 +71,7 @@ func (b *FeatureBuf) normal() {
 	if b.code == "" {
 		return
 	}
-	b.buf.WriteString(kEND)
+	b.w.Write([]byte(kEND))
 	b.code = ""
 }
 
@@ -92,116 +79,12 @@ func (b *FeatureBuf) red() {
 	if b.code == kRED {
 		return
 	} else if b.code != "" {
-		b.buf.WriteString(kEND)
+		b.w.Write([]byte(kEND))
 	}
-	b.buf.WriteString(kRED)
+	b.w.Write([]byte(kRED))
 	b.code = kRED
 }
 
 func (b *FeatureBuf) highlight() {
 	b.red()
 }
-
-/*
-type featureBuf struct {
-	bytes.Buffer
-	code string
-}
-
-func NewFeatureBuffer() *featureBuf {
-	return &featureBuf{}
-}
-
-func (fb *featureBuf) Write(p []byte) (n int, err error) {
-	if len(p) < 1 {
-		return 0, nil
-	}
-	fb.normal()
-	return fb.Buffer.Write(p)
-}
-
-func (fb *featureBuf) WriteByte(c byte) error {
-	fb.normal()
-	return fb.Buffer.WriteByte(c)
-}
-
-func (fb *featureBuf) WriteRune(r rune) (n int, err error) {
-	fb.normal()
-	return fb.Buffer.WriteRune(r)
-}
-
-func (fb *featureBuf) WriteString(s string) (n int, err error) {
-	if len(s) < 1 {
-		return 0, nil
-	}
-	fb.normal()
-	return fb.Buffer.WriteString(s)
-}
-
-func (fb *featureBuf) WriteTo(w io.Writer) (n int64, err error) {
-	fb.normal()
-	return fb.Buffer.WriteTo(w)
-
-}
-
-func (fb *featureBuf) HighLightWrite(p []byte) (n int, err error) {
-	if len(p) < 1 {
-		return 0, nil
-	}
-	fb.highlight()
-	return fb.Buffer.Write(p)
-}
-
-func (fb *featureBuf) HighLightWriteByte(c byte) error {
-	fb.highlight()
-	return fb.Buffer.WriteByte(c)
-}
-
-func (fb *featureBuf) HighLightWriteRune(r rune) (n int, err error) {
-	fb.highlight()
-	return fb.Buffer.WriteRune(r)
-}
-
-func (fb *featureBuf) HighLightWriteString(s string) (n int, err error) {
-	if len(s) < 1 {
-		return 0, nil
-	}
-	fb.highlight()
-	return fb.Buffer.WriteString(s)
-}
-
-func (fb *featureBuf) Bytes() []byte {
-	fb.normal()
-	return fb.Buffer.Bytes()
-}
-
-func (fb *featureBuf) String() string {
-	fb.normal()
-	return fb.Buffer.String()
-}
-
-const kEND = "\033[0m"
-const kRED = "\033[31m"
-
-func (fb *featureBuf) normal() {
-	if fb.code == "" {
-		return
-	}
-	fb.Buffer.WriteString(kEND)
-	fb.code = ""
-}
-
-func (fb *featureBuf) red() {
-	if fb.code == kRED {
-		return
-	} else if fb.code != kEND {
-		fb.Buffer.WriteString(kEND)
-	}
-	fb.Buffer.WriteString(kRED)
-	fb.code = kRED
-}
-
-func (fb *featureBuf) highlight() {
-	fb.red()
-}
-*/

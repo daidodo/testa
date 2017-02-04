@@ -2,14 +2,12 @@ package assert
 
 import (
 	"fmt"
+	"os"
 	"reflect"
 	"runtime"
 	"strings"
 	"testing"
-	"unsafe"
 )
-
-var pt = printer("\t")
 
 func Equal(t *testing.T, expected, actual interface{}) printer {
 	return caller{1, 1}.Equal(t, expected, actual)
@@ -48,31 +46,32 @@ func (c caller) NotEqual(t *testing.T, expected, actual interface{}) printer {
 	if !reflect.DeepEqual(expected, actual) {
 		return printer{}
 	}
-	return failNe(c, t, expected)
+	return failNe(c, t, actual)
 }
 
 func failEq(c caller, t *testing.T, expected, actual interface{}) printer {
-	var buf FeatureBuf
-	buf.Tab = 1
+	buf := FeatureBuf{w: os.Stdout, Tab: 0}
 	writeCodeInfo(c, &buf)
+	buf.Tab++
 	writeFailEq(&buf, expected, actual)
-	return printer{res: kAssertFail, msg: &buf.String(), t: t}
+	buf.Finish()
+	return printer{res: kAssertFail, t: t}
 }
 
-func failNe(c caller, t *testing.T, value interface{}) printer {
-	var buf FeatureBuf
-	buf.Tab = 1
+func failNe(c caller, t *testing.T, actual interface{}) printer {
+	buf := FeatureBuf{w: os.Stdout, Tab: 1}
 	writeCodeInfo(c, &buf)
 	writeFailNe(&buf, actual)
-	return printer{res: kAssertFail, msg: &buf.String(), t: t}
+	buf.Finish()
+	return printer{res: kAssertFail, t: t}
 }
 
 func writeFailEq(buf *FeatureBuf, expected, actual interface{}) {
-	var v ValueDiffer
+	v := NewValueDiffer()
 	v.WriteDiff(reflect.ValueOf(expected), reflect.ValueOf(actual), buf.Tab)
 	if v.Attrs[NewLine] {
 		buf.NL().Write("Expected:")
-		if v.Attrs[Omit] {
+		if v.Attrs[OmitSame] {
 			buf.Write("\t(").Highlight("Only diffs are shown").Write(")")
 		}
 		buf.Tab++
@@ -86,9 +85,9 @@ func writeFailEq(buf *FeatureBuf, expected, actual interface{}) {
 		}
 		buf.Tab--
 	} else {
-		buf.NL().Writef("Expected:\t%v", v.String1())
-		buf.NL().Writef("  Actual:\t%v", v.String2())
-		if v.Attrs[Omit] {
+		buf.NL().Writef("Expected:\t%v", v.String(0))
+		buf.NL().Writef("  Actual:\t%v", v.String(1))
+		if v.Attrs[OmitSame] {
 			buf.NL().Write("\t\t(").Highlight("Only diffs are shown").Write(")")
 		}
 		if v.Attrs[CompFunc] {
@@ -98,7 +97,7 @@ func writeFailEq(buf *FeatureBuf, expected, actual interface{}) {
 }
 
 func writeFailNe(buf *FeatureBuf, actual interface{}) {
-	var v ValueDiffer
+	v := NewValueDiffer()
 	v.WriteValue(0, reflect.ValueOf(actual))
 	if v.Attrs[NewLine] {
 		buf.NL().Write("Expected:\t").Highlight("SAME as Actual")
@@ -108,7 +107,7 @@ func writeFailNe(buf *FeatureBuf, actual interface{}) {
 		buf.Tab--
 	} else {
 		buf.NL().Write("Expected:\t").Highlight("SAME as Actual")
-		buf.NL().Writef("  Actual:\t%v", v.String2())
+		buf.NL().Writef("  Actual:\t%v", v.String(0))
 	}
 }
 
@@ -141,7 +140,7 @@ func narrow(i *int, min, max int) {
 	}
 }
 
-//-----------old
+/*/-----------old
 
 func fail(c caller, t *testing.T, expected, actual interface{}) printer {
 	var buf FeatureBuf
@@ -211,37 +210,36 @@ func writeVariables(buf *FeatureBuf, expected, actual interface{}) {
 			buf.NL().Write("\t\t(").Highlight("func can only be compared to nil").Write(")")
 		}
 	}
-	/*
-		e, a := reflect.ValueOf(expected), reflect.ValueOf(actual)
-		var v ValueDiffer
-		v.WriteDiff(e, a, buf.Tab+1)
-		if v.Attrs[NewLine] {
-			buf.NL().Write("expected:\t")
-			if v.Attrs[Omit] {
-				buf.Write("(").Highlight("Only diffs are shown").Write(")")
-			}
-			buf.Tab++
-			buf.NL().Write(v.String(0))
-			buf.Tab--
-			buf.NL().Write("  actual:\t")
-			buf.Tab++
-			buf.NL().Write(v.String(0))
-			if v.Attrs[CompFunc] {
-				buf.NL().Write("(").Highlight("func can only be compared to nil").Write(")")
-			}
-			buf.Tab--
-		} else {
-			buf.NL().Writef("expected:\t%v", v.String1())
-			buf.NL().Writef("  actual:\t%v", v.String2())
-			if v.Attrs[Omit] {
-				buf.NL().Write("\t\t(").Highlight("Only diffs are shown").Write(")")
-			}
-			if v.Attrs[CompFunc] {
-				buf.NL().Write("\t\t(").Highlight("func can only be compared to nil").Write(")")
-			}
-		}
-	*/
+	//e, a := reflect.ValueOf(expected), reflect.ValueOf(actual)
+	//var v ValueDiffer
+	//v.WriteDiff(e, a, buf.Tab+1)
+	//if v.Attrs[NewLine] {
+	//    buf.NL().Write("expected:\t")
+	//    if v.Attrs[Omit] {
+	//        buf.Write("(").Highlight("Only diffs are shown").Write(")")
+	//    }
+	//    buf.Tab++
+	//    buf.NL().Write(v.String(0))
+	//    buf.Tab--
+	//    buf.NL().Write("  actual:\t")
+	//    buf.Tab++
+	//    buf.NL().Write(v.String(0))
+	//    if v.Attrs[CompFunc] {
+	//        buf.NL().Write("(").Highlight("func can only be compared to nil").Write(")")
+	//    }
+	//    buf.Tab--
+	//} else {
+	//    buf.NL().Writef("expected:\t%v", v.String1())
+	//    buf.NL().Writef("  actual:\t%v", v.String2())
+	//    if v.Attrs[Omit] {
+	//        buf.NL().Write("\t\t(").Highlight("Only diffs are shown").Write(")")
+	//    }
+	//    if v.Attrs[CompFunc] {
+	//        buf.NL().Write("\t\t(").Highlight("func can only be compared to nil").Write(")")
+	//    }
+	//}
 }
+*/
 
 func writeMessages(buf *FeatureBuf, messages ...interface{}) {
 	if len(messages) < 1 {
