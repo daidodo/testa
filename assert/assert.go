@@ -52,10 +52,7 @@ type caller struct {
 
 func fail(c caller, t *testing.T, expected, actual interface{}, messages ...interface{}) {
 	var buf FeatureBuf
-	if kHOOK {
-		buf.Write("\t")
-		buf.Tab = 2
-	} else {
+	if !kHOOK {
 		buf.Write("\n")
 	}
 	writeCodeInfo(c, &buf)
@@ -105,14 +102,14 @@ func writeCodeInfo(c caller, buf *FeatureBuf) {
 
 func writeVariables(buf *FeatureBuf, expected, actual interface{}) {
 	if expected == nil {
-		buf.NL().Write("expected:\t").Highlight(nil)
-		buf.NL().Write("  actual:\t")
+		buf.NL().Write(" expected:\t").Highlight(nil)
+		buf.NL().Write("   actual:\t")
 		// TODO
 		return
 	} else if actual == nil {
-		buf.NL().Write("expected:\t")
+		buf.NL().Write(" expected:\t")
 		// TODO
-		buf.NL().Write("  actual:\t").Highlight(nil)
+		buf.NL().Write("   actual:\t").Highlight(nil)
 		return
 	}
 	e, a := reflect.ValueOf(expected), reflect.ValueOf(actual)
@@ -126,7 +123,7 @@ func writeVariables(buf *FeatureBuf, expected, actual interface{}) {
 		nl, omit, fn = writeDiffValues(&b1, &b2, e, a)
 	}
 	if nl {
-		buf.NL().Write("expected:\t")
+		buf.NL().Write(" expected:\t")
 		if omit {
 			buf.Write("(").Highlight("Only diffs are shown").Write(")")
 		}
@@ -141,7 +138,7 @@ func writeVariables(buf *FeatureBuf, expected, actual interface{}) {
 		//}
 		buf.Tab--
 	} else {
-		buf.NL().Writef("expected:\t%v", b1.String())
+		buf.NL().Writef(" expected:\t%v", b1.String())
 		buf.NL().Writef("  actual:\t%v", b2.String())
 		if omit {
 			buf.NL().Write("\t\t(").Highlight("Only diffs are shown").Write(")")
