@@ -9,74 +9,106 @@ import (
 	"unsafe"
 )
 
-func Equal(t *testing.T, expected, actual interface{}, messages ...interface{}) {
-	caller{1, 1}.Equal(t, expected, actual, messages...)
+var pt = printer("\t")
+
+func Equal(t *testing.T, expected, actual interface{}) printer {
+	return caller{1, 1}.Equal(t, expected, actual)
+}
+
+type caller struct {
+	from, to int
 }
 
 func Caller(level int) caller {
 	return caller{0, level}
 }
 
-func (c caller) True(t *testing.T, actual bool, messages ...interface{}) {
+func (c caller) True(t *testing.T, actual bool) printer {
 	if actual {
-		return
+		return printer{}
 	}
-	fail(c, t, true, actual, messages...)
+	return failEq(c, t, true, actual)
 }
 
-func (c caller) False(t *testing.T, actual bool, messages ...interface{}) {
+func (c caller) False(t *testing.T, actual bool) printer {
 	if !actual {
-		return
+		return printer{}
 	}
-	fail(c, t, false, actual, messages...)
+	return failEq(c, t, false, actual)
 }
 
-func (c caller) Equal(t *testing.T, expected, actual interface{}, messages ...interface{}) {
+func (c caller) Equal(t *testing.T, expected, actual interface{}) printer {
 	if reflect.DeepEqual(expected, actual) {
-		return
+		return printer{}
 	}
-	fail(c, t, expected, actual, messages...)
+	return failEq(c, t, expected, actual)
 }
 
-//func NotEqual(t *testing.T, expected, actual interface{}, messages ...interface{}) {
-//    if !reflect.DeepEqual(expected, actual) {
-//        return
-//    }
-// TODO
-//    fail(c, t, expected, actual, messages...)
-//}
-
-type caller struct {
-	from, to int
+func (c caller) NotEqual(t *testing.T, expected, actual interface{}) printer {
+	if !reflect.DeepEqual(expected, actual) {
+		return printer{}
+	}
+	return failNe(c, t, expected)
 }
 
-func fail(c caller, t *testing.T, expected, actual interface{}, messages ...interface{}) {
+func failEq(c caller, t *testing.T, expected, actual interface{}) printer {
 	var buf FeatureBuf
-	if !kHOOK {
-		buf.Write("\n")
-	}
+	buf.Tab = 1
 	writeCodeInfo(c, &buf)
-	writeVariables(&buf, expected, actual)
-	writeMessages(&buf, messages...)
-	if kHOOK {
-		buf.Write("\n")
-		output := buf.Bytes()
-		tt := (*common)(unsafe.Pointer(t))
-		tt.su.Lock()
-		tt.output = output
-		tt.su.Unlock()
-		t.FailNow()
+	writeFailEq(&buf, expected, actual)
+	return printer{res: kAssertFail, msg: &buf.String(), t: t}
+}
+
+func failNe(c caller, t *testing.T, value interface{}) printer {
+	var buf FeatureBuf
+	buf.Tab = 1
+	writeCodeInfo(c, &buf)
+	writeFailNe(&buf, actual)
+	return printer{res: kAssertFail, msg: &buf.String(), t: t}
+}
+
+func writeFailEq(buf *FeatureBuf, expected, actual interface{}) {
+	var v ValueDiffer
+	v.WriteDiff(reflect.ValueOf(expected), reflect.ValueOf(actual), buf.Tab)
+	if v.Attrs[NewLine] {
+		buf.NL().Write("Expected:")
+		if v.Attrs[Omit] {
+			buf.Write("\t(").Highlight("Only diffs are shown").Write(")")
+		}
+		buf.Tab++
+		buf.NL().Write(v.String(0))
+		buf.Tab--
+		buf.NL().Write("  Actual:")
+		buf.Tab++
+		buf.NL().Write(v.String(0))
+		if v.Attrs[CompFunc] {
+			buf.NL().Write("(").Highlight("func can only be compared to nil").Write(")")
+		}
+		buf.Tab--
 	} else {
-		t.Fatal(buf.String())
+		buf.NL().Writef("Expected:\t%v", v.String1())
+		buf.NL().Writef("  Actual:\t%v", v.String2())
+		if v.Attrs[Omit] {
+			buf.NL().Write("\t\t(").Highlight("Only diffs are shown").Write(")")
+		}
+		if v.Attrs[CompFunc] {
+			buf.NL().Write("\t\t(").Highlight("func can only be compared to nil").Write(")")
+		}
 	}
 }
 
-func narrow(i *int, min, max int) {
-	if *i < min {
-		*i = min
-	}
-	if *i > max {
-		*i = max
+func writeFailNe(buf *FeatureBuf, actual interface{}) {
+	var v ValueDiffer
+	v.WriteValue(0, reflect.ValueOf(actual))
+	if v.Attrs[NewLine] {
+		buf.NL().Write("Expected:\t").Highlight("SAME as Actual")
+		buf.NL().Write("  Actual:")
+		buf.Tab++
+		buf.NL().Write(v.String(0))
+		buf.Tab--
+	} else {
+		buf.NL().Write("Expected:\t").Highlight("SAME as Actual")
+		buf.NL().Writef("  Actual:\t%v", v.String2())
 	}
 }
 
@@ -97,6 +129,38 @@ func writeCodeInfo(c caller, buf *FeatureBuf) {
 		} else if find || c.to == c.from {
 			buf.Write("???:1:")
 		}
+	}
+}
+
+func narrow(i *int, min, max int) {
+	if *i < min {
+		*i = min
+	}
+	if *i > max {
+		*i = max
+	}
+}
+
+//-----------old
+
+func fail(c caller, t *testing.T, expected, actual interface{}) printer {
+	var buf FeatureBuf
+	if !kHOOK {
+		buf.Write("\n")
+	}
+	writeCodeInfo(c, &buf)
+	writeVariables(&buf, expected, actual)
+	writeMessages(&buf, messages...)
+	if kHOOK {
+		buf.Write("\n")
+		output := buf.Bytes()
+		tt := (*common)(unsafe.Pointer(t))
+		tt.su.Lock()
+		tt.output = output
+		tt.su.Unlock()
+		t.FailNow()
+	} else {
+		t.Fatal(buf.String())
 	}
 }
 

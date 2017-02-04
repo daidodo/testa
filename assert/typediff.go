@@ -2,23 +2,38 @@ package assert
 
 import "reflect"
 
-func (vd *ValueDiffer) writeHTypeValue(idx int, v reflect.Value) {
-	v = vd.writeHTypeBeforeValue(idx, v)
+func (vd *ValueDiffer) WriteValue(idx int, v reflect.Value) {
+	v = vd.writeHTypeBeforeValue(idx, v, false)
 	vd.writeValueAfterType(idx, v)
 }
 
-func (vd *ValueDiffer) writeHTypeBeforeValue(idx int, v reflect.Value) reflect.Value {
+func (vd *ValueDiffer) writeHTypeValue(idx int, v reflect.Value) {
+	v = vd.writeHTypeBeforeValue(idx, v, true)
+	vd.writeValueAfterType(idx, v)
+}
+
+func (vd *ValueDiffer) writeHTypeBeforeValue(idx int, v reflect.Value, hl bool) reflect.Value {
 	b := &vd.b[idx]
+	var pt func(x ...interface{})
+	if hl {
+		pt = func(x ...interface{}) {
+			b.Highlight(x...)
+		}
+	} else {
+		pt = func(x ...interface{}) {
+			b.Write(x...)
+		}
+	}
 	if !v.IsValid() {
-		b.Highlight(nil)
+		pt(nil)
 	} else {
 		switch v.Kind() {
 		case reflect.Interface:
 			if v.IsNil() {
 				if n := interfaceName(v.Type()); n == "" {
-					b.Highlight(nil)
+					pt(nil)
 				} else {
-					b.Highlight(n) //TODO: test?
+					pt(n) //TODO: test?
 				}
 			} else {
 				v = vd.writeHTypeBeforeValue(idx, v.Elem())
@@ -27,21 +42,23 @@ func (vd *ValueDiffer) writeHTypeBeforeValue(idx int, v reflect.Value) reflect.V
 			if v.IsNil() {
 				b.Write("(")
 				if e := v.Type().Elem(); e.Kind() == reflect.Struct {
-					b.Highlight("*", structName(e))
+					pt("*", structName(e))
 				} else {
-					b.Highlight(v.Type())
+					pt(v.Type())
 				}
 				b.Write(")")
 			} else if e := v.Elem(); isComposite(e.Type()) {
-				b.Highlight("&")
+				pt("&")
 				v = vd.writeHTypeBeforeValue(idx, e)
 			} else {
-				b.Write("(").Highlight(v.Type()).Write(")")
+				b.Write("(")
+				pt(v.Type())
+				b.Write(")")
 			}
 		case reflect.Struct:
-			b.Highlight(structName(v.Type()))
+			pt(structName(v.Type()))
 		default:
-			b.Highlight(v.Type())
+			pt(v.Type())
 		}
 	}
 	return v
