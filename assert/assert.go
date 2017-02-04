@@ -67,7 +67,7 @@ func failNe(c caller, t *testing.T, actual interface{}) printer {
 }
 
 func writeFailEq(buf *FeatureBuf, expected, actual interface{}) {
-	v := NewValueDiffer()
+	var v ValueDiffer
 	v.WriteDiff(reflect.ValueOf(expected), reflect.ValueOf(actual), buf.Tab)
 	if v.Attrs[NewLine] {
 		buf.NL().Write("Expected:")
@@ -97,7 +97,7 @@ func writeFailEq(buf *FeatureBuf, expected, actual interface{}) {
 }
 
 func writeFailNe(buf *FeatureBuf, actual interface{}) {
-	v := NewValueDiffer()
+	var v ValueDiffer
 	v.WriteValue(0, reflect.ValueOf(actual))
 	if v.Attrs[NewLine] {
 		buf.NL().Write("Expected:\t").Highlight("SAME as Actual")

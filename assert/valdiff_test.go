@@ -7,7 +7,7 @@ import (
 
 func TestWriteDiffStringValue(t *testing.T) {
 	eq := func(x1, x2 string, s1, s2 string) {
-		d := NewValueDiffer()
+		var d ValueDiffer
 		d.writeTypeDiffValuesString(reflect.ValueOf(x1), reflect.ValueOf(x2))
 		Caller(1).Equal(t, s1, d.String(0)).Printf("%s\n%s", d.String(0), d.String(1))
 		Caller(1).Equal(t, s2, d.String(1)).Printf("%s\n%s", d.String(0), d.String(1))

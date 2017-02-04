@@ -20,20 +20,13 @@ type ValueDiffer struct {
 	Attrs [kAttrSize]bool
 }
 
-func NewValueDiffer() *ValueDiffer {
-	var v ValueDiffer
-	v.b[0] = FeatureBuf{w: &v.buf[0]}
-	v.b[1] = FeatureBuf{w: &v.buf[1]}
-	return &v
-}
-
 func (vd *ValueDiffer) String(i int) string {
 	vd.b[i].Finish()
 	return vd.buf[i].String()
 }
 
 func (vd *ValueDiffer) WriteDiff(v1, v2 reflect.Value, tab int) {
-	b1, b2 := &vd.b[0], &vd.b[1]
+	b1, b2 := vd.bufs()
 	b1.Tab, b2.Tab = tab, tab
 	if !v1.IsValid() {
 		b1.Highlight(nil)
@@ -53,7 +46,7 @@ func (vd *ValueDiffer) WriteDiff(v1, v2 reflect.Value, tab int) {
 }
 
 func (vd *ValueDiffer) writeTypeDiffValues(v1, v2 reflect.Value) {
-	b1, b2 := &vd.b[0], &vd.b[1]
+	b1, b2 := vd.bufs()
 	switch v1.Kind() {
 	case reflect.Chan:
 		b1.Writef("%v(", v1.Type()).Highlight(v1).Write(")")
@@ -83,7 +76,7 @@ func (vd *ValueDiffer) writeTypeDiffValues(v1, v2 reflect.Value) {
 }
 
 func (vd *ValueDiffer) writeTypeDiffValuesComplex(v1, v2 reflect.Value) {
-	b1, b2 := &vd.b[0], &vd.b[1]
+	b1, b2 := vd.bufs()
 	c1, c2 := v1.Complex(), v2.Complex()
 	b1.Write("(")
 	b2.Write("(")
@@ -108,7 +101,7 @@ func (vd *ValueDiffer) writeTypeDiffValuesComplex(v1, v2 reflect.Value) {
 }
 
 func (vd *ValueDiffer) writeTypeDiffValuesFunc(v1, v2 reflect.Value) {
-	b1, b2 := &vd.b[0], &vd.b[1]
+	b1, b2 := vd.bufs()
 	b1.Writef("(%v)(", v1.Type())
 	b2.Writef("(%v)(", v2.Type())
 	vd.writeDiffValuesFunc(v1, v2)
@@ -117,7 +110,7 @@ func (vd *ValueDiffer) writeTypeDiffValuesFunc(v1, v2 reflect.Value) {
 }
 
 func (vd *ValueDiffer) writeDiffValuesFunc(v1, v2 reflect.Value) {
-	b1, b2 := &vd.b[0], &vd.b[1]
+	b1, b2 := vd.bufs()
 	p1, p2 := "nil", "nil"
 	if !v1.IsNil() {
 		p1 = fmt.Sprint(v1)
@@ -133,7 +126,7 @@ func (vd *ValueDiffer) writeDiffValuesFunc(v1, v2 reflect.Value) {
 }
 
 func (vd *ValueDiffer) writeTypeDiffValuesString(v1, v2 reflect.Value) {
-	b1, b2 := &vd.b[0], &vd.b[1]
+	b1, b2 := vd.bufs()
 	s1, s2 := []rune(fmt.Sprintf("%#v", v1)), []rune(fmt.Sprintf("%#v", v2))
 	for i := 0; i < len(s1) || i < len(s2); i++ {
 		if i >= len(s1) {
@@ -148,4 +141,16 @@ func (vd *ValueDiffer) writeTypeDiffValuesString(v1, v2 reflect.Value) {
 			b2.Highlightf("%c", s2[i])
 		}
 	}
+}
+
+func (vd *ValueDiffer) bufi(i int) (b *FeatureBuf) {
+	b = &vd.b[i]
+	if b.w == nil {
+		b.w = &vd.buf[i]
+	}
+	return
+}
+
+func (vd *ValueDiffer) bufs() (b1, b2 *FeatureBuf) {
+	return vd.bufi(0), vd.bufi(1)
 }
