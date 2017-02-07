@@ -2,11 +2,6 @@ package assert
 
 import "reflect"
 
-//func (vd *ValueDiffer) writeHTypeValue(idx int, v reflect.Value) {
-//    v = vd.writeTypeBeforeValue(idx, v, true)
-//    vd.writeValueAfterType(idx, v)
-//}
-
 func (vd *ValueDiffer) writeDiffTypeValues(v1, v2 reflect.Value) {
 	if !v1.IsValid() || !v2.IsValid() || v2.Kind() != v2.Kind() {
 		v1 = vd.writeTypeBeforeValue(0, v1, true)
@@ -74,8 +69,8 @@ func (vd *ValueDiffer) writeDiffTypes(t1, t2 reflect.Type) {
 		vd.writeDiffTypesFunc(t1, t2)
 	case reflect.Chan:
 		h := t1.ChanDir() == t2.ChanDir()
-		vd.writeTypeHeadChan(0, t1, h)
-		vd.writeTypeHeadChan(1, t2, h)
+		vd.writeTypeHeadChan(0, t1, false, h)
+		vd.writeTypeHeadChan(1, t2, false, h)
 		vd.writeDiffKinds(t2.Elem(), t2.Elem())
 	case reflect.Array:
 		h := t1.Len() == t2.Len()
@@ -175,57 +170,73 @@ func (vd *ValueDiffer) writeType(idx int, t reflect.Type, hl bool) {
 	default:
 		b.WriteH(hl, t)
 	}
+
+	switch t.Kind() {
+	case reflect.Ptr:
+		b.WriteH(hl, "*")
+		vd.writeType(idx, t.Elem(), hl)
+	case reflect.Func:
+		vd.writeTypeFunc(idx, t, hl)
+	case reflect.Chan:
+		vd.writeTypeHeadChan(idx, t, hl, false)
+		vd.writeType(idx, t.Elem(), hl)
+	case reflect.Array:
+		b.WriteH(hl, "[", t.Len(), "]")
+		vd.writeType(idx, t.Elem(), hl)
+	case reflect.Slice:
+		b.WriteH(hl, "[]")
+		vd.writeType(idx, t.Elem(), hl)
+	case reflect.Map:
+		b.WriteH(hl, "map[")
+		vd.writeType(idx, t.Key(), hl)
+		b.WriteH(hl, "]")
+		vd.writeType(idx, t.Elem(), hl)
+	case reflect.Struct:
+		b.WriteH(hl, structName(t))
+	default:
+		b.WriteH(hl, t)
+	}
 }
 
-func (vd *ValueDiffer) writeTypeHeadChan(idx int, t reflect.Type, hl bool) {
+func (vd *ValueDiffer) writeTypeFunc(idx int, t reflect.Type, hl bool) {
+}
+
+func (vd *ValueDiffer) writeTypeHeadChan(idx int, t reflect.Type, hl, hldir bool) {
 	b := vd.bufi(idx)
 	switch t.ChanDir() {
 	case reflect.RecvDir:
-		b.WriteH(hl, "<-").Write("chan ")
+		b.WriteH(hl || hldir, "<-").WriteH(hl, "chan ")
 	case reflect.SendDir:
-		b.Write("chan").WriteH(hl, "<- ")
+		b.WriteH(hl, "chan").WriteH(hl || hldir, "<- ")
 	default:
-		b.Write("chan ")
+		b.WriteH(hl, "chan ")
 	}
 }
 
 func (vd *ValueDiffer) writeTypeBeforeValue(idx int, v reflect.Value, hl bool) reflect.Value {
 	b := vd.bufi(idx)
-	pt := func(x ...interface{}) {
-		if hl {
-			b.Highlight(x...)
-		} else {
-			b.Write(x...)
-		}
-	}
 	if !v.IsValid() {
-		pt(nil)
+		b.WriteH(hl, nil)
 	} else {
 		switch v.Kind() {
 		case reflect.Interface:
 			if !vd.writeTypeBeforeInterfaceNil(idx, v, hl) {
 				v = vd.writeTypeBeforeValue(idx, v.Elem(), hl)
 			}
-		case reflect.Ptr:
+		case reflect.Ptr, reflect.Func, reflect.Chan:
 			b.Write("(")
-			if e := v.Type().Elem(); e.Kind() == reflect.Struct {
-				pt("*", structName(e))
-			} else {
-				pt(v.Type())
-			}
+			vd.writeType(idx, v.Type(), hl)
 			b.Write(")")
-		case reflect.Struct:
-			pt(structName(v.Type()))
 		default:
-			pt(v.Type())
+			vd.writeType(idx, v.Type(), hl)
 		}
 	}
 	return v
 }
 
-func (vd *ValueDiffer) writeTypeBeforeInterfaceNil(idx int, v reflect.Value, hl bool) bool {
+func (vd *ValueDiffer) writeTypeBeforeInterfaceNil(idx int, v reflect.Value, hl bool) (isNil bool) {
 	b := vd.bufi(idx)
-	if v.IsNil() {
+	if isNil = v.IsNil(); isNil {
 		if n := interfaceName(v.Type()); n == "" {
 			if hl {
 				b.Highlight(nil)
@@ -239,9 +250,8 @@ func (vd *ValueDiffer) writeTypeBeforeInterfaceNil(idx int, v reflect.Value, hl 
 				b.Write(n)
 			}
 		}
-		return true
 	}
-	return false
+	return
 }
 
 func (vd *ValueDiffer) writeValueAfterType(idx int, v reflect.Value) {
@@ -370,15 +380,14 @@ func (vd *ValueDiffer) writeElem(idx int, v reflect.Value) {
 }
 
 func (vd *ValueDiffer) writeElemArray(idx int, v reflect.Value) {
-	b := vd.bufi(idx)
 	if tp, id, ml := attrElemArray(v); ml {
-		b.Write(v.Type())
+		vd.writeType(idx, v.Type(), false)
 		vd.writeElemArrayML(idx, v)
 	} else if id {
-		b.Write(v.Type())
+		vd.writeType(idx, v.Type(), false)
 		vd.writeElemArrayID(idx, v)
 	} else if tp {
-		b.Write(v.Type())
+		vd.writeType(idx, v.Type(), false)
 		vd.writeElemArrayTP(idx, v)
 	} else {
 		vd.writeKeyArray(idx, v)
@@ -454,7 +463,7 @@ func (vd *ValueDiffer) writeElemMap(idx int, v reflect.Value) {
 		return
 	}
 	if tp, ml := attrElemMap(v); ml {
-		b.Write(v.Type())
+		vd.writeType(idx, v.Type(), false)
 		vd.writeElemMapML(idx, v)
 	} else if tp {
 		b.Write(v.Type())
