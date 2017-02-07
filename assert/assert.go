@@ -1,16 +1,17 @@
 package assert
 
 import (
+	"bytes"
 	"fmt"
-	"os"
 	"reflect"
 	"runtime"
 	"strings"
 	"testing"
+	"unsafe"
 )
 
-func Equal(t *testing.T, expected, actual interface{}) printer {
-	return caller{1, 1}.Equal(t, expected, actual)
+func Equal(t *testing.T, expected, actual interface{}, messages ...interface{}) {
+	caller{1, 1}.Equal(t, expected, actual, messages...)
 }
 
 type caller struct {
@@ -21,49 +22,49 @@ func Caller(level int) caller {
 	return caller{0, level}
 }
 
-func (c caller) True(t *testing.T, actual bool) printer {
+func (c caller) True(t *testing.T, actual bool, messages ...interface{}) {
 	if actual {
-		return printer{}
+		return
 	}
-	return failEq(c, t, true, actual)
+	fail(c, t, true, actual, true, messages...)
 }
 
-func (c caller) False(t *testing.T, actual bool) printer {
+func (c caller) False(t *testing.T, actual bool, messages ...interface{}) {
 	if !actual {
-		return printer{}
+		return
 	}
-	return failEq(c, t, false, actual)
+	fail(c, t, false, actual, true, messages...)
 }
 
-func (c caller) Equal(t *testing.T, expected, actual interface{}) printer {
+func (c caller) Equal(t *testing.T, expected, actual interface{}, messages ...interface{}) {
 	if reflect.DeepEqual(expected, actual) {
-		return printer{}
+		return
 	}
-	return failEq(c, t, expected, actual)
+	fail(c, t, expected, actual, true, messages...)
 }
 
-func (c caller) NotEqual(t *testing.T, expected, actual interface{}) printer {
+func (c caller) NotEqual(t *testing.T, expected, actual interface{}, messages ...interface{}) {
 	if !reflect.DeepEqual(expected, actual) {
-		return printer{}
+		return
 	}
-	return failNe(c, t, actual)
+	fail(c, t, expected, actual, false, messages...)
 }
 
-func failEq(c caller, t *testing.T, expected, actual interface{}) printer {
-	buf := FeatureBuf{w: os.Stdout, Tab: 0}
-	writeCodeInfo(c, &buf)
-	buf.Tab++
-	writeFailEq(&buf, expected, actual)
-	buf.Finish()
-	return printer{res: kAssertFail, t: t}
-}
-
-func failNe(c caller, t *testing.T, actual interface{}) printer {
-	buf := FeatureBuf{w: os.Stdout, Tab: 1}
-	writeCodeInfo(c, &buf)
-	writeFailNe(&buf, actual)
-	buf.Finish()
-	return printer{res: kAssertFail, t: t}
+func fail(c caller, t *testing.T, expected, actual interface{}, eq bool, msg ...interface{}) {
+	var buf bytes.Buffer
+	b := FeatureBuf{w: &buf, Tab: 0}
+	writeCodeInfo(c, &b)
+	b.Tab++
+	if eq {
+		writeFailEq(&b, expected, actual)
+	} else {
+		writeFailNe(&b, actual)
+	}
+	writeMessages(&b, msg...)
+	b.Tab--
+	b.Finish()
+	flushLog(t, &buf)
+	t.FailNow()
 }
 
 func writeFailEq(buf *FeatureBuf, expected, actual interface{}) {
@@ -131,6 +132,37 @@ func writeCodeInfo(c caller, buf *FeatureBuf) {
 	}
 }
 
+func writeMessages(buf *FeatureBuf, messages ...interface{}) {
+	if len(messages) < 1 {
+		return
+	}
+	var m, h string
+	if s, ok := messages[0].(string); ok {
+		m = fmt.Sprintf(s, messages[1:]...)
+	} else {
+		m = fmt.Sprint(messages...)
+	}
+	for i := 0; i < buf.Tab; i++ {
+		h = h + "\t"
+	}
+	m = format(h, m)
+	buf.Write(m)
+}
+
+func flushLog(t *testing.T, buf *bytes.Buffer) {
+	if kHOOK {
+		buf.WriteByte('\n')
+		output := buf.Bytes()
+		tt := (*common)(unsafe.Pointer(t))
+		tt.su.Lock()
+		tt.output = output
+		tt.su.Unlock()
+	} else {
+		t.Log("\n" + buf.String())
+	}
+	t.FailNow()
+}
+
 func narrow(i *int, min, max int) {
 	if *i < min {
 		*i = min
@@ -147,6 +179,21 @@ func lastPartOf(str string) string {
 		return str[index+1:]
 	}
 	return str
+}
+
+func format(h, s string) string {
+	if h == "" {
+		return s
+	}
+	var buf bytes.Buffer
+	for _, l := range strings.Split(s, "\n") {
+		buf.WriteString("\n")
+		if l != "" {
+			buf.WriteString(h)
+		}
+		buf.WriteString(l)
+	}
+	return buf.String()
 }
 
 //-----------old
