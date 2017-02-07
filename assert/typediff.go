@@ -2,15 +2,191 @@ package assert
 
 import "reflect"
 
-func (vd *ValueDiffer) writeHTypeValue(idx int, v reflect.Value) {
-	v = vd.writeTypeBeforeValue(idx, v, true)
-	vd.writeValueAfterType(idx, v)
-}
+//func (vd *ValueDiffer) writeHTypeValue(idx int, v reflect.Value) {
+//    v = vd.writeTypeBeforeValue(idx, v, true)
+//    vd.writeValueAfterType(idx, v)
+//}
 
 func (vd *ValueDiffer) writeDiffTypeValues(v1, v2 reflect.Value) {
-	//v1, v2 = vd.writeDiffTypesBeforeValue(v1, v2)
+	if !v1.IsValid() || !v2.IsValid() || v2.Kind() != v2.Kind() {
+		v1 = vd.writeTypeBeforeValue(0, v1, true)
+		v2 = vd.writeTypeBeforeValue(1, v2, true)
+	} else {
+		v1, v2 = vd.writeDiffTypesBeforeValue(v1, v2)
+	}
 	vd.writeValueAfterType(0, v1)
 	vd.writeValueAfterType(1, v2)
+}
+
+func (vd *ValueDiffer) writeDiffTypesBeforeValue(v1, v2 reflect.Value) (r1, r2 reflect.Value) {
+	b1, b2 := vd.bufs()
+	switch v1.Kind() {
+	case reflect.Interface:
+		if vd.writeTypeBeforeInterfaceNil(0, v1, true) {
+			r2 = vd.writeTypeBeforeValue(1, v2, true)
+		} else if vd.writeTypeBeforeInterfaceNil(1, v2, true) {
+			r1 = vd.writeTypeBeforeValue(0, v1, true)
+		} else {
+			r1, r2 = vd.writeDiffTypesBeforeValue(v1.Elem(), v2.Elem())
+		}
+	case reflect.Ptr:
+		b1.Write("(*")
+		b2.Write("(*")
+		//vd.writeDiffTypes
+		//if e := v.Type().Elem(); e.Kind() == reflect.Struct {
+		//    b1.Write("*").Highlight(structName(e))
+		//} else {
+		//    pt(v.Type())
+		//}
+		b1.Write(")")
+		b2.Write(")")
+	default:
+		r1, r2 = v1, v2
+		b1.Highlight(v1.Type())
+		b2.Highlight(v2.Type())
+	}
+	return
+}
+
+func (vd *ValueDiffer) writeDiffKinds(t1, t2 reflect.Type) {
+	if t1 == nil || t2 == nil {
+		panic("Should not come here!")
+	}
+	if t1 == t2 {
+		vd.writeType(0, t1, false)
+		vd.writeType(1, t2, false)
+	} else if t1.Kind() == t2.Kind() {
+		vd.writeDiffTypes(t1, t2)
+	} else {
+		vd.writeType(0, t1, true)
+		vd.writeType(1, t2, true)
+	}
+}
+
+func (vd *ValueDiffer) writeDiffTypes(t1, t2 reflect.Type) {
+	b1, b2 := vd.bufs()
+	switch t1.Kind() {
+	case reflect.Ptr:
+		b1.Write("*")
+		b2.Write("*")
+		vd.writeDiffKinds(t1.Elem(), t2.Elem())
+	case reflect.Func:
+		vd.writeDiffTypesFunc(t1, t2)
+	case reflect.Chan:
+		h := t1.ChanDir() == t2.ChanDir()
+		vd.writeTypeHeadChan(0, t1, h)
+		vd.writeTypeHeadChan(1, t2, h)
+		vd.writeDiffKinds(t2.Elem(), t2.Elem())
+	case reflect.Array:
+		h := t1.Len() == t2.Len()
+		b1.Write("[").WriteH(h, t1.Len()).Write("]")
+		b2.Write("[").WriteH(h, t2.Len()).Write("]")
+		vd.writeDiffKinds(t1.Elem(), t2.Elem())
+	case reflect.Slice:
+		b1.Write("[]")
+		b2.Write("[]")
+		vd.writeDiffKinds(t1.Elem(), t2.Elem())
+	case reflect.Map:
+		b1.Write("map[")
+		b2.Write("map[")
+		vd.writeDiffKinds(t1.Key(), t2.Key())
+		b1.Write("]")
+		b2.Write("]")
+		vd.writeDiffKinds(t1.Elem(), t2.Elem())
+	case reflect.Struct:
+		b1.Highlight(structName(t1))
+		b2.Highlight(structName(t2))
+	default:
+		b1.Highlight(t1)
+		b2.Highlight(t2)
+	}
+}
+
+func (vd *ValueDiffer) writeDiffTypesFunc(t1, t2 reflect.Type) {
+	b1, b2 := vd.bufs()
+	b1.Write("func(")
+	b2.Write("func(")
+	for i := 0; i < t1.NumIn() || i < t2.NumIn(); i++ {
+		if i >= t1.NumIn() {
+			if i > 0 {
+				b2.Plain(", ")
+			}
+			vd.writeType(1, t2.In(i), true)
+		} else if i >= t2.NumIn() {
+			if i > 0 {
+				b1.Plain(", ")
+			}
+			vd.writeType(0, t1.In(i), true)
+		} else {
+			if i > 0 {
+				b1.Write(", ")
+				b2.Write(", ")
+			}
+			vd.writeDiffKinds(t1.In(i), t2.In(i))
+		}
+	}
+	switch t1.NumOut() {
+	case 0:
+		b1.Write(")")
+	case 1:
+		b1.Write(") ")
+	default:
+		b1.Write(") (")
+		defer b1.Write(")")
+	}
+	switch t2.NumOut() {
+	case 0:
+		b2.Write(")")
+	case 1:
+		b2.Write(") ")
+	default:
+		b2.Write(") (")
+		defer b2.Write(")")
+	}
+	for i := 0; i < t1.NumOut() || i < t2.NumOut(); i++ {
+		if i >= t1.NumOut() {
+			if i > 0 {
+				b2.Plain(", ")
+			}
+			vd.writeType(1, t2.Out(i), true)
+		} else if i >= t2.NumOut() {
+			if i > 0 {
+				b1.Plain(", ")
+			}
+			vd.writeType(0, t1.Out(i), true)
+		} else {
+			if i > 0 {
+				b1.Write(", ")
+				b2.Write(", ")
+			}
+			vd.writeDiffKinds(t1.Out(i), t2.Out(i))
+		}
+	}
+}
+
+func (vd *ValueDiffer) writeType(idx int, t reflect.Type, hl bool) {
+	b := vd.bufi(idx)
+	switch t.Kind() {
+	case reflect.Struct:
+		b.WriteH(hl, structName(t))
+	case reflect.Ptr:
+		b.WriteH(hl, "*")
+		vd.writeType(idx, t.Elem(), hl)
+	default:
+		b.WriteH(hl, t)
+	}
+}
+
+func (vd *ValueDiffer) writeTypeHeadChan(idx int, t reflect.Type, hl bool) {
+	b := vd.bufi(idx)
+	switch t.ChanDir() {
+	case reflect.RecvDir:
+		b.WriteH(hl, "<-").Write("chan ")
+	case reflect.SendDir:
+		b.Write("chan").WriteH(hl, "<- ")
+	default:
+		b.Write("chan ")
+	}
 }
 
 func (vd *ValueDiffer) writeTypeBeforeValue(idx int, v reflect.Value, hl bool) reflect.Value {
@@ -27,32 +203,17 @@ func (vd *ValueDiffer) writeTypeBeforeValue(idx int, v reflect.Value, hl bool) r
 	} else {
 		switch v.Kind() {
 		case reflect.Interface:
-			if v.IsNil() {
-				if n := interfaceName(v.Type()); n == "" {
-					pt(nil)
-				} else {
-					pt(n) //TODO: test?
-				}
-			} else {
+			if !vd.writeTypeBeforeInterfaceNil(idx, v, hl) {
 				v = vd.writeTypeBeforeValue(idx, v.Elem(), hl)
 			}
 		case reflect.Ptr:
-			if v.IsNil() {
-				b.Write("(")
-				if e := v.Type().Elem(); e.Kind() == reflect.Struct {
-					pt("*", structName(e))
-				} else {
-					pt(v.Type())
-				}
-				b.Write(")")
-			} else if e := v.Elem(); isComposite(e.Type()) {
-				pt("&")
-				v = vd.writeTypeBeforeValue(idx, e, hl)
+			b.Write("(")
+			if e := v.Type().Elem(); e.Kind() == reflect.Struct {
+				pt("*", structName(e))
 			} else {
-				b.Write("(")
 				pt(v.Type())
-				b.Write(")")
 			}
+			b.Write(")")
 		case reflect.Struct:
 			pt(structName(v.Type()))
 		default:
@@ -60,6 +221,27 @@ func (vd *ValueDiffer) writeTypeBeforeValue(idx int, v reflect.Value, hl bool) r
 		}
 	}
 	return v
+}
+
+func (vd *ValueDiffer) writeTypeBeforeInterfaceNil(idx int, v reflect.Value, hl bool) bool {
+	b := vd.bufi(idx)
+	if v.IsNil() {
+		if n := interfaceName(v.Type()); n == "" {
+			if hl {
+				b.Highlight(nil)
+			} else {
+				b.Write(nil)
+			}
+		} else {
+			if hl {
+				b.Highlight(n)
+			} else {
+				b.Write(n)
+			}
+		}
+		return true
+	}
+	return false
 }
 
 func (vd *ValueDiffer) writeValueAfterType(idx int, v reflect.Value) {
