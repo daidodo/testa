@@ -2,11 +2,6 @@ package assert
 
 import "reflect"
 
-func (vd *ValueDiffer) WriteTypeValue(idx int, v reflect.Value) {
-	v = vd.writeTypeBeforeValue(idx, v, false)
-	vd.writeValueAfterType(idx, v)
-}
-
 func (vd *ValueDiffer) writeHTypeValue(idx int, v reflect.Value) {
 	v = vd.writeTypeBeforeValue(idx, v, true)
 	vd.writeValueAfterType(idx, v)
@@ -14,13 +9,10 @@ func (vd *ValueDiffer) writeHTypeValue(idx int, v reflect.Value) {
 
 func (vd *ValueDiffer) writeTypeBeforeValue(idx int, v reflect.Value, hl bool) reflect.Value {
 	b := vd.bufi(idx)
-	var pt func(x ...interface{})
-	if hl {
-		pt = func(x ...interface{}) {
+	pt := func(x ...interface{}) {
+		if hl {
 			b.Highlight(x...)
-		}
-	} else {
-		pt = func(x ...interface{}) {
+		} else {
 			b.Write(x...)
 		}
 	}
@@ -92,8 +84,7 @@ func (vd *ValueDiffer) writeValueAfterType(idx int, v reflect.Value) {
 				b.Write("(nil)")
 			}
 		} else {
-			panic("Should not come here")
-			//vd.writeValueAfterType(idx, v.Elem()) //TODO: test?
+			panic("Should not come here!")
 		}
 	case reflect.Ptr:
 		if v.IsNil() {

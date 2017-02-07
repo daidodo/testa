@@ -25,6 +25,11 @@ func (vd *ValueDiffer) String(i int) string {
 	return vd.buf[i].String()
 }
 
+func (vd *ValueDiffer) WriteTypeValue(idx int, v reflect.Value) {
+	v = vd.writeTypeBeforeValue(idx, v, false)
+	vd.writeValueAfterType(idx, v)
+}
+
 func (vd *ValueDiffer) WriteDiff(v1, v2 reflect.Value, tab int) {
 	b1, b2 := vd.bufs()
 	b1.Tab, b2.Tab = tab, tab
@@ -129,6 +134,9 @@ func (vd *ValueDiffer) writeDiffValuesFunc(v1, v2 reflect.Value) {
 func (vd *ValueDiffer) writeTypeDiffValuesString(v1, v2 reflect.Value) {
 	b1, b2 := vd.bufs()
 	s1, s2 := []rune(fmt.Sprintf("%#v", v1)), []rune(fmt.Sprintf("%#v", v2))
+	s1, s2 = s1[1:len(s1)-1], s2[1:len(s2)-1] // skip front and end \"
+	b1.Write(`"`)
+	b2.Write(`"`)
 	for i := 0; i < len(s1) || i < len(s2); i++ {
 		if i >= len(s1) {
 			b2.Highlightf("%c", s2[i])
@@ -142,6 +150,8 @@ func (vd *ValueDiffer) writeTypeDiffValuesString(v1, v2 reflect.Value) {
 			b2.Highlightf("%c", s2[i])
 		}
 	}
+	b1.Write(`"`)
+	b2.Write(`"`)
 }
 
 func (vd *ValueDiffer) writeTypeDiffValuesArray(v1, v2 reflect.Value) {
