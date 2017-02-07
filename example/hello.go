@@ -94,6 +94,13 @@ func fj() {
 	i := &[...]int{1, 2, 3}
 	j := &[...]int{1, 2, 3}
 	desc(i == j)
+
+	var kk func(int, string, float32)
+	desc(kk)
+	var k func(int, string, float32) string
+	desc(k)
+	var l func(int, string, float32) (complex64, string, chan int)
+	desc(l)
 }
 
 func fi() {
