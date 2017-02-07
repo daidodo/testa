@@ -7,6 +7,12 @@ func (vd *ValueDiffer) writeHTypeValue(idx int, v reflect.Value) {
 	vd.writeValueAfterType(idx, v)
 }
 
+func (vd *ValueDiffer) writeDiffTypeValues(v1, v2 reflect.Value) {
+	//v1, v2 = vd.writeDiffTypesBeforeValue(v1, v2)
+	vd.writeValueAfterType(0, v1)
+	vd.writeValueAfterType(1, v2)
+}
+
 func (vd *ValueDiffer) writeTypeBeforeValue(idx int, v reflect.Value, hl bool) reflect.Value {
 	b := vd.bufi(idx)
 	pt := func(x ...interface{}) {

@@ -42,11 +42,7 @@ func (vd *ValueDiffer) WriteDiff(v1, v2 reflect.Value, tab int) {
 	} else if v1.Type() == v2.Type() {
 		vd.writeTypeDiffValues(v1, v2)
 	} else {
-		vd.writeHTypeValue(0, v1)
-		vd.writeHTypeValue(1, v2)
-		//v1, v2 = vd.writeDiffTypesBeforeValue(v1, v2)
-		//vd.writeValueAfterType(0, v1)
-		//vd.writeValueAfterType(1, v2)
+		vd.writeDiffTypeValues(v1, v2)
 	}
 }
 
