@@ -491,48 +491,6 @@ func (vd *ValueDiffer) writeElemMapC(idx int, v reflect.Value, tp, ml bool) {
 	}
 }
 
-//func (vd *ValueDiffer) writeElemMapML(idx int, v reflect.Value) {
-//    b := vd.bufi(idx)
-//    b.Write("{")
-//    b.Tab++
-//    for i, k := range v.MapKeys() {
-//        if i > 0 {
-//            b.Write(",")
-//        }
-//        b.NL()
-//        vd.writeKey(idx, k)
-//        b.Write(":")
-//        vd.writeElem(idx, v.MapIndex(k))
-//    }
-//    b.Tab--
-//    b.NL().Write("}")
-//    vd.Attrs[NewLine] = true
-//}
-
-//func (vd *ValueDiffer) writeElemMapTP(idx int, v reflect.Value) {
-//    b := vd.bufi(idx)
-//    b.Write("{")
-//    for i, k := range v.MapKeys() {
-//        if i > 0 {
-//            b.Write(", ")
-//        }
-//        vd.writeKey(idx, k)
-//        b.Write(":")
-//        vd.writeElem(idx, v.MapIndex(k))
-//    }
-//    b.Write("}")
-//}
-
-func (vd *ValueDiffer) writeElemStruct(idx int, v reflect.Value) {
-	b := vd.bufi(idx)
-	if ml := attrElemStruct(v); ml {
-		b.Write(structName(v.Type()))
-		vd.writeElemStructML(idx, v)
-	} else {
-		vd.writeKeyStruct(idx, v)
-	}
-}
-
 func (vd *ValueDiffer) writeElemStructML(idx int, v reflect.Value) {
 	b := vd.bufi(idx)
 	b.Write("{")
