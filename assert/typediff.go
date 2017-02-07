@@ -162,16 +162,6 @@ func (vd *ValueDiffer) writeDiffTypesFunc(t1, t2 reflect.Type) {
 func (vd *ValueDiffer) writeType(idx int, t reflect.Type, hl bool) {
 	b := vd.bufi(idx)
 	switch t.Kind() {
-	case reflect.Struct:
-		b.WriteH(hl, structName(t))
-	case reflect.Ptr:
-		b.WriteH(hl, "*")
-		vd.writeType(idx, t.Elem(), hl)
-	default:
-		b.WriteH(hl, t)
-	}
-
-	switch t.Kind() {
 	case reflect.Ptr:
 		b.WriteH(hl, "*")
 		vd.writeType(idx, t.Elem(), hl)
@@ -199,6 +189,29 @@ func (vd *ValueDiffer) writeType(idx int, t reflect.Type, hl bool) {
 }
 
 func (vd *ValueDiffer) writeTypeFunc(idx int, t reflect.Type, hl bool) {
+	b := vd.bufi(idx)
+	b.WriteH(hl, "func(")
+	for i := 0; i < t.NumIn(); i++ {
+		if i > 0 {
+			b.WriteH(hl, ", ")
+		}
+		vd.writeType(idx, t.In(i), hl)
+	}
+	switch t.NumOut() {
+	case 0:
+		b.WriteH(hl, ")")
+	case 1:
+		b.WriteH(hl, ") ")
+	default:
+		b.WriteH(hl, ") (")
+		defer b.WriteH(hl, ")")
+	}
+	for i := 0; i < t.NumOut(); i++ {
+		if i > 0 {
+			b.Write(", ")
+		}
+		vd.writeType(idx, t.Out(i), hl)
+	}
 }
 
 func (vd *ValueDiffer) writeTypeHeadChan(idx int, t reflect.Type, hl, hldir bool) {
