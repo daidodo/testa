@@ -20,6 +20,7 @@ func (vd *ValueDiffer) writeDiffTypeValues(v1, v2 reflect.Value) {
 
 func (vd *ValueDiffer) writeDiffTypesBeforeValue(v1, v2 reflect.Value) (r1, r2 reflect.Value) {
 	b1, b2 := vd.bufs()
+	r1, r2 = v1, v2
 	switch v1.Kind() {
 	case reflect.Interface:
 		if vd.writeTypeBeforeInterfaceNil(0, v1, true) {
@@ -32,18 +33,17 @@ func (vd *ValueDiffer) writeDiffTypesBeforeValue(v1, v2 reflect.Value) (r1, r2 r
 	case reflect.Ptr:
 		b1.Write("(*")
 		b2.Write("(*")
-		//vd.writeDiffTypes
-		//if e := v.Type().Elem(); e.Kind() == reflect.Struct {
-		//    b1.Write("*").Highlight(structName(e))
-		//} else {
-		//    pt(v.Type())
-		//}
+		vd.writeDiffTypes(v1.Type().Elem(), v2.Type().Elem())
+		b1.Write(")")
+		b2.Write(")")
+	case reflect.Func, reflect.Chan:
+		b1.Write("(")
+		b2.Write("(")
+		vd.writeDiffTypes(v1.Type(), v2.Type())
 		b1.Write(")")
 		b2.Write(")")
 	default:
-		r1, r2 = v1, v2
-		b1.Highlight(v1.Type())
-		b2.Highlight(v2.Type())
+		vd.writeDiffTypes(v1.Type(), v2.Type())
 	}
 	return
 }
