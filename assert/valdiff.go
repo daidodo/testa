@@ -33,16 +33,10 @@ func (vd *ValueDiffer) WriteTypeValue(idx int, v reflect.Value) {
 func (vd *ValueDiffer) WriteDiff(v1, v2 reflect.Value, tab int) {
 	b1, b2 := vd.bufs()
 	b1.Tab, b2.Tab = tab, tab
-	if !v1.IsValid() {
-		b1.Highlight(nil)
-		vd.writeHTypeValue(1, v2)
-	} else if !v2.IsValid() {
-		vd.writeHTypeValue(0, v1)
-		b2.Highlight(nil)
-	} else if v1.Type() == v2.Type() {
-		vd.writeTypeDiffValues(v1, v2)
-	} else {
+	if !v1.IsValid() || !v2.IsValid() || v1.Type() != v2.Type() {
 		vd.writeDiffTypeValues(v1, v2)
+	} else {
+		vd.writeTypeDiffValues(v1, v2)
 	}
 }
 
