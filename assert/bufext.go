@@ -11,6 +11,22 @@ type FeatureBuf struct {
 	Tab  int
 }
 
+func (b *FeatureBuf) WriteHf(hl bool, format string, a ...interface{}) *FeatureBuf {
+	if hl {
+		return b.Highlightf(format, a...)
+	} else {
+		return b.Writef(format, a...)
+	}
+}
+
+func (b *FeatureBuf) WriteH(hl bool, a ...interface{}) *FeatureBuf {
+	if hl {
+		return b.Highlight(a...)
+	} else {
+		return b.Write(a...)
+	}
+}
+
 func (b *FeatureBuf) Writef(format string, a ...interface{}) *FeatureBuf {
 	return b.writeNormalString(fmt.Sprintf(format, a...))
 }
