@@ -99,7 +99,7 @@ func writeFailEq(buf *FeatureBuf, expected, actual interface{}) {
 
 func writeFailNe(buf *FeatureBuf, actual interface{}) {
 	var v ValueDiffer
-	v.WriteTypeValue(0, reflect.ValueOf(actual))
+	v.WriteTypeValue(0, reflect.ValueOf(actual), buf.Tab)
 	if v.Attrs[NewLine] {
 		buf.NL().Write("Expected:\t").Highlight("SAME as Actual")
 		buf.NL().Write("  Actual:")
