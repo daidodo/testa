@@ -101,6 +101,10 @@ func fj() {
 	desc(k)
 	var l func(int, string, float32) (complex64, string, chan int)
 	desc(l)
+
+	var aa chan int
+	desc(aa)
+	desc(reflect.ValueOf(aa))
 }
 
 func fi() {
