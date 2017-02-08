@@ -151,10 +151,8 @@ func (vd *ValueDiffer) writeDiffValuesArrayC(v1, v2 reflect.Value, tp, id, ml1, 
 	b1, b2 := vd.bufs()
 	var p1, p2 bool
 	for i := 0; i < v1.Len(); i++ {
-		e1 := v1.Index(i)
-		e2 := v2.Index(i)
-		t1 := isNonTrivialElem(e1)
-		t2 := isNonTrivialElem(e2)
+		e1, e2 := v1.Index(i), v2.Index(i)
+		t1, t2 := isNonTrivialElem(e1), isNonTrivialElem(e2)
 		t1, p1 = (t1 || p1 || (ml1 && (id || i == 0))), t1
 		t2, p2 = (t2 || p2 || (ml2 && (id || i == 0))), t2
 		if i > 0 {
