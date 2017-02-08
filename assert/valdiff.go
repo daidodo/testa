@@ -120,13 +120,67 @@ func (vd *ValueDiffer) writeDiffValuesString(v1, v2 reflect.Value) {
 }
 
 func (vd *ValueDiffer) writeTypeDiffValuesArray(v1, v2 reflect.Value) {
-	//	b1, b2 := vd.bufs()
-	//	tp, id, ml1 := attrElemArray(v1)
-	//_, _, ml2 := attrElemArray(v2)
-	//if tp {
+	b1, b2 := vd.bufs()
+	tp, id, ml1 := attrElemArray(v1)
+	_, _, ml2 := attrElemArray(v2)
+	if tp {
+		vd.writeType(0, v1.Type(), false)
+		vd.writeType(1, v2.Type(), false)
+		b1.Write("{")
+		b2.Write("{")
+		defer b1.Write("}")
+		defer b2.Write("}")
+	} else {
+		b1.Write("[")
+		b2.Write("[")
+		defer b1.Write("]")
+		defer b2.Write("]")
+	}
+	if ml1 {
+		b1.Tab++
+		defer func() { b1.Tab-- }()
+	}
+	if ml2 {
+		b2.Tab++
+		defer func() { b2.Tab-- }()
+	}
+	vd.writeDiffValuesArrayC(v1, v2, tp, id, ml1, ml2)
+}
 
-	//}
-
+func (vd *ValueDiffer) writeDiffValuesArrayC(v1, v2 reflect.Value, tp, id, ml1, ml2 bool) {
+	b1, b2 := vd.bufs()
+	var p1, p2 bool
+	for i := 0; i < v1.Len(); i++ {
+		e1 := v1.Index(i)
+		e2 := v2.Index(i)
+		t1 := isNonTrivialElem(e1)
+		t2 := isNonTrivialElem(e2)
+		t1, p1 = (t1 || p1 || (ml1 && (id || i == 0))), t1
+		t2, p2 = (t2 || p2 || (ml2 && (id || i == 0))), t2
+		if i > 0 {
+			if tp {
+				b1.Write(",")
+				b2.Write(",")
+			}
+			if !tp || !t1 {
+				b1.Write(" ")
+			}
+			if !tp || !t2 {
+				b2.Write(" ")
+			}
+		}
+		if t1 {
+			b1.NL()
+		}
+		if t2 {
+			b2.NL()
+		}
+		if id {
+			b1.Write(i, ":")
+			b2.Write(i, ":")
+		}
+		vd.writeTypeDiffValues(e1, e2)
+	}
 }
 
 func (vd *ValueDiffer) writeDiffPlain(v1, v2 interface{}) {
