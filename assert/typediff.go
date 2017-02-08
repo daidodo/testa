@@ -491,6 +491,16 @@ func (vd *ValueDiffer) writeElemMapC(idx int, v reflect.Value, tp, ml bool) {
 	}
 }
 
+func (vd *ValueDiffer) writeElemStruct(idx int, v reflect.Value) {
+	b := vd.bufi(idx)
+	if ml := attrElemStruct(v); ml {
+		b.Write(structName(v.Type()))
+		vd.writeElemStructML(idx, v)
+	} else {
+		vd.writeKeyStruct(idx, v)
+	}
+}
+
 func (vd *ValueDiffer) writeElemStructML(idx int, v reflect.Value) {
 	b := vd.bufi(idx)
 	b.Write("{")
