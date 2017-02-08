@@ -16,7 +16,7 @@ func TestArray(t *testing.T) {
 }
 
 func TestInt(t *testing.T) {
-	var a uintptr
+	var a int
 	a = 'A'
 	fmt.Printf("\t%v\n", a)
 	assert.Equal(t, 'A', a, "a=%v is not 'A'", a)
@@ -32,5 +32,5 @@ func TestMap(t *testing.T) {
 		m1[i] = string(s1)
 		m2[uint(i)] = string(s2)
 	}
-	assert.Equal(t, m1, m2, "You should not see this")
+	assert.Equal(t, m1, m2)
 }
