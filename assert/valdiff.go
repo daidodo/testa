@@ -69,9 +69,9 @@ func (vd *ValueDiffer) writeTypeDiffValues(v1, v2 reflect.Value) {
 	case reflect.String:
 		vd.writeDiffValuesString(v1, v2)
 	case reflect.Array:
-		vd.writeTypeDiffValuesArray(v1, v2)
-	//case reflect.Slice:
-	//TODO
+		vd.writeTypeDiffValuesArray(v1, v2, false)
+	case reflect.Slice:
+		vd.writeTypeDiffValuesArray(v1, v2, true)
 	//case reflect.Map:
 	//vd.writeTypeDiffValuesMap(v1, v2)
 	//case reflect.Struct:
@@ -119,7 +119,7 @@ func (vd *ValueDiffer) writeDiffValuesString(v1, v2 reflect.Value) {
 	b2.Write(`"`)
 }
 
-func (vd *ValueDiffer) writeTypeDiffValuesArray(v1, v2 reflect.Value) {
+func (vd *ValueDiffer) writeTypeDiffValuesArray(v1, v2 reflect.Value, slice bool) {
 	b1, b2 := vd.bufs()
 	tp, id, ml1 := attrElemArray(v1)
 	_, _, ml2 := attrElemArray(v2)
@@ -144,7 +144,59 @@ func (vd *ValueDiffer) writeTypeDiffValuesArray(v1, v2 reflect.Value) {
 		b2.Tab++
 		defer func() { b2.Tab-- }()
 	}
-	vd.writeDiffValuesArrayC(v1, v2, tp, id, ml1, ml2)
+	if slice {
+		vd.writeDiffValuesSliceC(v1, v2, tp, id, ml1, ml2)
+	} else {
+		vd.writeDiffValuesArrayC(v1, v2, tp, id, ml1, ml2)
+	}
+}
+
+func (vd *ValueDiffer) writeDiffValuesSliceC(v1, v2 reflect.Value, tp, id, ml1, ml2 bool) {
+	b1, b2 := vd.bufs()
+	var p1, p2 bool
+	for i := 0; i < v1.Len() || i < v2.Len(); i++ {
+		g1, g2 := i < v1.Len(), i < v2.Len()
+		t1, t2 := g1 && isNonTrivialElem(v1.Index(i)), g2 && isNonTrivialElem(v2.Index(i))
+		t1, p1 = (t1 || p1 || (ml1 && (id || i == 0))), t1
+		t2, p2 = (t2 || p2 || (ml2 && (id || i == 0))), t2
+		if i > 0 {
+			if tp {
+				if g1 {
+					b1.Write(",")
+				}
+				if g2 {
+					b2.Write(",")
+				}
+			}
+			if g1 && (!tp || !t1) {
+				b1.Write(" ")
+			}
+			if g2 && (!tp || !t2) {
+				b2.Write(" ")
+			}
+		}
+		if t1 {
+			b1.NL()
+		}
+		if t2 {
+			b2.NL()
+		}
+		if id {
+			if g1 {
+				b1.Write(i, ":")
+			}
+			if g2 {
+				b2.Write(i, ":")
+			}
+		}
+		if g1 && g2 {
+			vd.writeTypeDiffValues(v1.Index(i), v2.Index(i))
+		} else if g1 {
+			vd.writeElem(0, v1.Index(i))
+		} else {
+			vd.writeElem(1, v2.Index(i))
+		}
+	}
 }
 
 func (vd *ValueDiffer) writeDiffValuesArrayC(v1, v2 reflect.Value, tp, id, ml1, ml2 bool) {
