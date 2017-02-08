@@ -65,7 +65,10 @@ func (vd *ValueDiffer) writeTypeDiffValues(v1, v2 reflect.Value) {
 			vd.writeDiff(v1.Elem(), v2.Elem())
 		}
 	case reflect.Complex64, reflect.Complex128:
-		vd.writeDiffValuesComplex(v1, v2)
+		c1, c2 := v1.Complex(), v2.Complex()
+		hr, hi := real(c1) != real(c2), imag(c1) != imag(c2)
+		b1.Normal("(").Write(hr, real(c1)).Normal("+").Write(hi, imag(c1)).Normal(")")
+		b2.Normal("(").Write(hr, real(c2)).Normal("+").Write(hi, imag(c2)).Normal(")")
 	case reflect.String:
 		vd.writeDiffValuesString(v1, v2)
 	case reflect.Array:
@@ -77,34 +80,22 @@ func (vd *ValueDiffer) writeTypeDiffValues(v1, v2 reflect.Value) {
 	//case reflect.Struct:
 	//TODO
 	default:
-		vd.writeDiffPlainf("%#v", v1, v2)
+		b1.Highlightf("%#v", v1)
+		b2.Highlightf("%#v", v2)
 	}
-}
-
-func (vd *ValueDiffer) writeDiffValuesComplex(v1, v2 reflect.Value) {
-	b1, b2 := vd.bufs()
-	c1, c2 := v1.Complex(), v2.Complex()
-	b1.Normal("(")
-	b2.Normal("(")
-	vd.writeDiffPlain(real(c1), real(c2))
-	b1.Normal("+")
-	b2.Normal("+")
-	vd.writeDiffPlain(imag(c1), imag(c2))
-	b1.Normal(")")
-	b2.Normal(")")
 }
 
 func (vd *ValueDiffer) writeDiffValuesFunc(v1, v2 reflect.Value) {
-	p1, p2 := "nil", "nil"
-	if !v1.IsNil() {
-		p1 = fmt.Sprint(v1)
-	}
-	if !v2.IsNil() {
-		p2 = fmt.Sprint(v2)
-	}
-	vd.writeDiffPlainString(p1, p2)
-	if p1 == p2 {
-		vd.Attrs[CompFunc] = true
+	b1, b2 := vd.bufs()
+	if v1.IsNil() && v2.IsNil() {
+		b1.Normal("nil")
+		b2.Normal("nil")
+	} else {
+		b1.Highlight(v1)
+		b2.Highlight(v2)
+		if v1.Pointer() == v2.Pointer() {
+			vd.Attrs[CompFunc] = true
+		}
 	}
 }
 
@@ -121,8 +112,9 @@ func (vd *ValueDiffer) writeDiffValuesString(v1, v2 reflect.Value) {
 
 func (vd *ValueDiffer) writeTypeDiffValuesArray(v1, v2 reflect.Value, slice bool) {
 	b1, b2 := vd.bufs()
-	tp, id, ml1 := attrElemArray(v1)
-	_, _, ml2 := attrElemArray(v2)
+	tp1, id1, ml1 := attrElemArray(v1)
+	tp2, id2, ml2 := attrElemArray(v2)
+	tp, id := tp1 || tp2, id1 || id2
 	if tp {
 		vd.writeType(0, v1.Type(), false)
 		vd.writeType(1, v2.Type(), false)
@@ -130,19 +122,19 @@ func (vd *ValueDiffer) writeTypeDiffValuesArray(v1, v2 reflect.Value, slice bool
 		b2.Normal("{")
 		defer b1.Normal("}")
 		defer b2.Normal("}")
+		if ml1 {
+			b1.Tab++
+			defer func() { b1.Tab-- }()
+		}
+		if ml2 {
+			b2.Tab++
+			defer func() { b2.Tab-- }()
+		}
 	} else {
 		b1.Normal("[")
 		b2.Normal("[")
 		defer b1.Normal("]")
 		defer b2.Normal("]")
-	}
-	if ml1 {
-		b1.Tab++
-		defer func() { b1.Tab-- }()
-	}
-	if ml2 {
-		b2.Tab++
-		defer func() { b2.Tab-- }()
 	}
 	if slice {
 		vd.writeDiffValuesSliceC(v1, v2, tp, id, ml1, ml2)
@@ -190,7 +182,12 @@ func (vd *ValueDiffer) writeDiffValuesSliceC(v1, v2 reflect.Value, tp, id, ml1, 
 			}
 		}
 		if g1 && g2 {
-			vd.writeTypeDiffValues(v1.Index(i), v2.Index(i))
+			if e1, e2 := v1.Index(i), v2.Index(i); reflect.DeepEqual(e1.Interface(), e2.Interface()) {
+				vd.writeElem(0, e1)
+				vd.writeElem(1, e2)
+			} else {
+				vd.writeTypeDiffValues(e1, e2)
+			}
 		} else if g1 {
 			vd.writeElem(0, v1.Index(i)) //TODO: hl
 		} else {
@@ -229,7 +226,12 @@ func (vd *ValueDiffer) writeDiffValuesArrayC(v1, v2 reflect.Value, tp, id, ml1, 
 			b1.Normal(i, ":")
 			b2.Normal(i, ":")
 		}
-		vd.writeTypeDiffValues(e1, e2)
+		if reflect.DeepEqual(e1.Interface(), e2.Interface()) {
+			vd.writeElem(0, e1)
+			vd.writeElem(1, e2)
+		} else {
+			vd.writeTypeDiffValues(e1, e2)
+		}
 	}
 }
 
