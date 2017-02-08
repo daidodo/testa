@@ -192,9 +192,9 @@ func (vd *ValueDiffer) writeDiffValuesSliceC(v1, v2 reflect.Value, tp, id, ml1, 
 		if g1 && g2 {
 			vd.writeTypeDiffValues(v1.Index(i), v2.Index(i))
 		} else if g1 {
-			vd.writeElem(0, v1.Index(i))
+			vd.writeElem(0, v1.Index(i)) //TODO: hl
 		} else {
-			vd.writeElem(1, v2.Index(i))
+			vd.writeElem(1, v2.Index(i)) //TODO: hl
 		}
 	}
 }
