@@ -76,8 +76,8 @@ func (vd *ValueDiffer) writeTypeDiffValues(v1, v2 reflect.Value) {
 		vd.writeTypeDiffValuesArray(v1, v2, false)
 	case reflect.Slice:
 		vd.writeTypeDiffValuesArray(v1, v2, true)
-	//case reflect.Map:
-	//vd.writeTypeDiffValuesMap(v1, v2)
+	case reflect.Map:
+		vd.writeTypeDiffValuesMap(v1, v2)
 	//case reflect.Struct:
 	//TODO
 	default:
@@ -140,13 +140,13 @@ func (vd *ValueDiffer) writeTypeDiffValuesArray(v1, v2 reflect.Value, slice bool
 		defer b2.Normal("]")
 	}
 	if slice {
-		vd.writeDiffValuesSliceC(v1, v2, tp, id, ml1, ml2)
+		vd.writeDiffValuesSlice(v1, v2, tp, id, ml1, ml2)
 	} else {
-		vd.writeDiffValuesArrayC(v1, v2, tp, id, ml1, ml2)
+		vd.writeDiffValuesArray(v1, v2, tp, id, ml1, ml2)
 	}
 }
 
-func (vd *ValueDiffer) writeDiffValuesSliceC(v1, v2 reflect.Value, tp, id, ml1, ml2 bool) {
+func (vd *ValueDiffer) writeDiffValuesSlice(v1, v2 reflect.Value, tp, id, ml1, ml2 bool) {
 	b1, b2 := vd.bufs()
 	var p1, p2 bool
 	for i := 0; i < v1.Len() || i < v2.Len(); i++ {
@@ -199,7 +199,7 @@ func (vd *ValueDiffer) writeDiffValuesSliceC(v1, v2 reflect.Value, tp, id, ml1, 
 	}
 }
 
-func (vd *ValueDiffer) writeDiffValuesArrayC(v1, v2 reflect.Value, tp, id, ml1, ml2 bool) {
+func (vd *ValueDiffer) writeDiffValuesArray(v1, v2 reflect.Value, tp, id, ml1, ml2 bool) {
 	b1, b2 := vd.bufs()
 	var p1, p2 bool
 	for i := 0; i < v1.Len(); i++ {
@@ -238,17 +238,114 @@ func (vd *ValueDiffer) writeDiffValuesArrayC(v1, v2 reflect.Value, tp, id, ml1, 
 	}
 }
 
-func (vd *ValueDiffer) writeDiffPlain(v1, v2 interface{}) {
-	vd.writeDiffPlainRunes([]rune(fmt.Sprint(v1)), []rune(fmt.Sprint(v2)))
+func (vd *ValueDiffer) writeTypeDiffValuesMap(v1, v2 reflect.Value) {
+	b1, b2 := vd.bufs()
+	tp1, ml1 := attrElemMap(v1)
+	tp2, ml2 := attrElemMap(v2)
+	tp := tp1 || tp2
+	if tp {
+		vd.writeType(0, v1.Type(), false)
+		vd.writeType(1, v2.Type(), false)
+		b1.Normal("{")
+		b2.Normal("{")
+		defer b1.Normal("}")
+		defer b2.Normal("}")
+		if ml1 {
+			b1.Tab++
+			defer func() { b1.Tab--; b1.NL() }()
+			vd.Attrs[NewLine+0] = true
+		}
+		if ml2 {
+			b2.Tab++
+			defer func() { b2.Tab--; b2.NL() }()
+			vd.Attrs[NewLine+1] = true
+		}
+	} else {
+		b1.Normal("map[")
+		b2.Normal("map[")
+		defer b1.Normal("]")
+		defer b2.Normal("]")
+	}
+	vd.writeDiffValuesMap(v1, v2, tp, ml1, ml2)
 }
 
-func (vd *ValueDiffer) writeDiffPlainf(format string, v1, v2 interface{}) {
-	vd.writeDiffPlainRunes([]rune(fmt.Sprintf(format, v1)), []rune(fmt.Sprintf(format, v2)))
+func (vd *ValueDiffer) writeDiffValuesMap(v1, v2 reflect.Value, tp, ml1, ml2 bool) {
+	b1, b2 := vd.bufs()
+	var ks, ks1, ks2 []reflect.Value
+	for _, k := range v1.MapKeys() {
+		if v2.MapIndex(k).IsValid() {
+			ks = append(ks, k)
+		} else {
+			ks1 = append(ks1, k)
+		}
+	}
+	for _, k := range v2.MapKeys() {
+		if !v1.MapIndex(k).IsValid() {
+			ks2 = append(ks2, k)
+		}
+	}
+	i := 0
+	for _, k := range ks {
+		if i > 0 {
+			if tp {
+				b1.Normal(",")
+				b2.Normal(",")
+			}
+			if !ml1 {
+				b1.Plain(" ")
+			}
+			if !ml2 {
+				b2.Plain(" ")
+			}
+		}
+		if ml1 {
+			b1.NL()
+		}
+		if ml2 {
+			b2.NL()
+		}
+		vd.writeKey(0, k, false)
+		vd.writeKey(1, k, false)
+		b1.Normal(":")
+		b2.Normal(":")
+		vd.writeDiff(v1.MapIndex(k), v2.MapIndex(k))
+		i++
+	}
+	f := func(idx int, v reflect.Value, ks []reflect.Value, ml bool, i int) {
+		b := vd.bufi(idx)
+		for _, k := range ks {
+			if i > 0 {
+				if tp {
+					b.Highlight(",")
+				}
+				if !ml {
+					b.Plain(" ")
+				}
+			}
+			if ml {
+				b.NL()
+			}
+			vd.writeKey(idx, k, true)
+			b.Highlight(":")
+			vd.writeElem(idx, v.MapIndex(k), true)
+			i++
+		}
+	}
+	f(0, v1, ks1, ml1, i)
+	f(1, v2, ks2, ml2, i)
 }
 
-func (vd *ValueDiffer) writeDiffPlainString(v1, v2 string) {
-	vd.writeDiffPlainRunes([]rune(v1), []rune(v2))
-}
+//func (vd *ValueDiffer) writeDiffPlain(v1, v2 interface{}) {
+//    vd.writeDiffPlainRunes([]rune(fmt.Sprint(v1)), []rune(fmt.Sprint(v2)))
+//}
+
+//func (vd *ValueDiffer) writeDiffPlainf(format string, v1, v2 interface{}) {
+//    vd.writeDiffPlainRunes([]rune(fmt.Sprintf(format, v1)), []rune(fmt.Sprintf(format, v2)))
+//}
+
+//func (vd *ValueDiffer) writeDiffPlainString(v1, v2 string) {
+//    vd.writeDiffPlainRunes([]rune(v1), []rune(v2))
+//}
 
 func (vd *ValueDiffer) writeDiffPlainRunes(s1, s2 []rune) {
 	b1, b2 := vd.bufs()

@@ -6,12 +6,27 @@ import (
 	"github.com/daidodo/testa/assert"
 )
 
+func TestEqualMap2(t *testing.T) {
+
+	a := map[int]string{}
+	b := map[int]string{}
+	assert.Equal(t, b, a)
+	a[-1] = "aaggs"
+	b[2] = "aaa"
+	b[4] = "ert"
+	b[5] = "crt"
+	assert.Equal(t, b, a, "a=%#v is not b=%#v", a, b)
+}
+
 func TestEqualMap(t *testing.T) {
 
 	a := map[int]string{1: "abc", 2: "cde", 3: "xyz"}
 	b := map[int]string{1: "abc", 2: "cde", 3: "xyz"}
 	assert.Equal(t, b, a)
+	a[-1] = "aaggs"
 	b[2] = "aaa"
+	b[4] = "ert"
+	b[5] = "crt"
 	assert.Equal(t, b, a, "a=%#v is not b=%#v", a, b)
 }
 
