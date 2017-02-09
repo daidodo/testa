@@ -78,8 +78,8 @@ func (vd *ValueDiffer) writeTypeDiffValues(v1, v2 reflect.Value) {
 		vd.writeTypeDiffValuesArray(v1, v2, true)
 	case reflect.Map:
 		vd.writeTypeDiffValuesMap(v1, v2)
-	//case reflect.Struct:
-	//TODO
+	case reflect.Struct:
+		vd.writeTypeDiffValuesStruct(v1, v2)
 	default:
 		b1.Highlightf("%#v", v1)
 		b2.Highlightf("%#v", v2)
@@ -333,6 +333,59 @@ func (vd *ValueDiffer) writeDiffValuesMap(v1, v2 reflect.Value, tp, ml1, ml2 boo
 	}
 	f(0, v1, ks1, ml1, i)
 	f(1, v2, ks2, ml2, i)
+}
+
+func (vd *ValueDiffer) writeTypeDiffValuesStruct(v1, v2 reflect.Value) {
+	b1, b2 := vd.bufs()
+	ml1, ml2 := attrElemStruct(v1), attrElemStruct(v2)
+	if ml1 || ml2 {
+		vd.writeType(0, v1.Type(), false)
+		vd.writeType(1, v2.Type(), false)
+	}
+	b1.Normal("{")
+	b2.Normal("{")
+	defer b1.Normal("}")
+	defer b2.Normal("}")
+	if ml1 {
+		b1.Tab++
+		defer func() { b1.Tab--; b1.NL() }()
+		vd.Attrs[NewLine+0] = true
+	}
+	if ml2 {
+		b2.Tab++
+		defer func() { b2.Tab--; b2.NL() }()
+		vd.Attrs[NewLine+1] = true
+	}
+	vd.writeDiffValuesStruct(v1, v2, ml1, ml2)
+}
+
+func (vd *ValueDiffer) writeDiffValuesStruct(v1, v2 reflect.Value, ml1, ml2 bool) {
+	b1, b2 := vd.bufs()
+	t := v1.Type()
+	for i := 0; i < v1.NumField() || i < v2.NumField(); i++ {
+		if i > 0 {
+			if ml1 {
+				b1.Normal(",")
+			} else {
+				b1.Normal(" ")
+			}
+			if ml2 {
+				b2.Normal(",")
+			} else {
+				b2.Normal(" ")
+			}
+		}
+		if ml1 {
+			b1.NL()
+		}
+		if ml2 {
+			b2.NL()
+		}
+		n := t.Field(i).Name
+		b1.Normal(n, ":")
+		b2.Normal(n, ":")
+		vd.writeDiff(v1.Field(i), v2.Field(i))
+	}
 }
 
 //func (vd *ValueDiffer) writeDiffPlain(v1, v2 interface{}) {
