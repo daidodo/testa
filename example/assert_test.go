@@ -6,6 +6,45 @@ import (
 	"github.com/daidodo/testa/assert"
 )
 
+func TestFalse(t *testing.T) {
+	assert.False(t, false)
+	a := 3 == 3
+	assert.False(t, a, "How can a is true!")
+}
+
+func TestTrue(t *testing.T) {
+	assert.True(t, true)
+	a := false
+	assert.True(t, a)
+}
+
+func TestEqualChanRW(t *testing.T) {
+	a := make(chan int)
+	var b <-chan int = a
+	assert.Equal(t, b, a, "Is a=%#v same as %#v", a, b)
+}
+
+func TestEqualChanDiffType(t *testing.T) {
+	a := make(chan int)
+	b := make(chan string)
+	assert.Equal(t, b, a, "Is a=%#v same as %#v", a, b)
+}
+
+func TestEqualFuncNilDiffType(t *testing.T) {
+	var a func(int) string
+	var b func(string) int
+	a = nil
+	b = nil
+	assert.Equal(t, b, a, "Is a=%#v same as %#v?", a, b)
+}
+
+func TestEqualInterfaceNil1(t *testing.T) {
+	var a, b interface{}
+	assert.Equal(t, b, a)
+	i := 3
+	a = &i
+	assert.Equal(t, b, a, "Is a=%#v same as %v?", a, b)
+}
 func TestEqualStruct(t *testing.T) {
 	a := struct {
 		a interface{}
@@ -97,8 +136,8 @@ func TestEqualChanRO(t *testing.T) {
 	a := make(<-chan int)
 	b := a
 	assert.Equal(t, b, a)
-	b = make(chan int)
-	assert.Equal(t, b, a, "Is a=%#v same as %v", a, b)
+	c := make(chan int)
+	assert.Equal(t, c, a, "Is a=%#v same as %#v", a, c)
 }
 
 func TestEqualChan(t *testing.T) {
@@ -106,7 +145,7 @@ func TestEqualChan(t *testing.T) {
 	b := a
 	assert.Equal(t, b, a)
 	b = make(chan int)
-	assert.Equal(t, b, a, "Is a=%#v same as %v", a, b)
+	assert.Equal(t, b, a, "Is a=%#v same as %#v", a, b)
 }
 
 //func TestEqualArrayLong3Dense(t *testing.T) {
@@ -394,43 +433,3 @@ func TestEqualBoolTrue(t *testing.T) {
 	assert.Equal(t, true, a)
 	assert.Equal(t, false, a, a)
 }
-
-//func TestFalse(t *testing.T) {
-//    assert.False(t, false)
-//    a := 3 == 3
-//    assert.False(t, a, "How can a is true!")
-//}
-
-//func TestTrue(t *testing.T) {
-//    assert.True(t, true)
-//    a := false
-//    assert.True(t, a)
-//}
-
-//func TestEqualChanRW(t *testing.T) {
-//    a := make(chan int)
-//    var b <-chan int = a
-//    assert.Equal(t, b, a, "Is a=%#v same as %v", a, b)
-//}
-
-//func TestEqualChanDiffType(t *testing.T) {
-//    a := make(chan int)
-//    b := make(chan string)
-//    assert.Equal(t, b, a, "Is a=%#v same as %v", a, b)
-//}
-
-//func TestEqualFuncNilDiffType(t *testing.T) {
-//    var a func(int) string
-//    var b func(string) int
-//    a = nil
-//    b = nil
-//    assert.Equal(t, b, a, "Is a=%#v same as %#v?", a, b)
-//}
-
-//func TestEqualInterfaceNil1(t *testing.T) {
-//    var a, b interface{}
-//    assert.Equal(t, b, a)
-//    i := 3
-//    a = &i
-//    assert.Equal(t, b, a, "Is a=%#v same as %v?", a, b)
-//}
