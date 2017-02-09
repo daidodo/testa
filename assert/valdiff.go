@@ -55,6 +55,9 @@ func (vd *ValueDiffer) writeTypeDiffValues(v1, v2 reflect.Value) {
 	switch v1.Kind() {
 	case reflect.Func:
 		vd.writeDiffValuesFunc(v1, v2)
+	case reflect.Chan:
+		b1.Highlight(v1)
+		b2.Highlight(v2)
 	case reflect.Interface:
 		if v1.IsNil() {
 			b1.Highlight(nil)
@@ -154,6 +157,7 @@ func (vd *ValueDiffer) writeDiffValuesSlice(v1, v2 reflect.Value, tp, id, ml1, m
 		t1, t2 := g1 && isNonTrivialElem(v1.Index(i)), g2 && isNonTrivialElem(v2.Index(i))
 		t1, p1 = (t1 || p1 || (ml1 && (id || i == 0))), t1
 		t2, p2 = (t2 || p2 || (ml2 && (id || i == 0))), t2
+		df := !g1 || !g2 || !reflect.DeepEqual(v1.Index(i).Interface(), v2.Index(i).Interface())
 		if i > 0 {
 			if tp {
 				if g1 {
@@ -164,10 +168,18 @@ func (vd *ValueDiffer) writeDiffValuesSlice(v1, v2 reflect.Value, tp, id, ml1, m
 				}
 			}
 			if g1 && (!tp || !t1) {
-				b1.Plain(" ")
+				if df {
+					b1.Plain(" ")
+				} else {
+					b1.Normal(" ")
+				}
 			}
 			if g2 && (!tp || !t2) {
-				b2.Plain(" ")
+				if df {
+					b2.Plain(" ")
+				} else {
+					b2.Normal(" ")
+				}
 			}
 		}
 		if t1 {
@@ -185,11 +197,11 @@ func (vd *ValueDiffer) writeDiffValuesSlice(v1, v2 reflect.Value, tp, id, ml1, m
 			}
 		}
 		if g1 && g2 {
-			if e1, e2 := v1.Index(i), v2.Index(i); reflect.DeepEqual(e1.Interface(), e2.Interface()) {
+			if e1, e2 := v1.Index(i), v2.Index(i); df {
+				vd.writeDiff(e1, e2)
+			} else {
 				vd.writeElemN(0, e1)
 				vd.writeElemN(1, e2)
-			} else {
-				vd.writeTypeDiffValues(e1, e2)
 			}
 		} else if g1 {
 			vd.writeElemH(0, v1.Index(i))
@@ -207,16 +219,25 @@ func (vd *ValueDiffer) writeDiffValuesArray(v1, v2 reflect.Value, tp, id, ml1, m
 		t1, t2 := isNonTrivialElem(e1), isNonTrivialElem(e2)
 		t1, p1 = (t1 || p1 || (ml1 && (id || i == 0))), t1
 		t2, p2 = (t2 || p2 || (ml2 && (id || i == 0))), t2
+		df := !reflect.DeepEqual(e1.Interface(), e2.Interface())
 		if i > 0 {
 			if tp {
 				b1.Normal(",")
 				b2.Normal(",")
 			}
 			if !tp || !t1 {
-				b1.Plain(" ")
+				if df {
+					b1.Plain(" ")
+				} else {
+					b1.Normal(" ")
+				}
 			}
 			if !tp || !t2 {
-				b2.Plain(" ")
+				if df {
+					b2.Plain(" ")
+				} else {
+					b2.Normal(" ")
+				}
 			}
 		}
 		if t1 {
@@ -229,11 +250,11 @@ func (vd *ValueDiffer) writeDiffValuesArray(v1, v2 reflect.Value, tp, id, ml1, m
 			b1.Normal(i, ":")
 			b2.Normal(i, ":")
 		}
-		if reflect.DeepEqual(e1.Interface(), e2.Interface()) {
+		if df {
+			vd.writeDiff(e1, e2)
+		} else {
 			vd.writeElemN(0, e1)
 			vd.writeElemN(1, e2)
-		} else {
-			vd.writeTypeDiffValues(e1, e2)
 		}
 	}
 }
@@ -387,18 +408,6 @@ func (vd *ValueDiffer) writeDiffValuesStruct(v1, v2 reflect.Value, ml1, ml2 bool
 		vd.writeDiff(v1.Field(i), v2.Field(i))
 	}
 }
-
-//func (vd *ValueDiffer) writeDiffPlain(v1, v2 interface{}) {
-//    vd.writeDiffPlainRunes([]rune(fmt.Sprint(v1)), []rune(fmt.Sprint(v2)))
-//}
-
-//func (vd *ValueDiffer) writeDiffPlainf(format string, v1, v2 interface{}) {
-//    vd.writeDiffPlainRunes([]rune(fmt.Sprintf(format, v1)), []rune(fmt.Sprintf(format, v2)))
-//}
-
-//func (vd *ValueDiffer) writeDiffPlainString(v1, v2 string) {
-//    vd.writeDiffPlainRunes([]rune(v1), []rune(v2))
-//}
 
 func (vd *ValueDiffer) writeDiffPlainRunes(s1, s2 []rune) {
 	b1, b2 := vd.bufs()
