@@ -6,8 +6,24 @@ import (
 	"github.com/daidodo/testa/assert"
 )
 
-func TestEqualMap2(t *testing.T) {
+func TestEqualStruct(t *testing.T) {
+	a := struct {
+		a interface{}
+		b interface{}
+	}{a: 1, b: "abc"}
+	b := struct {
+		a interface{}
+		b interface{}
+	}{a: 1, b: "abc"}
+	assert.Equal(t, a, b)
+	c := struct {
+		a interface{}
+		b interface{}
+	}{a: 'A', b: "abcd"}
+	assert.Equal(t, a, c)
+}
 
+func TestEqualMap2(t *testing.T) {
 	a := map[int]string{}
 	b := map[int]string{}
 	assert.Equal(t, b, a)
@@ -19,7 +35,6 @@ func TestEqualMap2(t *testing.T) {
 }
 
 func TestEqualMap(t *testing.T) {
-
 	a := map[int]string{1: "abc", 2: "cde", 3: "xyz"}
 	b := map[int]string{1: "abc", 2: "cde", 3: "xyz"}
 	assert.Equal(t, b, a)
