@@ -8,6 +8,7 @@ import (
 
 const (
 	NewLine = iota
+	_
 	OmitSame
 	CompFunc
 
@@ -124,11 +125,13 @@ func (vd *ValueDiffer) writeTypeDiffValuesArray(v1, v2 reflect.Value, slice bool
 		defer b2.Normal("}")
 		if ml1 {
 			b1.Tab++
-			defer func() { b1.Tab-- }()
+			defer func() { b1.Tab--; b1.NL() }()
+			vd.Attrs[NewLine+0] = true
 		}
 		if ml2 {
 			b2.Tab++
-			defer func() { b2.Tab-- }()
+			defer func() { b2.Tab--; b2.NL() }()
+			vd.Attrs[NewLine+1] = true
 		}
 	} else {
 		b1.Normal("[")

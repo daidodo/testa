@@ -69,24 +69,31 @@ func fail(c caller, t *testing.T, expected, actual interface{}, eq bool, msg ...
 
 func writeFailEq(buf *FeatureBuf, expected, actual interface{}) {
 	var v ValueDiffer
-	v.WriteDiff(reflect.ValueOf(expected), reflect.ValueOf(actual), buf.Tab)
-	if v.Attrs[NewLine] {
+	v.WriteDiff(reflect.ValueOf(expected), reflect.ValueOf(actual), buf.Tab+1)
+	if v.Attrs[NewLine+0] {
 		buf.NL().Normal("Expected:")
 		if v.Attrs[OmitSame] {
 			buf.Normal("\t(").Highlight("Only diffs are shown").Normal(")")
+			v.Attrs[OmitSame] = false
 		}
 		buf.Tab++
 		buf.NL().Normal(v.String(0))
 		buf.Tab--
+	} else {
+		buf.NL().Normalf("Expected:\t%v", v.String(0))
+	}
+	if v.Attrs[NewLine+1] {
 		buf.NL().Normal("  Actual:")
+		if v.Attrs[OmitSame] {
+			buf.Normal("\t(").Highlight("Only diffs are shown").Normal(")")
+		}
 		buf.Tab++
-		buf.NL().Normal(v.String(0))
+		buf.NL().Normal(v.String(1))
 		if v.Attrs[CompFunc] {
 			buf.NL().Normal("(").Highlight("func can only be compared to nil").Normal(")")
 		}
 		buf.Tab--
 	} else {
-		buf.NL().Normalf("Expected:\t%v", v.String(0))
 		buf.NL().Normalf("  Actual:\t%v", v.String(1))
 		if v.Attrs[OmitSame] {
 			buf.NL().Normal("\t\t(").Highlight("Only diffs are shown").Normal(")")
@@ -99,7 +106,7 @@ func writeFailEq(buf *FeatureBuf, expected, actual interface{}) {
 
 func writeFailNe(buf *FeatureBuf, actual interface{}) {
 	var v ValueDiffer
-	v.WriteTypeValue(0, reflect.ValueOf(actual), buf.Tab)
+	v.WriteTypeValue(0, reflect.ValueOf(actual), buf.Tab+1)
 	if v.Attrs[NewLine] {
 		buf.NL().Normal("Expected:\t").Highlight("SAME as Actual")
 		buf.NL().Normal("  Actual:")

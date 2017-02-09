@@ -404,13 +404,14 @@ func (vd *ValueDiffer) writeElemArray(idx int, v reflect.Value) {
 		vd.writeType(idx, v.Type(), false)
 		b.Normal("{")
 		defer b.Normal("}")
+		if ml {
+			b.Tab++
+			defer func() { b.Tab--; b.NL() }()
+			vd.Attrs[NewLine+idx] = true
+		}
 	} else {
 		b.Normal("[")
 		defer b.Normal("]")
-	}
-	if ml {
-		b.Tab++
-		defer func() { b.Tab-- }()
 	}
 	vd.writeElemArrayC(idx, v, tp, id, ml)
 }
@@ -460,13 +461,14 @@ func (vd *ValueDiffer) writeElemMap(idx int, v reflect.Value) {
 		vd.writeType(idx, v.Type(), false)
 		b.Normal("{")
 		defer b.Normal("}")
+		if ml {
+			b.Tab++
+			defer func() { b.Tab-- }()
+			vd.Attrs[NewLine+idx] = true
+		}
 	} else {
 		b.Normal("map[")
 		defer b.Normal("]")
-	}
-	if ml {
-		b.Tab++
-		defer func() { b.Tab-- }()
 	}
 	vd.writeElemMapC(idx, v, tp, ml)
 }
@@ -496,6 +498,7 @@ func (vd *ValueDiffer) writeElemStruct(idx int, v reflect.Value) {
 	if ml := attrElemStruct(v); ml {
 		b.Normal(structName(v.Type()))
 		vd.writeElemStructML(idx, v)
+		vd.Attrs[NewLine+idx] = true
 	} else {
 		vd.writeKeyStruct(idx, v)
 	}
