@@ -325,7 +325,7 @@ func (vd *ValueDiffer) writeValueAfterTypeArray(idx int, v reflect.Value) {
 		b.Tab++
 		defer func() { b.Tab-- }()
 	}
-	vd.writeElemArrayC(idx, v, true, id, ml)
+	vd.writeElemArrayC(idx, v, true, id, ml, false)
 }
 
 func (vd *ValueDiffer) writeValueAfterTypeSlice(idx int, v reflect.Value) {
@@ -350,13 +350,13 @@ func (vd *ValueDiffer) writeValueAfterTypeMap(idx int, v reflect.Value) {
 		b.Tab++
 		defer func() { b.Tab-- }()
 	}
-	vd.writeElemMapC(idx, v, true, ml)
+	vd.writeElemMapC(idx, v, true, ml, false)
 }
 
 func (vd *ValueDiffer) writeValueAfterTypeStruct(idx int, v reflect.Value) {
 	b := vd.bufi(idx)
 	if ml := attrElemStruct(v); ml {
-		vd.writeElemStructML(idx, v)
+		vd.writeElemStructML(idx, v, false)
 	} else {
 		b.Normal("{")
 		t := v.Type()
@@ -365,58 +365,66 @@ func (vd *ValueDiffer) writeValueAfterTypeStruct(idx int, v reflect.Value) {
 				b.Normal(", ")
 			}
 			b.Normal(t.Field(i).Name, ":")
-			vd.writeKey(idx, v.Field(i))
+			vd.writeKey(idx, v.Field(i), false)
 		}
 		b.Normal("}")
 	}
 }
 
-func (vd *ValueDiffer) writeElem(idx int, v reflect.Value) {
+func (vd *ValueDiffer) writeElemN(idx int, v reflect.Value) {
+	vd.writeElem(idx, v, false)
+}
+
+func (vd *ValueDiffer) writeElemH(idx int, v reflect.Value) {
+	vd.writeElem(idx, v, true)
+}
+
+func (vd *ValueDiffer) writeElem(idx int, v reflect.Value, hl bool) {
 	b := vd.bufi(idx)
 	if !v.IsValid() {
-		b.Normal(nil)
+		b.Write(hl, nil)
 		return
 	}
 	switch v.Kind() {
 	case reflect.Interface:
 		if v.IsNil() {
-			b.Normal(nil)
+			b.Write(hl, nil)
 		} else {
-			vd.writeElem(idx, v.Elem())
+			vd.writeElem(idx, v.Elem(), hl)
 		}
 	case reflect.Array:
-		vd.writeElemArray(idx, v)
+		vd.writeElemArray(idx, v, hl)
 	case reflect.Slice:
-		vd.writeElemSlice(idx, v)
+		vd.writeElemSlice(idx, v, hl)
 	case reflect.Map:
-		vd.writeElemMap(idx, v)
+		vd.writeElemMap(idx, v, hl)
 	case reflect.Struct:
-		vd.writeElemStruct(idx, v)
+		vd.writeElemStruct(idx, v, hl)
 	default: // bool, integer, float, complex, channel, function, pointer, string
-		vd.writeKey(idx, v)
+		vd.writeKey(idx, v, hl)
 	}
 }
 
-func (vd *ValueDiffer) writeElemArray(idx int, v reflect.Value) {
+func (vd *ValueDiffer) writeElemArray(idx int, v reflect.Value, hl bool) {
 	b := vd.bufi(idx)
 	tp, id, ml := attrElemArray(v)
 	if tp {
-		vd.writeType(idx, v.Type(), false)
-		b.Normal("{")
-		defer b.Normal("}")
+		vd.writeType(idx, v.Type(), hl)
+		b.Write(hl, "{")
+		defer b.Write(hl, "}")
 		if ml {
 			b.Tab++
 			defer func() { b.Tab--; b.NL() }()
 			vd.Attrs[NewLine+idx] = true
 		}
 	} else {
-		b.Normal("[")
-		defer b.Normal("]")
+		b.Write(hl, "[")
+		defer b.Write(hl, "]")
 	}
-	vd.writeElemArrayC(idx, v, tp, id, ml)
+	vd.writeElemArrayC(idx, v, tp, id, ml, hl)
 }
 
-func (vd *ValueDiffer) writeElemArrayC(idx int, v reflect.Value, tp, id, ml bool) {
+func (vd *ValueDiffer) writeElemArrayC(idx int, v reflect.Value, tp, id, ml, hl bool) {
 	b := vd.bufi(idx)
 	p := false
 	for i := 0; i < v.Len(); i++ {
@@ -425,186 +433,186 @@ func (vd *ValueDiffer) writeElemArrayC(idx int, v reflect.Value, tp, id, ml bool
 		t, p = (t || p || (ml && (id || i == 0))), t
 		if i > 0 {
 			if tp {
-				b.Normal(",")
+				b.Write(hl, ",")
 			}
 			if !tp || !t {
-				b.Normal(" ")
+				b.Plain(" ")
 			}
 		}
 		if t {
 			b.NL()
 		}
 		if id {
-			b.Normal(i, ":")
+			b.Write(hl, i, ":")
 		}
-		vd.writeElem(idx, e)
+		vd.writeElem(idx, e, hl)
 	}
 }
 
-func (vd *ValueDiffer) writeElemSlice(idx int, v reflect.Value) {
+func (vd *ValueDiffer) writeElemSlice(idx int, v reflect.Value, hl bool) {
 	b := vd.bufi(idx)
 	if v.IsNil() {
-		b.Normal(nil)
+		b.Write(hl, nil)
 		return
 	}
-	vd.writeElemArray(idx, v)
+	vd.writeElemArray(idx, v, hl)
 }
 
-func (vd *ValueDiffer) writeElemMap(idx int, v reflect.Value) {
+func (vd *ValueDiffer) writeElemMap(idx int, v reflect.Value, hl bool) {
 	b := vd.bufi(idx)
 	if v.IsNil() {
-		b.Normal(nil)
+		b.Write(hl, nil)
 		return
 	}
 	tp, ml := attrElemMap(v)
 	if tp {
-		vd.writeType(idx, v.Type(), false)
-		b.Normal("{")
-		defer b.Normal("}")
+		vd.writeType(idx, v.Type(), hl)
+		b.Write(hl, "{")
+		defer b.Write(hl, "}")
 		if ml {
 			b.Tab++
 			defer func() { b.Tab-- }()
 			vd.Attrs[NewLine+idx] = true
 		}
 	} else {
-		b.Normal("map[")
-		defer b.Normal("]")
+		b.Write(hl, "map[")
+		defer b.Write(hl, "]")
 	}
-	vd.writeElemMapC(idx, v, tp, ml)
+	vd.writeElemMapC(idx, v, tp, ml, hl)
 }
 
-func (vd *ValueDiffer) writeElemMapC(idx int, v reflect.Value, tp, ml bool) {
+func (vd *ValueDiffer) writeElemMapC(idx int, v reflect.Value, tp, ml, hl bool) {
 	b := vd.bufi(idx)
 	for i, k := range v.MapKeys() {
 		if i > 0 {
 			if tp {
-				b.Normal(",")
+				b.Write(hl, ",")
 			}
 			if !ml {
-				b.Normal(" ")
+				b.Plain(" ")
 			}
 		}
 		if ml {
 			b.NL()
 		}
-		vd.writeKey(idx, k)
-		b.Normal(":")
-		vd.writeElem(idx, v.MapIndex(k))
+		vd.writeKey(idx, k, hl)
+		b.Write(hl, ":")
+		vd.writeElem(idx, v.MapIndex(k), hl)
 	}
 }
 
-func (vd *ValueDiffer) writeElemStruct(idx int, v reflect.Value) {
+func (vd *ValueDiffer) writeElemStruct(idx int, v reflect.Value, hl bool) {
 	b := vd.bufi(idx)
 	if ml := attrElemStruct(v); ml {
-		b.Normal(structName(v.Type()))
-		vd.writeElemStructML(idx, v)
+		b.Write(hl, structName(v.Type()))
+		vd.writeElemStructML(idx, v, hl)
 		vd.Attrs[NewLine+idx] = true
 	} else {
-		vd.writeKeyStruct(idx, v)
+		vd.writeKeyStruct(idx, v, hl)
 	}
 }
 
-func (vd *ValueDiffer) writeElemStructML(idx int, v reflect.Value) {
+func (vd *ValueDiffer) writeElemStructML(idx int, v reflect.Value, hl bool) {
 	b := vd.bufi(idx)
-	b.Normal("{")
+	b.Write(hl, "{")
 	b.Tab++
 	t := v.Type()
 	for i := 0; i < v.NumField(); i++ {
 		if i > 0 {
-			b.Normal(",")
+			b.Write(hl, ",")
 		}
-		b.NL().Normal(t.Field(i).Name, ":")
-		vd.writeElem(idx, v.Field(i))
+		b.NL().Write(hl, t.Field(i).Name, ":")
+		vd.writeElem(idx, v.Field(i), hl)
 	}
 	b.Tab--
-	b.NL().Normal("}")
+	b.NL().Write(hl, "}")
 }
 
-func (vd *ValueDiffer) writeKey(idx int, v reflect.Value) {
+func (vd *ValueDiffer) writeKey(idx int, v reflect.Value, hl bool) {
 	b := vd.bufi(idx)
 	if !v.IsValid() {
-		b.Normal(nil)
+		b.Write(hl, nil)
 	} else {
 		switch v.Kind() {
 		case reflect.Uintptr, reflect.String:
-			b.Normalf("%#v", v)
+			b.Writef(hl, "%#v", v)
 		case reflect.Array:
-			vd.writeKeyArray(idx, v)
+			vd.writeKeyArray(idx, v, hl)
 		case reflect.Interface:
 			if v.IsNil() {
-				b.Normal(nil)
+				b.Write(hl, nil)
 			} else {
-				vd.writeKey(idx, v.Elem())
+				vd.writeKey(idx, v.Elem(), hl)
 			}
 		case reflect.Map:
-			vd.writeKeyMap(idx, v)
+			vd.writeKeyMap(idx, v, hl)
 		case reflect.Ptr:
 			if v.IsNil() {
-				b.Normal(nil)
+				b.Write(hl, nil)
 			} else {
-				b.Normalf("%#v", v.Pointer())
+				b.Writef(hl, "%#v", v.Pointer())
 			}
 		case reflect.Slice:
-			vd.writeKeySlice(idx, v)
+			vd.writeKeySlice(idx, v, hl)
 		case reflect.Struct:
-			vd.writeKeyStruct(idx, v)
+			vd.writeKeyStruct(idx, v, hl)
 		default: // bool, integer, float, complex, channel, function, pointer
-			b.Normal(v)
+			b.Write(hl, v)
 		}
 	}
 }
 
-func (vd *ValueDiffer) writeKeyArray(idx int, v reflect.Value) {
+func (vd *ValueDiffer) writeKeyArray(idx int, v reflect.Value, hl bool) {
 	b := vd.bufi(idx)
-	b.Normal("[")
+	b.Write(hl, "[")
 	for i := 0; i < v.Len(); i++ {
 		if i > 0 {
-			b.Normal(" ")
+			b.Plain(" ")
 		}
-		vd.writeKey(idx, v.Index(i))
+		vd.writeKey(idx, v.Index(i), hl)
 	}
-	b.Normal("]")
+	b.Write(hl, "]")
 }
 
-func (vd *ValueDiffer) writeKeySlice(idx int, v reflect.Value) {
+func (vd *ValueDiffer) writeKeySlice(idx int, v reflect.Value, hl bool) {
 	b := vd.bufi(idx)
 	if v.IsNil() {
-		b.Normal(nil)
+		b.Write(hl, nil)
 		return
 	}
-	vd.writeKeyArray(idx, v)
+	vd.writeKeyArray(idx, v, hl)
 }
 
-func (vd *ValueDiffer) writeKeyMap(idx int, v reflect.Value) {
+func (vd *ValueDiffer) writeKeyMap(idx int, v reflect.Value, hl bool) {
 	b := vd.bufi(idx)
 	if v.IsNil() {
-		b.Normal(nil)
+		b.Write(hl, nil)
 		return
 	}
-	b.Normal("map[")
+	b.Write(hl, "map[")
 	for i, k := range v.MapKeys() {
 		if i > 0 {
-			b.Normal(" ")
+			b.Plain(" ")
 		}
-		vd.writeKey(idx, k)
-		b.Normal(":")
-		vd.writeKey(idx, v.MapIndex(k))
+		vd.writeKey(idx, k, hl)
+		b.Write(hl, ":")
+		vd.writeKey(idx, v.MapIndex(k), hl)
 	}
-	b.Normal("]")
+	b.Write(hl, "]")
 }
 
-func (vd *ValueDiffer) writeKeyStruct(idx int, v reflect.Value) {
+func (vd *ValueDiffer) writeKeyStruct(idx int, v reflect.Value, hl bool) {
 	b := vd.bufi(idx)
-	b.Normal("{")
+	b.Write(hl, "{")
 	t := v.Type()
 	for i := 0; i < v.NumField(); i++ {
 		if i > 0 {
-			b.Normal(" ")
+			b.Plain(" ")
 		}
-		b.Normal(t.Field(i).Name, ":")
-		vd.writeKey(idx, v.Field(i))
+		b.Write(hl, t.Field(i).Name, ":")
+		vd.writeKey(idx, v.Field(i), hl)
 	}
-	b.Normal("}")
+	b.Write(hl, "}")
 }
 
 func isNonTrivialElem(v reflect.Value) bool {
