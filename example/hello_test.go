@@ -7,6 +7,14 @@ import (
 	"github.com/daidodo/testa/assert"
 )
 
+func TestSlice(t *testing.T) {
+	a := []int{1, 21, 3, 4, 5}
+	b := a
+	assert.Equal(t, b, a)
+	c := []int{1, 2, 3, 4, 6, 7, 8, 10, 11, 12, 13}
+	assert.Equal(t, c, a, "a=%T(%v) is not %T(%v)", a, a, c, c)
+}
+
 func TestArray(t *testing.T) {
 	a := [...]int{1, 21, 3, 4, 5}
 	b := a
