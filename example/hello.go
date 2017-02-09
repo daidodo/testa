@@ -61,6 +61,24 @@ func main() {
 	desc(&b)
 	fi()
 	fj()
+	fk()
+}
+
+func fk() {
+	a := struct {
+		a int
+		b string
+	}{a: 1, b: "abc"}
+	b := struct {
+		a int
+		b string
+	}{a: 1, b: "abc"}
+	desc(reflect.TypeOf(a) == reflect.TypeOf(b))
+	c := struct {
+		b string
+		a int
+	}{a: 1, b: "abc"}
+	desc(reflect.TypeOf(a) == reflect.TypeOf(c))
 }
 
 func fj() {
