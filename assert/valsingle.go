@@ -452,23 +452,6 @@ func (vd *ValueDiffer) writeKeyStruct(idx int, v reflect.Value, hl bool) {
 	b.Write(hl, "}")
 }
 
-func isNonTrivialElem(v reflect.Value) bool {
-	if !v.IsValid() || !isNonTrivial(v.Type()) {
-		return false
-	}
-	switch v.Kind() {
-	case reflect.Interface:
-		return isNonTrivialElem(v.Elem())
-	case reflect.Array:
-		return v.Len() > 0
-	case reflect.Slice, reflect.Map:
-		return !v.IsNil() && v.Len() > 0
-	case reflect.Struct:
-		return v.NumField() > 0
-	}
-	panic("Should not come here!")
-}
-
 func attrElemArray(v reflect.Value) (tp, id, ml bool) {
 	if v.Len() > 0 {
 		id = v.Len() > 10
@@ -502,6 +485,23 @@ func attrElemStruct(v reflect.Value) (ml bool) {
 		ml = isNonTrivialElem(v.Field(i))
 	}
 	return
+}
+
+func isNonTrivialElem(v reflect.Value) bool {
+	if !v.IsValid() || !isNonTrivial(v.Type()) {
+		return false
+	}
+	switch v.Kind() {
+	case reflect.Interface:
+		return isNonTrivialElem(v.Elem())
+	case reflect.Array:
+		return v.Len() > 0
+	case reflect.Slice, reflect.Map:
+		return !v.IsNil() && v.Len() > 0
+	case reflect.Struct:
+		return v.NumField() > 0
+	}
+	panic("Should not come here!")
 }
 
 func isComposite(t reflect.Type) bool {

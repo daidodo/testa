@@ -122,3 +122,71 @@ func TestIsComposite(t *testing.T) {
 	True(t, isComposite(reflect.TypeOf(map[int]bool{100: true})))
 	True(t, isComposite(reflect.TypeOf(A{})))
 }
+
+func TestIsNonTrivialElem(t *testing.T) {
+	False(t, isNonTrivialElem(reflect.ValueOf(nil)))
+	False(t, isNonTrivialElem(reflect.ValueOf(100)))
+	False(t, isNonTrivialElem(reflect.ValueOf(struct{ a interface{} }{}).Field(0)))
+	True(t, isNonTrivialElem(reflect.ValueOf(struct{ a interface{} }{[]int{1, 2, 3}}).Field(0)))
+	False(t, isNonTrivialElem(reflect.ValueOf([...]int{})))
+	True(t, isNonTrivialElem(reflect.ValueOf([...]int{1, 2, 3})))
+	False(t, isNonTrivialElem(reflect.ValueOf([]int(nil))))
+	False(t, isNonTrivialElem(reflect.ValueOf([]int{})))
+	True(t, isNonTrivialElem(reflect.ValueOf([]int{1, 2, 3})))
+	False(t, isNonTrivialElem(reflect.ValueOf(map[bool]int(nil))))
+	False(t, isNonTrivialElem(reflect.ValueOf(map[bool]int{})))
+	True(t, isNonTrivialElem(reflect.ValueOf(map[bool]int{true: 1})))
+	False(t, isNonTrivialElem(reflect.ValueOf(struct{}{})))
+	True(t, isNonTrivialElem(reflect.ValueOf(struct{ a int }{})))
+}
+
+func TestAttrElemStruct(t *testing.T) {
+	False(t, attrElemStruct(reflect.ValueOf(struct{}{})))
+	False(t, attrElemStruct(reflect.ValueOf(struct {
+		a int
+		b string
+		c []uint
+	}{})))
+	True(t, attrElemStruct(reflect.ValueOf(struct {
+		b string
+		c []uint
+		a int
+	}{c: []uint{1, 2, 3}})))
+}
+
+func TestAttrElemMap(t *testing.T) {
+	cs := []struct {
+		tp, ml bool
+		m      interface{}
+	}{
+		{false, false, map[[3]int][]int{}},
+		{true, false, map[bool]chan int{true: nil}},
+		{true, false, map[*int]int{new(int): 10}},
+		{true, true, map[bool][]int{true: []int{1, 2, 3}}},
+		{true, true, map[[3]int]bool{[...]int{1, 2, 3}: true}},
+	}
+	for i, c := range cs {
+		a1, a2 := attrElemMap(reflect.ValueOf(c.m))
+		Equal(t, c.tp, a1, "i=%v", i)
+		Equal(t, c.ml, a2, "i=%v", i)
+	}
+}
+
+func TestAttrElemArray(t *testing.T) {
+	cs := []struct {
+		tp, id, ml bool
+		m          interface{}
+	}{
+		{false, false, false, [...][]int{}},
+		{true, false, false, [...]*int{new(int)}},
+		{true, true, false, [11]int{}},
+		{true, false, true, [3][]int{1: []int{1}}},
+		{true, true, true, [11][]int{9: []int{1}}},
+	}
+	for i, c := range cs {
+		a1, a2, a3 := attrElemArray(reflect.ValueOf(c.m))
+		Equal(t, c.tp, a1, "i=%v", i)
+		Equal(t, c.id, a2, "i=%v", i)
+		Equal(t, c.ml, a3, "i=%v", i)
+	}
+}
