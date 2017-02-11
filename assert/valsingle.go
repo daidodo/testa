@@ -505,29 +505,40 @@ func attrElemStruct(v reflect.Value) (ml bool) {
 }
 
 func isComposite(t reflect.Type) bool {
+	if t == nil {
+		return false
+	}
 	k := t.Kind()
 	return k == reflect.Array || k == reflect.Map || k == reflect.Slice || k == reflect.Struct
 }
 
 func isNonTrivial(t reflect.Type) bool {
+	if t == nil {
+		return false
+	}
 	k := t.Kind()
 	return k == reflect.Interface || isComposite(t)
 }
 
 func isReference(t reflect.Type) bool {
+	if t == nil {
+		return false
+	}
 	k := t.Kind()
 	return k == reflect.Chan || k == reflect.Func || k == reflect.Ptr || k == reflect.UnsafePointer || isNonTrivial(t)
 }
 
 func structName(t reflect.Type) string {
-	if t.Name() == "" {
+	if t == nil {
+		return ""
+	} else if t.Name() == "" {
 		return "struct"
 	}
 	return t.String()
 }
 
 func interfaceName(t reflect.Type) string {
-	if t.Name() == "" {
+	if t == nil || t.Name() == "" {
 		return ""
 	}
 	return t.String()
