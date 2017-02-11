@@ -6,6 +6,11 @@ import (
 	"github.com/daidodo/testa/assert"
 )
 
+func TestNotEqual(t *testing.T) {
+	a := 3
+	assert.NotEqual(t, 3, a, "a should not be 3")
+}
+
 func TestFalse(t *testing.T) {
 	assert.False(t, false)
 	a := 3 == 3
