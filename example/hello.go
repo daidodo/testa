@@ -31,6 +31,11 @@ type I interface {
 	Fun2(int) string
 }
 
+type I2 interface {
+	Fun3(int) string
+	Fun4(int) string
+}
+
 func main() {
 	fmt.Printf(f, [...]int{1, 2, 3, 4, 5})
 	fmt.Printf(f, [0]int{})
@@ -79,6 +84,12 @@ func fk() {
 		a int
 	}{a: 1, b: "abc"}
 	desc(reflect.TypeOf(a) == reflect.TypeOf(c))
+	var d I
+	var e I2
+	eq := func(a, b interface{}) bool {
+		return a == b
+	}
+	desc(eq(d, e))
 }
 
 func fj() {

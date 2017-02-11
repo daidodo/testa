@@ -393,7 +393,7 @@ func (vd *ValueDiffer) writeKey(idx int, v reflect.Value, hl bool) {
 			vd.writeKeySlice(idx, v, hl)
 		case reflect.Struct:
 			vd.writeKeyStruct(idx, v, hl)
-		default: // bool, integer, float, complex, channel, function, pointer
+		default: // bool, integer, float, complex, channel, function, unsafe pointer
 			b.Write(hl, v)
 		}
 	}
@@ -408,7 +408,7 @@ func (vd *ValueDiffer) writeKeyArray(idx int, v reflect.Value, hl bool) {
 		}
 		vd.writeKey(idx, v.Index(i), hl)
 	}
-	b.Write(hl, "]")
+	b.Plain("]")
 }
 
 func (vd *ValueDiffer) writeKeySlice(idx int, v reflect.Value, hl bool) {
@@ -432,10 +432,10 @@ func (vd *ValueDiffer) writeKeyMap(idx int, v reflect.Value, hl bool) {
 			b.Plain(" ")
 		}
 		vd.writeKey(idx, k, hl)
-		b.Write(hl, ":")
+		b.Plain(":")
 		vd.writeKey(idx, v.MapIndex(k), hl)
 	}
-	b.Write(hl, "]")
+	b.Plain("]")
 }
 
 func (vd *ValueDiffer) writeKeyStruct(idx int, v reflect.Value, hl bool) {
@@ -446,10 +446,10 @@ func (vd *ValueDiffer) writeKeyStruct(idx int, v reflect.Value, hl bool) {
 		if i > 0 {
 			b.Plain(" ")
 		}
-		b.Write(hl, t.Field(i).Name, ":")
+		b.Plain(t.Field(i).Name, ":")
 		vd.writeKey(idx, v.Field(i), hl)
 	}
-	b.Write(hl, "}")
+	b.Plain("}")
 }
 
 func attrElemArray(v reflect.Value) (tp, id, ml bool) {

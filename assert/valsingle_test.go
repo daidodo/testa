@@ -1,6 +1,7 @@
 package assert
 
 import (
+	"fmt"
 	"reflect"
 	"testing"
 	"unsafe"
@@ -11,6 +12,13 @@ type I interface {
 }
 
 type A struct {
+}
+
+func H(s string) string {
+	if len(s) < 1 {
+		return ""
+	}
+	return kRED + s + kEND
 }
 
 func TestInterfaceName(t *testing.T) {
@@ -188,5 +196,76 @@ func TestAttrElemArray(t *testing.T) {
 		Equal(t, c.tp, a1, "i=%v", i)
 		Equal(t, c.id, a2, "i=%v", i)
 		Equal(t, c.ml, a3, "i=%v", i)
+	}
+}
+
+func TestWriteKey(t *testing.T) {
+	cs := []struct {
+		e, e2 string
+		v     reflect.Value
+		p     bool
+	}{
+		{e: "<nil>", v: reflect.ValueOf(nil)},
+		{e: "true", v: reflect.ValueOf(true)},
+		{e: "100", v: reflect.ValueOf(int(100))},
+		{e: "100", v: reflect.ValueOf(int8(100))},
+		{e: "100", v: reflect.ValueOf(int16(100))},
+		{e: "100", v: reflect.ValueOf(int32(100))},
+		{e: "100", v: reflect.ValueOf(int64(100))},
+		{e: "100", v: reflect.ValueOf(uint(100))},
+		{e: "100", v: reflect.ValueOf(uint8(100))},
+		{e: "100", v: reflect.ValueOf(uint16(100))},
+		{e: "100", v: reflect.ValueOf(uint32(100))},
+		{e: "100", v: reflect.ValueOf(uint64(100))},
+		{e: "0x64", v: reflect.ValueOf(uintptr(100))},
+		{e: "100", v: reflect.ValueOf(float32(100))},
+		{e: "100", v: reflect.ValueOf(float64(100))},
+		{e: "(100.1+200.2i)", v: reflect.ValueOf(complex64(100.1 + 200.2i))},
+		{e: "(100.1+200.2i)", v: reflect.ValueOf(complex128(100.1 + 200.2i))},
+		{e: `"abc"`, v: reflect.ValueOf(string("abc"))},
+		{e: "<nil>", v: reflect.ValueOf(chan int(nil))},
+		{e: "%v", v: reflect.ValueOf(make(chan int)), p: true},
+		{e: "<nil>", v: reflect.ValueOf((func() int)(nil))},
+		{e: "%v", v: reflect.ValueOf(func() {}), p: true},
+		{e: "<nil>", v: reflect.ValueOf((*int)(nil))},
+		{e: "%v", v: reflect.ValueOf(new(int)), p: true},
+		{e: "<nil>", v: reflect.ValueOf(unsafe.Pointer(nil))},
+		{e: "%v", v: reflect.ValueOf(unsafe.Pointer(new(int))), p: true},
+		{e: "<nil>", v: reflect.ValueOf(struct{ a interface{} }{}).Field(0)},
+		{e: "100", v: reflect.ValueOf(struct{ a interface{} }{100}).Field(0)},
+		{e: "[1 2 3]", v: reflect.ValueOf([...]int{1, 2, 3})},
+		{e: "<nil>", v: reflect.ValueOf([]int(nil))},
+		{e: "[1 2 3]", v: reflect.ValueOf([]int{1, 2, 3})},
+		{e: "<nil>", v: reflect.ValueOf(map[bool]int(nil))},
+		{e: "map[true:100 false:200]", e2: "map[false:200 true:100]", v: reflect.ValueOf(map[bool]int{true: 100, false: 200})},
+		{e: "{}", v: reflect.ValueOf(struct{}{})},
+		{e: "{a:100 b:false c:0xc8}", v: reflect.ValueOf(struct {
+			a int
+			b bool
+			c uintptr
+		}{100, false, 200})},
+	}
+	for i, c := range cs {
+		var d ValueDiffer
+		d.writeKey(0, c.v, false)
+		d.writeKey(1, c.v, true)
+		r1 := c.e
+		if c.p {
+			r1 = fmt.Sprintf(r1, c.v)
+		}
+		r2 := c.e2
+		if r2 != "" && c.p {
+			r2 = fmt.Sprintf(r2, c.v)
+		}
+		if r2 == d.String(0) {
+			Equal(t, r2, d.String(0), "i=%v", i)
+		} else {
+			Equal(t, r1, d.String(0), "i=%v", i)
+		}
+		if H(r2) == d.String(1) {
+			Equal(t, H(r2), d.String(1), "i=%v", i)
+		} else {
+			Equal(t, H(r1), d.String(1), "i=%v", i)
+		}
 	}
 }
