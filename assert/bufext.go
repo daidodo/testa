@@ -1,12 +1,14 @@
 package assert
 
 import (
+	"bytes"
 	"fmt"
 	"io"
 )
 
 type FeatureBuf struct {
 	w    io.Writer
+	pl   bytes.Buffer
 	code string
 	Tab  int
 }
@@ -44,11 +46,12 @@ func (b *FeatureBuf) Highlight(a ...interface{}) *FeatureBuf {
 }
 
 func (b *FeatureBuf) Plainf(format string, a ...interface{}) *FeatureBuf {
-	return b.writeString(fmt.Sprintf(format, a...))
+	return b.Plain(fmt.Sprintf(format, a...))
 }
 
 func (b *FeatureBuf) Plain(a ...interface{}) *FeatureBuf {
-	return b.writeString(fmt.Sprint(a...))
+	b.pl.WriteString(fmt.Sprint(a...))
+	return b
 }
 
 func (b *FeatureBuf) NL() *FeatureBuf {
@@ -70,10 +73,18 @@ func (b *FeatureBuf) writeString(s string) *FeatureBuf {
 	return b
 }
 
+func (b *FeatureBuf) flushPlain() {
+	if b.pl.Len() > 0 {
+		b.w.Write(b.pl.Bytes())
+		b.pl.Reset()
+	}
+}
+
 const kEND = "\033[0m"
 const kRED = "\033[41m"
 
 func (b *FeatureBuf) normal() {
+	defer b.flushPlain()
 	if b.code == "" {
 		return
 	}
@@ -81,7 +92,8 @@ func (b *FeatureBuf) normal() {
 	b.code = ""
 }
 
-func (b *FeatureBuf) red() {
+func (b *FeatureBuf) highlight() {
+	b.flushPlain()
 	if b.code == kRED {
 		return
 	} else if b.code != "" {
@@ -89,8 +101,4 @@ func (b *FeatureBuf) red() {
 	}
 	b.writeString(kRED)
 	b.code = kRED
-}
-
-func (b *FeatureBuf) highlight() {
-	b.red()
 }
