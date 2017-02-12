@@ -727,9 +727,9 @@ func TestWriteTypeBeforeValue(t *testing.T) {
 func TestWriteTypeValue(t *testing.T) {
 	pa := new(int)
 	cs := []struct {
-		e string
-		v reflect.Value
-		p bool
+		e, e2 string
+		v     reflect.Value
+		p     bool
 	}{
 		{e: "<nil>", v: reflect.ValueOf(nil)},
 		{v: reflect.ValueOf(true)},
@@ -782,6 +782,41 @@ func TestWriteTypeValue(t *testing.T) {
 	9:<nil>,
 	10:<nil>
 }`, v: reflect.ValueOf([11][]int{1: []int{}, 2: []int{100}, 3: []int{1, 2, 3}})},
+		{e: "map[bool]int(nil)", v: reflect.ValueOf(map[bool]int(nil))},
+		{e: "map[bool]int{}", v: reflect.ValueOf(map[bool]int{})},
+		{e: "map[bool]int{true:100, false:200}", e2: "map[bool]int{false:200, true:100}", v: reflect.ValueOf(map[bool]int{true: 100, false: 200})},
+		{e: "map[bool]chan int{true:<nil>}", v: reflect.ValueOf(map[bool]chan int{true: nil})},
+		{e: fmt.Sprintf("map[*int]int{%v:10}", pa), v: reflect.ValueOf(map[*int]int{pa: 10})},
+		{e: `map[bool][]int{
+	true:[1 2 3],
+	false:[100 200]
+}`, e2: `map[bool][]int{
+	false:[100 200],
+	true:[1 2 3]
+}`, v: reflect.ValueOf(map[bool][]int{true: []int{1, 2, 3}, false: []int{100, 200}})},
+		{e: `map[[3]int]bool{
+	[1 2 3]:true,
+	[100 200 300]:false
+}`, e2: `map[[3]int]bool{
+	[100 200 300]:false,
+	[1 2 3]:true
+}`, v: reflect.ValueOf(map[[3]int]bool{[3]int{1, 2, 3}: true, [3]int{100, 200, 300}: false})},
+		{e: "struct{}", v: reflect.ValueOf(struct{}{})},
+		{e: `struct{a:0, b:"", c:<nil>}`, v: reflect.ValueOf(struct {
+			a int
+			b string
+			c []uint
+		}{})},
+		{e: `struct{
+	b:"",
+	c:[1 2 3],
+	a:0
+}`, v: reflect.ValueOf(struct {
+			b string
+			c []uint
+			a int
+		}{c: []uint{1, 2, 3}})},
+		{e: "assert.A{}", v: reflect.ValueOf(A{})},
 	}
 	for i, c := range cs {
 		var d ValueDiffer
@@ -793,6 +828,10 @@ func TestWriteTypeValue(t *testing.T) {
 		if e == "" {
 			e = fmt.Sprintf("%v(%v)", c.v.Type(), c.v)
 		}
-		Equal(t, e, d.String(0), "i=%v, r=\n%v", i, d.String(0))
+		if c.e2 == "" || e == d.String(0) {
+			Equal(t, e, d.String(0), "i=%v, r=\n%v", i, d.String(0))
+		} else {
+			Equal(t, c.e2, d.String(0), "i=%v, r=\n%v", i, d.String(0))
+		}
 	}
 }
