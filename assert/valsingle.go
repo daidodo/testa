@@ -220,25 +220,25 @@ func (vd *ValueDiffer) writeElem(idx int, v reflect.Value, hl bool) {
 	b := vd.bufi(idx)
 	if !v.IsValid() {
 		b.Write(hl, nil)
-		return
-	}
-	switch v.Kind() {
-	case reflect.Interface:
-		if v.IsNil() {
-			b.Write(hl, nil)
-		} else {
-			vd.writeElem(idx, v.Elem(), hl)
+	} else {
+		switch v.Kind() {
+		case reflect.Interface:
+			if v.IsNil() {
+				b.Write(hl, nil)
+			} else {
+				vd.writeElem(idx, v.Elem(), hl)
+			}
+		case reflect.Array:
+			vd.writeElemArray(idx, v, hl)
+		case reflect.Slice:
+			vd.writeElemSlice(idx, v, hl)
+		case reflect.Map:
+			vd.writeElemMap(idx, v, hl)
+		case reflect.Struct:
+			vd.writeElemStruct(idx, v, hl)
+		default: // bool, integer, float, complex, channel, function, pointer, string
+			vd.writeKey(idx, v, hl)
 		}
-	case reflect.Array:
-		vd.writeElemArray(idx, v, hl)
-	case reflect.Slice:
-		vd.writeElemSlice(idx, v, hl)
-	case reflect.Map:
-		vd.writeElemMap(idx, v, hl)
-	case reflect.Struct:
-		vd.writeElemStruct(idx, v, hl)
-	default: // bool, integer, float, complex, channel, function, pointer, string
-		vd.writeKey(idx, v, hl)
 	}
 }
 
@@ -308,7 +308,7 @@ func (vd *ValueDiffer) writeElemMap(idx int, v reflect.Value, hl bool) {
 		defer b.Write(hl, "}")
 		if ml {
 			b.Tab++
-			defer func() { b.Tab-- }()
+			defer func() { b.Tab--; b.NL() }()
 			vd.Attrs[NewLine+idx] = true
 		}
 	} else {
@@ -408,7 +408,7 @@ func (vd *ValueDiffer) writeKeyArray(idx int, v reflect.Value, hl bool) {
 		}
 		vd.writeKey(idx, v.Index(i), hl)
 	}
-	b.Plain("]")
+	b.Write(hl, "]")
 }
 
 func (vd *ValueDiffer) writeKeySlice(idx int, v reflect.Value, hl bool) {
@@ -432,10 +432,10 @@ func (vd *ValueDiffer) writeKeyMap(idx int, v reflect.Value, hl bool) {
 			b.Plain(" ")
 		}
 		vd.writeKey(idx, k, hl)
-		b.Plain(":")
+		b.Write(hl, ":")
 		vd.writeKey(idx, v.MapIndex(k), hl)
 	}
-	b.Plain("]")
+	b.Write(hl, "]")
 }
 
 func (vd *ValueDiffer) writeKeyStruct(idx int, v reflect.Value, hl bool) {
@@ -446,10 +446,10 @@ func (vd *ValueDiffer) writeKeyStruct(idx int, v reflect.Value, hl bool) {
 		if i > 0 {
 			b.Plain(" ")
 		}
-		b.Plain(t.Field(i).Name, ":")
+		b.Write(hl, t.Field(i).Name, ":")
 		vd.writeKey(idx, v.Field(i), hl)
 	}
-	b.Plain("}")
+	b.Write(hl, "}")
 }
 
 func attrElemArray(v reflect.Value) (tp, id, ml bool) {
