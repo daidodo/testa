@@ -118,35 +118,15 @@ func (vd *ValueDiffer) writeValueAfterType(idx int, v reflect.Value) {
 		return
 	}
 	switch v.Kind() {
-	case reflect.Uintptr, reflect.String:
-		b.Normalf("(%#v)", v)
 	case reflect.Complex64, reflect.Complex128:
-		b.Normal(v)
-	case reflect.Chan, reflect.Func:
-		if v.IsNil() {
-			b.Normal("(nil)")
-		} else {
-			b.Normalf("(%v)", v)
-		}
-	case reflect.UnsafePointer:
-		if v.Pointer() == 0 {
-			b.Normal("(nil)")
-		} else {
-			b.Normalf("(%v)", v)
-		}
+		vd.writeElem(idx, v, false)
 	case reflect.Interface:
 		if v.IsNil() {
 			if interfaceName(v.Type()) != "" {
 				b.Normal("(nil)")
 			}
 		} else {
-			panic("Should not come here!")
-		}
-	case reflect.Ptr:
-		if v.IsNil() {
-			b.Normal("(nil)")
-		} else {
-			b.Normalf("(%v)", v)
+			vd.writeValueAfterType(idx, v.Elem())
 		}
 	case reflect.Array:
 		vd.writeValueAfterTypeArray(idx, v)
@@ -156,8 +136,16 @@ func (vd *ValueDiffer) writeValueAfterType(idx int, v reflect.Value) {
 		vd.writeValueAfterTypeMap(idx, v)
 	case reflect.Struct:
 		vd.writeValueAfterTypeStruct(idx, v)
+	case reflect.Chan, reflect.Func, reflect.Ptr, reflect.UnsafePointer:
+		if v.Pointer() == 0 {
+			b.Normal("(nil)")
+			break
+		}
+		fallthrough
 	default:
-		b.Normalf("(%v)", v)
+		b.Normal("(")
+		vd.writeElem(idx, v, false)
+		b.Normal(")")
 	}
 }
 
@@ -168,7 +156,7 @@ func (vd *ValueDiffer) writeValueAfterTypeArray(idx int, v reflect.Value) {
 	defer b.Normal("}")
 	if ml {
 		b.Tab++
-		defer func() { b.Tab-- }()
+		defer func() { b.Tab--; b.NL() }()
 	}
 	vd.writeElemArrayC(idx, v, true, id, ml, false)
 }
@@ -193,7 +181,7 @@ func (vd *ValueDiffer) writeValueAfterTypeMap(idx int, v reflect.Value) {
 	defer b.Normal("}")
 	if ml {
 		b.Tab++
-		defer func() { b.Tab-- }()
+		defer func() { b.Tab--; b.NL() }()
 	}
 	vd.writeElemMapC(idx, v, true, ml, false)
 }

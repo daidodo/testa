@@ -257,12 +257,12 @@ func TestWriteKey(t *testing.T) {
 		if r2 != "" && c.p {
 			r2 = fmt.Sprintf(r2, c.v)
 		}
-		if r2 == d.String(0) {
+		if r2 != "" && r2 == d.String(0) {
 			Equal(t, r2, d.String(0), "i=%v", i)
 		} else {
 			Equal(t, r1, d.String(0), "i=%v", i)
 		}
-		if H(r2) == d.String(1) {
+		if r2 != "" && H(r2) == d.String(1) {
 			Equal(t, H(r2), d.String(1), "i=%v", i)
 		} else {
 			Equal(t, H(r1), d.String(1), "i=%v", i)
@@ -397,15 +397,150 @@ func TestWriteElem(t *testing.T) {
 		if r2 != "" && c.p {
 			r2 = fmt.Sprintf(r2, c.v)
 		}
-		if r2 == d.String(0) {
+		if r2 != "" && r2 == d.String(0) {
 			Equal(t, r2, d.String(0), "i=%v, r=\n%v", i, d.String(0))
 		} else {
 			Equal(t, r1, d.String(0), "i=%v, r=\n%v", i, d.String(0))
 		}
-		if H(r2) == d.String(1) {
+		if r2 != "" && H(r2) == d.String(1) {
 			Equal(t, H(r2), d.String(1), "i=%v, r=\n%v", i, d.String(1))
 		} else {
 			Equal(t, H(r1), d.String(1), "i=%v, r=\n%v", i, d.String(1))
+		}
+	}
+}
+
+func TestWriteValueAfterType(t *testing.T) {
+	pa := new(int)
+	cs := []struct {
+		e, e2 string
+		v     reflect.Value
+		p     bool
+	}{
+		{e: "", v: reflect.ValueOf(nil)},
+		{e: "(true)", v: reflect.ValueOf(true)},
+		{e: "(100)", v: reflect.ValueOf(int(100))},
+		{e: "(100)", v: reflect.ValueOf(int8(100))},
+		{e: "(100)", v: reflect.ValueOf(int16(100))},
+		{e: "(100)", v: reflect.ValueOf(int32(100))},
+		{e: "(100)", v: reflect.ValueOf(int64(100))},
+		{e: "(100)", v: reflect.ValueOf(uint(100))},
+		{e: "(100)", v: reflect.ValueOf(uint8(100))},
+		{e: "(100)", v: reflect.ValueOf(uint16(100))},
+		{e: "(100)", v: reflect.ValueOf(uint32(100))},
+		{e: "(100)", v: reflect.ValueOf(uint64(100))},
+		{e: "(0x64)", v: reflect.ValueOf(uintptr(100))},
+		{e: "(100)", v: reflect.ValueOf(float32(100))},
+		{e: "(100)", v: reflect.ValueOf(float64(100))},
+		{e: "(100.1+200.2i)", v: reflect.ValueOf(complex64(100.1 + 200.2i))},
+		{e: "(100.1+200.2i)", v: reflect.ValueOf(complex128(100.1 + 200.2i))},
+		{e: `("abc")`, v: reflect.ValueOf(string("abc"))},
+		{e: "(nil)", v: reflect.ValueOf(chan int(nil))},
+		{e: "(%v)", v: reflect.ValueOf(make(chan int)), p: true},
+		{e: "(nil)", v: reflect.ValueOf((func() int)(nil))},
+		{e: "(%v)", v: reflect.ValueOf(func() {}), p: true},
+		{e: "(nil)", v: reflect.ValueOf((*int)(nil))},
+		{e: "(%v)", v: reflect.ValueOf(new(int)), p: true},
+		{e: "(nil)", v: reflect.ValueOf(unsafe.Pointer(nil))},
+		{e: "(%v)", v: reflect.ValueOf(unsafe.Pointer(new(int))), p: true},
+		{e: "", v: reflect.ValueOf(struct{ a interface{} }{}).Field(0)},
+		{e: "(nil)", v: reflect.ValueOf(struct{ a I }{}).Field(0)},
+		{e: "(100)", v: reflect.ValueOf(struct{ a interface{} }{100}).Field(0)},
+		{e: "{}", v: reflect.ValueOf([...]chan int{})},
+		{e: fmt.Sprintf("{<nil>, %v, <nil>}", pa), v: reflect.ValueOf([3]*int{1: pa})},
+		{e: "{0:0, 1:0, 2:0, 3:0, 4:0, 5:0, 6:0, 7:0, 8:0, 9:0, 10:0}", v: reflect.ValueOf([11]uint{})},
+		{e: `{
+	<nil>, [],
+	[100],
+	[1 2 3],
+	<nil>
+}`, v: reflect.ValueOf([5][]int{1: []int{}, 2: []int{100}, 3: []int{1, 2, 3}})},
+		{e: `{
+	0:<nil>,
+	1:[],
+	2:[100],
+	3:[1 2 3],
+	4:<nil>,
+	5:<nil>,
+	6:<nil>,
+	7:<nil>,
+	8:<nil>,
+	9:<nil>,
+	10:<nil>
+}`, v: reflect.ValueOf([11][]int{1: []int{}, 2: []int{100}, 3: []int{1, 2, 3}})},
+		{e: "(nil)", v: reflect.ValueOf([]int(nil))},
+		{e: "{}", v: reflect.ValueOf([]chan int{})},
+		{e: fmt.Sprintf("{<nil>, %v, <nil>}", pa), v: reflect.ValueOf([]*int{1: pa, 2: nil})},
+		{e: "{0:0, 1:0, 2:0, 3:0, 4:0, 5:0, 6:0, 7:0, 8:0, 9:0, 10:0}", v: reflect.ValueOf(make([]uint, 11))},
+		{e: `{
+	<nil>, [],
+	[100],
+	[1 2 3],
+	<nil>
+}`, v: reflect.ValueOf([][]int{1: []int{}, 2: []int{100}, 3: []int{1, 2, 3}, 4: nil})},
+		{e: `{
+	0:<nil>,
+	1:[],
+	2:[100],
+	3:[1 2 3],
+	4:<nil>,
+	5:<nil>,
+	6:<nil>,
+	7:<nil>,
+	8:<nil>,
+	9:<nil>,
+	10:<nil>
+}`, v: reflect.ValueOf([][]int{1: []int{}, 2: []int{100}, 3: []int{1, 2, 3}, 10: nil})},
+		{e: "(nil)", v: reflect.ValueOf(map[bool]int(nil))},
+		{e: "{}", v: reflect.ValueOf(map[bool]int{})},
+		{e: "{true:100, false:200}", e2: "{false:200, true:100}", v: reflect.ValueOf(map[bool]int{true: 100, false: 200})},
+		{e: "{true:<nil>}", v: reflect.ValueOf(map[bool]chan int{true: nil})},
+		{e: fmt.Sprintf("{%v:10}", pa), v: reflect.ValueOf(map[*int]int{pa: 10})},
+		{e: `{
+	true:[1 2 3],
+	false:[100 200]
+}`, e2: `{
+	false:[100 200],
+	true:[1 2 3]
+}`, v: reflect.ValueOf(map[bool][]int{true: []int{1, 2, 3}, false: []int{100, 200}})},
+		{e: `{
+	[1 2 3]:true,
+	[100 200 300]:false
+}`, e2: `{
+	[100 200 300]:false,
+	[1 2 3]:true
+}`, v: reflect.ValueOf(map[[3]int]bool{[3]int{1, 2, 3}: true, [3]int{100, 200, 300}: false})},
+		{e: "{}", v: reflect.ValueOf(struct{}{})},
+		{e: `{a:0, b:"", c:<nil>}`, v: reflect.ValueOf(struct {
+			a int
+			b string
+			c []uint
+		}{})},
+		{e: `{
+	b:"",
+	c:[1 2 3],
+	a:0
+}`, v: reflect.ValueOf(struct {
+			b string
+			c []uint
+			a int
+		}{c: []uint{1, 2, 3}})},
+	}
+	for i, c := range cs {
+		var d ValueDiffer
+		d.writeValueAfterType(0, c.v)
+		r1 := c.e
+		if c.p {
+			r1 = fmt.Sprintf(r1, c.v)
+		}
+		r2 := c.e2
+		if r2 != "" && c.p {
+			r2 = fmt.Sprintf(r2, c.v)
+		}
+		if r2 != "" && r2 == d.String(0) {
+			Equal(t, r2, d.String(0), "i=%v, r=\n%v", i, d.String(0))
+		} else {
+			Equal(t, r1, d.String(0), "i=%v, r=\n%v", i, d.String(0))
 		}
 	}
 }
