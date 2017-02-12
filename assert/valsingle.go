@@ -54,7 +54,7 @@ func (vd *ValueDiffer) writeType(idx int, t reflect.Type, hl bool) {
 	case reflect.Func:
 		vd.writeTypeFunc(idx, t, hl)
 	case reflect.Chan:
-		vd.writeTypeHeadChan(idx, t, hl, false)
+		vd.writeTypeHeadChan(idx, t, hl, false, false)
 		vd.writeType(idx, t.Elem(), hl)
 	case reflect.Array:
 		b.Write(hl, "[", t.Len(), "]")
@@ -94,21 +94,26 @@ func (vd *ValueDiffer) writeTypeFunc(idx int, t reflect.Type, hl bool) {
 	}
 	for i := 0; i < t.NumOut(); i++ {
 		if i > 0 {
-			b.Normal(", ")
+			b.Write(hl, ", ")
 		}
 		vd.writeType(idx, t.Out(i), hl)
 	}
 }
 
-func (vd *ValueDiffer) writeTypeHeadChan(idx int, t reflect.Type, hl, hldir bool) {
+func (vd *ValueDiffer) writeTypeHeadChan(idx int, t reflect.Type, hl, hldir, hlelem bool) {
 	b := vd.bufi(idx)
 	switch t.ChanDir() {
 	case reflect.RecvDir:
-		b.Write(hl || hldir, "<-").Write(hl, "chan ")
+		b.Write(hl || hldir, "<-").Write(hl, "chan")
 	case reflect.SendDir:
-		b.Write(hl, "chan").Write(hl || hldir, "<- ")
+		b.Write(hl, "chan").Write(hl || hldir, "<-")
 	default:
-		b.Write(hl, "chan ")
+		b.Write(hl, "chan")
+	}
+	if hl || hlelem {
+		b.Plain(" ")
+	} else {
+		b.Normal(" ")
 	}
 }
 

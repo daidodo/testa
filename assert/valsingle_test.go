@@ -65,6 +65,7 @@ func TestIsReference(t *testing.T) {
 	True(t, isReference(reflect.TypeOf(new(int))))
 	True(t, isReference(reflect.TypeOf(unsafe.Pointer(new(int)))))
 	True(t, isReference(reflect.ValueOf(struct{ a interface{} }{}).Field(0).Type()))
+	True(t, isReference(reflect.ValueOf(struct{ a I }{}).Field(0).Type()))
 	True(t, isReference(reflect.TypeOf([...]int{1, 2, 3})))
 	True(t, isReference(reflect.TypeOf([]int{1, 2, 3})))
 	True(t, isReference(reflect.TypeOf(map[int]bool{100: true})))
@@ -95,6 +96,7 @@ func TestIsNonTrivial(t *testing.T) {
 	False(t, isNonTrivial(reflect.TypeOf(new(int))))
 	False(t, isNonTrivial(reflect.TypeOf(unsafe.Pointer(new(int)))))
 	True(t, isNonTrivial(reflect.ValueOf(struct{ a interface{} }{}).Field(0).Type()))
+	True(t, isNonTrivial(reflect.ValueOf(struct{ a I }{}).Field(0).Type()))
 	True(t, isNonTrivial(reflect.TypeOf([...]int{1, 2, 3})))
 	True(t, isNonTrivial(reflect.TypeOf([]int{1, 2, 3})))
 	True(t, isNonTrivial(reflect.TypeOf(map[int]bool{100: true})))
@@ -125,6 +127,7 @@ func TestIsComposite(t *testing.T) {
 	False(t, isComposite(reflect.TypeOf(new(int))))
 	False(t, isComposite(reflect.TypeOf(unsafe.Pointer(new(int)))))
 	False(t, isComposite(reflect.ValueOf(struct{ a interface{} }{}).Field(0).Type()))
+	False(t, isComposite(reflect.ValueOf(struct{ a I }{}).Field(0).Type()))
 	True(t, isComposite(reflect.TypeOf([...]int{1, 2, 3})))
 	True(t, isComposite(reflect.TypeOf([]int{1, 2, 3})))
 	True(t, isComposite(reflect.TypeOf(map[int]bool{100: true})))
@@ -542,5 +545,100 @@ func TestWriteValueAfterType(t *testing.T) {
 		} else {
 			Equal(t, r1, d.String(0), "i=%v, r=\n%v", i, d.String(0))
 		}
+	}
+}
+
+func TestWriteTypeHeadChan(t *testing.T) {
+	cs := []struct {
+		e         string
+		v         reflect.Type
+		h, hd, he bool
+	}{
+		{"chan ", reflect.TypeOf(make(chan int)), false, false, false},
+		{"chan ", reflect.TypeOf(make(chan int)), false, false, true},
+		{"chan ", reflect.TypeOf(make(chan int)), false, true, false},
+		{"chan ", reflect.TypeOf(make(chan int)), false, true, true},
+		{H("chan "), reflect.TypeOf(make(chan int)), true, false, false},
+		{H("chan "), reflect.TypeOf(make(chan int)), true, false, true},
+		{H("chan "), reflect.TypeOf(make(chan int)), true, true, false},
+		{H("chan "), reflect.TypeOf(make(chan int)), true, true, true},
+		{"<-chan ", reflect.TypeOf(make(<-chan int)), false, false, false},
+		{"<-chan ", reflect.TypeOf(make(<-chan int)), false, false, true},
+		{H("<-") + "chan ", reflect.TypeOf(make(<-chan int)), false, true, false},
+		{H("<-") + "chan ", reflect.TypeOf(make(<-chan int)), false, true, true},
+		{H("<-chan "), reflect.TypeOf(make(<-chan int)), true, false, false},
+		{H("<-chan "), reflect.TypeOf(make(<-chan int)), true, false, true},
+		{H("<-chan "), reflect.TypeOf(make(<-chan int)), true, true, false},
+		{H("<-chan "), reflect.TypeOf(make(<-chan int)), true, true, true},
+		{"chan<- ", reflect.TypeOf(make(chan<- int)), false, false, false},
+		{"chan<- ", reflect.TypeOf(make(chan<- int)), false, false, true},
+		{"chan" + H("<-") + " ", reflect.TypeOf(make(chan<- int)), false, true, false},
+		{"chan" + H("<- "), reflect.TypeOf(make(chan<- int)), false, true, true},
+		{H("chan<- "), reflect.TypeOf(make(chan<- int)), true, false, false},
+		{H("chan<- "), reflect.TypeOf(make(chan<- int)), true, false, true},
+		{H("chan<- "), reflect.TypeOf(make(chan<- int)), true, true, false},
+		{H("chan<- "), reflect.TypeOf(make(chan<- int)), true, true, true},
+	}
+	for i, c := range cs {
+		var d ValueDiffer
+		d.writeTypeHeadChan(0, c.v, c.h, c.hd, c.he)
+		Equal(t, c.e, d.String(0), "i=%v, r=\n%v", i, d.String(0))
+	}
+}
+
+func TestWriteType(t *testing.T) {
+	cs := []struct {
+		e string
+		v reflect.Type
+	}{
+		{v: reflect.TypeOf(true)},
+		{v: reflect.TypeOf(int(100))},
+		{v: reflect.TypeOf(int8(100))},
+		{v: reflect.TypeOf(int16(100))},
+		{v: reflect.TypeOf(int32(100))},
+		{v: reflect.TypeOf(int64(100))},
+		{v: reflect.TypeOf(uint(100))},
+		{v: reflect.TypeOf(uint8(100))},
+		{v: reflect.TypeOf(uint16(100))},
+		{v: reflect.TypeOf(uint32(100))},
+		{v: reflect.TypeOf(uint64(100))},
+		{v: reflect.TypeOf(uintptr(100))},
+		{v: reflect.TypeOf(float32(100))},
+		{v: reflect.TypeOf(float64(100))},
+		{v: reflect.TypeOf(complex64(100))},
+		{v: reflect.TypeOf(complex128(100))},
+		{v: reflect.TypeOf(string("abc"))},
+		{v: reflect.TypeOf(make(chan int))},
+		{v: reflect.TypeOf(make(<-chan int))},
+		{v: reflect.TypeOf(make(chan<- int))},
+		{v: reflect.TypeOf(func() {})},
+		{v: reflect.TypeOf(func(string) {})},
+		{v: reflect.TypeOf(func(int, string) {})},
+		{v: reflect.TypeOf(func(int, string) float32 { return 0 })},
+		{v: reflect.TypeOf(func(int, string) (bool, float32, string) { return true, 0, "a" })},
+		{v: reflect.TypeOf(new(int))},
+		{v: reflect.TypeOf(new(chan int))},
+		{v: reflect.TypeOf(new(func(int, string)))},
+		{v: reflect.TypeOf(new(func(int, string) (bool, int8, uint)))},
+		{v: reflect.TypeOf(unsafe.Pointer(new(int)))},
+		{v: reflect.ValueOf(struct{ a interface{} }{}).Field(0).Type()},
+		{v: reflect.ValueOf(struct{ a I }{}).Field(0).Type()},
+		{v: reflect.TypeOf([...]int{})},
+		{v: reflect.TypeOf([...]int{1, 2, 3})},
+		{v: reflect.TypeOf([]int{})},
+		{v: reflect.TypeOf(map[bool]int{})},
+		{v: reflect.TypeOf(struct{ a int }{}), e: "struct"},
+		{v: reflect.TypeOf(A{})},
+	}
+	for i, c := range cs {
+		var d ValueDiffer
+		d.writeType(0, c.v, false)
+		d.writeType(1, c.v, true)
+		e := c.e
+		if e == "" {
+			e = c.v.String()
+		}
+		Equal(t, e, d.String(0), "i=%v, r=\n%v", i, d.String(0))
+		Equal(t, H(e), d.String(1), "i=%v, r=\n%v", i, d.String(1))
 	}
 }
