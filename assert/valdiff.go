@@ -251,17 +251,6 @@ func (vd *ValueDiffer) writeDiffValuesFunc(v1, v2 reflect.Value) {
 	}
 }
 
-func (vd *ValueDiffer) writeDiffValuesString(v1, v2 reflect.Value) {
-	b1, b2 := vd.bufs()
-	s1, s2 := []rune(fmt.Sprintf("%#v", v1)), []rune(fmt.Sprintf("%#v", v2))
-	s1, s2 = s1[1:len(s1)-1], s2[1:len(s2)-1] // skip front and end "
-	b1.Normal(`"`)
-	b2.Normal(`"`)
-	vd.writeDiffPlainRunes(s1, s2)
-	b1.Normal(`"`)
-	b2.Normal(`"`)
-}
-
 func (vd *ValueDiffer) writeTypeDiffValuesArray(v1, v2 reflect.Value, slice bool) {
 	b1, b2 := vd.bufs()
 	tp1, id1, ml1 := attrElemArray(v1)
@@ -557,8 +546,12 @@ func (vd *ValueDiffer) writeDiffValuesStruct(v1, v2 reflect.Value, ml1, ml2 bool
 	}
 }
 
-func (vd *ValueDiffer) writeDiffPlainRunes(s1, s2 []rune) {
+func (vd *ValueDiffer) writeDiffValuesString(v1, v2 reflect.Value) {
 	b1, b2 := vd.bufs()
+	s1, s2 := []rune(fmt.Sprintf("%#v", v1)), []rune(fmt.Sprintf("%#v", v2))
+	s1, s2 = s1[1:len(s1)-1], s2[1:len(s2)-1] // skip front and end "
+	b1.Normal(`"`)
+	b2.Normal(`"`)
 	for i := 0; i < len(s1) || i < len(s2); i++ {
 		if i >= len(s1) {
 			b2.Highlightf("%c", s2[i])
@@ -572,6 +565,8 @@ func (vd *ValueDiffer) writeDiffPlainRunes(s1, s2 []rune) {
 			b2.Highlightf("%c", s2[i])
 		}
 	}
+	b1.Normal(`"`)
+	b2.Normal(`"`)
 }
 
 func (vd *ValueDiffer) bufs() (b1, b2 *FeatureBuf) {
