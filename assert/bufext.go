@@ -74,10 +74,8 @@ func (b *FeatureBuf) writeString(s string) *FeatureBuf {
 }
 
 func (b *FeatureBuf) flushPlain() {
-	if b.pl.Len() > 0 {
-		b.w.Write(b.pl.Bytes())
-		b.pl.Reset()
-	}
+	b.writeString(b.pl.String())
+	b.pl.Reset()
 }
 
 const kEND = "\033[0m"
