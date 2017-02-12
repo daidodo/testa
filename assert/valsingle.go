@@ -54,7 +54,7 @@ func (vd *ValueDiffer) writeType(idx int, t reflect.Type, hl bool) {
 	case reflect.Func:
 		vd.writeTypeFunc(idx, t, hl)
 	case reflect.Chan:
-		vd.writeTypeHeadChan(idx, t, hl, false, false)
+		vd.writeTypeHeadChan(idx, t, hl, false)
 		vd.writeType(idx, t.Elem(), hl)
 	case reflect.Array:
 		b.Write(hl, "[", t.Len(), "]")
@@ -100,7 +100,7 @@ func (vd *ValueDiffer) writeTypeFunc(idx int, t reflect.Type, hl bool) {
 	}
 }
 
-func (vd *ValueDiffer) writeTypeHeadChan(idx int, t reflect.Type, hl, hldir, hlelem bool) {
+func (vd *ValueDiffer) writeTypeHeadChan(idx int, t reflect.Type, hl, hldir bool) {
 	b := vd.bufi(idx)
 	switch t.ChanDir() {
 	case reflect.RecvDir:
@@ -110,11 +110,7 @@ func (vd *ValueDiffer) writeTypeHeadChan(idx int, t reflect.Type, hl, hldir, hle
 	default:
 		b.Write(hl, "chan")
 	}
-	if hl || hlelem {
-		b.Plain(" ")
-	} else {
-		b.Normal(" ")
-	}
+	b.Plain(" ")
 }
 
 func (vd *ValueDiffer) writeValueAfterType(idx int, v reflect.Value) {
@@ -266,7 +262,7 @@ func (vd *ValueDiffer) writeElemArrayC(idx int, v reflect.Value, tp, id, ml, hl 
 				b.Write(hl, ",")
 			}
 			if !tp || !t {
-				b.Plain(" ")
+				b.Write(hl, " ")
 			}
 		}
 		if t {
@@ -319,7 +315,7 @@ func (vd *ValueDiffer) writeElemMapC(idx int, v reflect.Value, tp, ml, hl bool) 
 				b.Write(hl, ",")
 			}
 			if !ml {
-				b.Plain(" ")
+				b.Write(hl, " ")
 			}
 		}
 		if ml {
@@ -397,7 +393,7 @@ func (vd *ValueDiffer) writeKeyArray(idx int, v reflect.Value, hl bool) {
 	b.Write(hl, "[")
 	for i := 0; i < v.Len(); i++ {
 		if i > 0 {
-			b.Plain(" ")
+			b.Write(hl, " ")
 		}
 		vd.writeKey(idx, v.Index(i), hl)
 	}
@@ -422,7 +418,7 @@ func (vd *ValueDiffer) writeKeyMap(idx int, v reflect.Value, hl bool) {
 	b.Write(hl, "map[")
 	for i, k := range v.MapKeys() {
 		if i > 0 {
-			b.Plain(" ")
+			b.Write(hl, " ")
 		}
 		vd.writeKey(idx, k, hl)
 		b.Write(hl, ":")
@@ -437,7 +433,7 @@ func (vd *ValueDiffer) writeKeyStruct(idx int, v reflect.Value, hl bool) {
 	t := v.Type()
 	for i := 0; i < v.NumField(); i++ {
 		if i > 0 {
-			b.Plain(" ")
+			b.Write(hl, " ")
 		}
 		b.Write(hl, t.Field(i).Name, ":")
 		vd.writeKey(idx, v.Field(i), hl)

@@ -554,34 +554,35 @@ func TestWriteTypeHeadChan(t *testing.T) {
 		v         reflect.Type
 		h, hd, he bool
 	}{
-		{"chan ", reflect.TypeOf(make(chan int)), false, false, false},
-		{"chan ", reflect.TypeOf(make(chan int)), false, false, true},
-		{"chan ", reflect.TypeOf(make(chan int)), false, true, false},
-		{"chan ", reflect.TypeOf(make(chan int)), false, true, true},
-		{H("chan "), reflect.TypeOf(make(chan int)), true, false, false},
-		{H("chan "), reflect.TypeOf(make(chan int)), true, false, true},
-		{H("chan "), reflect.TypeOf(make(chan int)), true, true, false},
-		{H("chan "), reflect.TypeOf(make(chan int)), true, true, true},
-		{"<-chan ", reflect.TypeOf(make(<-chan int)), false, false, false},
-		{"<-chan ", reflect.TypeOf(make(<-chan int)), false, false, true},
-		{H("<-") + "chan ", reflect.TypeOf(make(<-chan int)), false, true, false},
-		{H("<-") + "chan ", reflect.TypeOf(make(<-chan int)), false, true, true},
-		{H("<-chan "), reflect.TypeOf(make(<-chan int)), true, false, false},
-		{H("<-chan "), reflect.TypeOf(make(<-chan int)), true, false, true},
-		{H("<-chan "), reflect.TypeOf(make(<-chan int)), true, true, false},
-		{H("<-chan "), reflect.TypeOf(make(<-chan int)), true, true, true},
-		{"chan<- ", reflect.TypeOf(make(chan<- int)), false, false, false},
-		{"chan<- ", reflect.TypeOf(make(chan<- int)), false, false, true},
-		{"chan" + H("<-") + " ", reflect.TypeOf(make(chan<- int)), false, true, false},
-		{"chan" + H("<- "), reflect.TypeOf(make(chan<- int)), false, true, true},
-		{H("chan<- "), reflect.TypeOf(make(chan<- int)), true, false, false},
-		{H("chan<- "), reflect.TypeOf(make(chan<- int)), true, false, true},
-		{H("chan<- "), reflect.TypeOf(make(chan<- int)), true, true, false},
-		{H("chan<- "), reflect.TypeOf(make(chan<- int)), true, true, true},
+		{"chan int", reflect.TypeOf(make(chan int)), false, false, false},
+		{"chan " + H("int"), reflect.TypeOf(make(chan int)), false, false, true},
+		{"chan int", reflect.TypeOf(make(chan int)), false, true, false},
+		{"chan " + H("int"), reflect.TypeOf(make(chan int)), false, true, true},
+		{H("chan") + " int", reflect.TypeOf(make(chan int)), true, false, false},
+		{H("chan int"), reflect.TypeOf(make(chan int)), true, false, true},
+		{H("chan") + " int", reflect.TypeOf(make(chan int)), true, true, false},
+		{H("chan int"), reflect.TypeOf(make(chan int)), true, true, true},
+		{"<-chan int", reflect.TypeOf(make(<-chan int)), false, false, false},
+		{"<-chan " + H("int"), reflect.TypeOf(make(<-chan int)), false, false, true},
+		{H("<-") + "chan int", reflect.TypeOf(make(<-chan int)), false, true, false},
+		{H("<-") + "chan " + H("int"), reflect.TypeOf(make(<-chan int)), false, true, true},
+		{H("<-chan") + " int", reflect.TypeOf(make(<-chan int)), true, false, false},
+		{H("<-chan int"), reflect.TypeOf(make(<-chan int)), true, false, true},
+		{H("<-chan") + " int", reflect.TypeOf(make(<-chan int)), true, true, false},
+		{H("<-chan int"), reflect.TypeOf(make(<-chan int)), true, true, true},
+		{"chan<- int", reflect.TypeOf(make(chan<- int)), false, false, false},
+		{"chan<- " + H("int"), reflect.TypeOf(make(chan<- int)), false, false, true},
+		{"chan" + H("<-") + " int", reflect.TypeOf(make(chan<- int)), false, true, false},
+		{"chan" + H("<- int"), reflect.TypeOf(make(chan<- int)), false, true, true},
+		{H("chan<-") + " int", reflect.TypeOf(make(chan<- int)), true, false, false},
+		{H("chan<- int"), reflect.TypeOf(make(chan<- int)), true, false, true},
+		{H("chan<-") + " int", reflect.TypeOf(make(chan<- int)), true, true, false},
+		{H("chan<- int"), reflect.TypeOf(make(chan<- int)), true, true, true},
 	}
 	for i, c := range cs {
 		var d ValueDiffer
-		d.writeTypeHeadChan(0, c.v, c.h, c.hd, c.he)
+		d.writeTypeHeadChan(0, c.v, c.h, c.hd)
+		d.bufi(0).Write(c.he, "int")
 		Equal(t, c.e, d.String(0), "i=%v, r=\n%v", i, d.String(0))
 	}
 }

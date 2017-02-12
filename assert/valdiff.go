@@ -107,9 +107,8 @@ func (vd *ValueDiffer) writeDiffTypes(t1, t2 reflect.Type) {
 		vd.writeDiffTypesFunc(t1, t2)
 	case reflect.Chan:
 		hd := t1.ChanDir() != t2.ChanDir()
-		he := t1.Elem() != t2.Elem()
-		vd.writeTypeHeadChan(0, t1, false, hd, he)
-		vd.writeTypeHeadChan(1, t2, false, hd, he)
+		vd.writeTypeHeadChan(0, t1, false, hd)
+		vd.writeTypeHeadChan(1, t2, false, hd)
 		vd.writeDiffKinds(t1.Elem(), t2.Elem())
 	case reflect.Array:
 		h := t1.Len() == t2.Len()
