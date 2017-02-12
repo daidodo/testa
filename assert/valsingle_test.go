@@ -642,3 +642,84 @@ func TestWriteType(t *testing.T) {
 		Equal(t, H(e), d.String(1), "i=%v, r=\n%v", i, d.String(1))
 	}
 }
+
+func TestWriteTypeBeforeValue(t *testing.T) {
+	cs := []struct {
+		e, h string
+		v    reflect.Value
+	}{
+		{e: "<nil>", v: reflect.ValueOf(nil)},
+		{v: reflect.ValueOf(true)},
+		{v: reflect.ValueOf(int(100))},
+		{v: reflect.ValueOf(int8(100))},
+		{v: reflect.ValueOf(int16(100))},
+		{v: reflect.ValueOf(int32(100))},
+		{v: reflect.ValueOf(int64(100))},
+		{v: reflect.ValueOf(uint(100))},
+		{v: reflect.ValueOf(uint8(100))},
+		{v: reflect.ValueOf(uint16(100))},
+		{v: reflect.ValueOf(uint32(100))},
+		{v: reflect.ValueOf(uint64(100))},
+		{v: reflect.ValueOf(uintptr(100))},
+		{v: reflect.ValueOf(float32(100))},
+		{v: reflect.ValueOf(float64(100))},
+		{v: reflect.ValueOf(complex64(100.1 + 200.2i))},
+		{v: reflect.ValueOf(complex128(100.1 + 200.2i))},
+		{v: reflect.ValueOf(string("abc"))},
+		{e: "(chan int)", h: "(" + H("chan int") + ")", v: reflect.ValueOf(chan int(nil))},
+		{e: "(chan int)", h: "(" + H("chan int") + ")", v: reflect.ValueOf(make(chan int))},
+		{e: "(func() int)", h: "(" + H("func() int") + ")", v: reflect.ValueOf((func() int)(nil))},
+		{e: "(func() int)", h: "(" + H("func() int") + ")", v: reflect.ValueOf(func() int { return 0 })},
+		{e: "(*int)", h: "(" + H("*int") + ")", v: reflect.ValueOf((*int)(nil))},
+		{e: "(*int)", h: "(" + H("*int") + ")", v: reflect.ValueOf(new(int))},
+		{v: reflect.ValueOf(unsafe.Pointer(nil))},
+		{v: reflect.ValueOf(unsafe.Pointer(new(int)))},
+		{e: "<nil>", v: reflect.ValueOf(struct{ a interface{} }{}).Field(0)},
+		{v: reflect.ValueOf(struct{ a I }{}).Field(0)},
+		{e: "int", v: reflect.ValueOf(struct{ a interface{} }{100}).Field(0)},
+		{v: reflect.ValueOf([...]chan int{})},
+		{v: reflect.ValueOf([3]*int{1: new(int)})},
+		{v: reflect.ValueOf([11]uint{})},
+		{v: reflect.ValueOf([5][]int{1: []int{}, 2: []int{100}, 3: []int{1, 2, 3}})},
+		{v: reflect.ValueOf([11][]int{1: []int{}, 2: []int{100}, 3: []int{1, 2, 3}})},
+		{v: reflect.ValueOf([]int(nil))},
+		{v: reflect.ValueOf([]chan int{})},
+		{v: reflect.ValueOf([]*int{1: new(int), 2: nil})},
+		{v: reflect.ValueOf(make([]uint, 11))},
+		{v: reflect.ValueOf([][]int{1: []int{}, 2: []int{100}, 3: []int{1, 2, 3}, 4: nil})},
+		{v: reflect.ValueOf([][]int{1: []int{}, 2: []int{100}, 3: []int{1, 2, 3}, 10: nil})},
+		{v: reflect.ValueOf(map[bool]int(nil))},
+		{v: reflect.ValueOf(map[bool]int{})},
+		{v: reflect.ValueOf(map[bool]int{true: 100, false: 200})},
+		{v: reflect.ValueOf(map[bool]chan int{true: nil})},
+		{v: reflect.ValueOf(map[*int]int{new(int): 10})},
+		{v: reflect.ValueOf(map[bool][]int{true: []int{1, 2, 3}, false: []int{100, 200}})},
+		{v: reflect.ValueOf(map[[3]int]bool{[3]int{1, 2, 3}: true, [3]int{100, 200, 300}: false})},
+		{e: "struct", v: reflect.ValueOf(struct{}{})},
+		{e: "struct", v: reflect.ValueOf(struct {
+			a int
+			b string
+			c []uint
+		}{})},
+		{e: "struct", v: reflect.ValueOf(struct {
+			b string
+			c []uint
+			a int
+		}{c: []uint{1, 2, 3}})},
+		{v: reflect.ValueOf(A{})},
+	}
+	for i, c := range cs {
+		var d ValueDiffer
+		d.writeTypeBeforeValue(0, c.v, false)
+		d.writeTypeBeforeValue(1, c.v, true)
+		e, h := c.e, c.h
+		if e == "" {
+			e = c.v.Type().String()
+		}
+		if h == "" {
+			h = H(e)
+		}
+		Equal(t, e, d.String(0), "i=%v, r=\n%v", i, d.String(0))
+		Equal(t, h, d.String(1), "i=%v, r=\n%v", i, d.String(1))
+	}
+}
