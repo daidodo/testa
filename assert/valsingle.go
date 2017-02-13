@@ -383,7 +383,12 @@ func (vd *ValueDiffer) writeKey(idx int, v reflect.Value, hl bool) {
 		case reflect.Struct:
 			vd.writeKeyStruct(idx, v, hl)
 		default: // bool, integer, float, complex, channel, function, unsafe pointer
+			//TODO:
+			//if v.CanInterface() {
+			//    b.Write(hl, v.Interface())
+			//} else {
 			b.Write(hl, v)
+			//}
 		}
 	}
 }
