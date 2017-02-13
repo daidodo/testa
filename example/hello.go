@@ -67,6 +67,42 @@ func main() {
 	fi()
 	fj()
 	fk()
+	fl()
+}
+
+func fl() {
+	//v1 := reflect.ValueOf(struct{ a *chan int }{new(chan int)}).Field(0)
+	//v2 := reflect.ValueOf(struct{ a *chan int }{new(chan int)}).Field(0)
+	c1, c2 := new(chan int), new(chan int)
+	v1 := reflect.ValueOf(c1)
+	v2 := reflect.ValueOf(c2)
+	desc(v1.Pointer() == v2.Pointer())
+	desc(v1.Elem() == v2.Elem())
+	desc(v1.Elem().Pointer() == v2.Elem().Pointer())
+	desc(v1)
+	desc(reflect.ValueOf(v1))
+	desc(v1.Pointer())
+	desc(v1.Elem())
+	desc(v1.Elem().Pointer())
+	desc(v2.Pointer())
+	desc(v2.Elem())
+	desc(v2.Elem().Pointer())
+	desc(c1 == c2)
+	desc(reflect.DeepEqual(c1, c2))
+	fmt.Printf("%#v\n%#v\n", *c1, *c2)
+	type X struct {
+		a *chan int
+	}
+	a1 := X{new(chan int)}
+	a2 := X{new(chan int)}
+	fmt.Printf("%#v\n%#v\n", a1, a2)
+	fmt.Printf("%#v\n%#v\n", *a1.a, *a2.a)
+	desc(a1 == a2)
+	desc(reflect.DeepEqual(a1, a2))
+
+	i1, i2 := new(int), new(int)
+	desc(i1 == i2)
+	desc(reflect.DeepEqual(i1, i2))
 }
 
 func fk() {
@@ -97,6 +133,19 @@ func fk() {
 	f1 := C{a: A{}, b: 100}
 	f2 := C{a: A{}, b: 100}
 	desc(reflect.DeepEqual(f1, f2))
+	c1 := make(chan int)
+	var c2 <-chan int = c1
+	var c3 chan<- int = c1
+	desc(c1 == c2)
+	desc(c1 == c3)
+	//desc(c2 == c3)
+	s1 := reflect.ValueOf(string("abc"))
+	s2 := reflect.ValueOf(int(100))
+	desc(s1.String())
+	desc(s2.String())
+	desc(reflect.Int)
+	fmt.Println(reflect.ValueOf(reflect.Int))
+	fmt.Println(reflect.ValueOf(reflect.Int).Interface())
 }
 
 func fj() {
