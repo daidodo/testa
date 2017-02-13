@@ -281,6 +281,7 @@ func TestWriteElem(t *testing.T) {
 	pa := new(int)
 	cs := []struct {
 		e, e2 string
+		h, h2 string
 		v     reflect.Value
 		p     bool
 	}{
@@ -315,82 +316,51 @@ func TestWriteElem(t *testing.T) {
 		{e: "[]", v: reflect.ValueOf([...]chan int{})},
 		{e: fmt.Sprintf("[3]*int{<nil>, %v, <nil>}", pa), v: reflect.ValueOf([3]*int{1: pa})},
 		{e: "[11]uint{0:0, 1:0, 2:0, 3:0, 4:0, 5:0, 6:0, 7:0, 8:0, 9:0, 10:0}", v: reflect.ValueOf([11]uint{})},
-		{e: `[5][]int{
-	<nil>, [],
-	[100],
-	[1 2 3],
-	<nil>
-}`, v: reflect.ValueOf([5][]int{1: []int{}, 2: []int{100}, 3: []int{1, 2, 3}})},
-		{e: `[11][]int{
-	0:<nil>,
-	1:[],
-	2:[100],
-	3:[1 2 3],
-	4:<nil>,
-	5:<nil>,
-	6:<nil>,
-	7:<nil>,
-	8:<nil>,
-	9:<nil>,
-	10:<nil>
-}`, v: reflect.ValueOf([11][]int{1: []int{}, 2: []int{100}, 3: []int{1, 2, 3}})},
+		{v: reflect.ValueOf([5][]int{1: []int{}, 2: []int{100}, 3: []int{1, 2, 3}}),
+			e: "[5][]int{\n\t<nil>, [],\n\t[100],\n\t[1 2 3],\n\t<nil>\n}",
+			h: "\x1b[41m[5][]int{\x1b[0m\n\t\x1b[41m<nil>, [],\x1b[0m\n\t\x1b[41m[100],\x1b[0m\n\t\x1b[41m[1 2 3],\x1b[0m\n\t\x1b[41m<nil>\x1b[0m\n\x1b[41m}\x1b[0m"},
+		{v: reflect.ValueOf([11][]int{1: []int{}, 2: []int{100}, 3: []int{1, 2, 3}}),
+			e: "[11][]int{\n\t0:<nil>,\n\t1:[],\n\t2:[100],\n\t3:[1 2 3],\n\t4:<nil>,\n\t5:<nil>,\n\t6:<nil>,\n\t7:<nil>,\n\t8:<nil>,\n\t9:<nil>,\n\t10:<nil>\n}",
+			h: "\x1b[41m[11][]int{\x1b[0m\n\t\x1b[41m0:<nil>,\x1b[0m\n\t\x1b[41m1:[],\x1b[0m\n\t\x1b[41m2:[100],\x1b[0m\n\t\x1b[41m3:[1 2 3],\x1b[0m\n\t\x1b[41m4:<nil>,\x1b[0m\n\t\x1b[41m5:<nil>,\x1b[0m\n\t\x1b[41m6:<nil>,\x1b[0m\n\t\x1b[41m7:<nil>,\x1b[0m\n\t\x1b[41m8:<nil>,\x1b[0m\n\t\x1b[41m9:<nil>,\x1b[0m\n\t\x1b[41m10:<nil>\x1b[0m\n\x1b[41m}\x1b[0m"},
 		{e: "<nil>", v: reflect.ValueOf([]int(nil))},
 		{e: "[]", v: reflect.ValueOf([]chan int{})},
 		{e: fmt.Sprintf("[]*int{<nil>, %v, <nil>}", pa), v: reflect.ValueOf([]*int{1: pa, 2: nil})},
 		{e: "[]uint{0:0, 1:0, 2:0, 3:0, 4:0, 5:0, 6:0, 7:0, 8:0, 9:0, 10:0}", v: reflect.ValueOf(make([]uint, 11))},
-		{e: `[][]int{
-	<nil>, [],
-	[100],
-	[1 2 3],
-	<nil>
-}`, v: reflect.ValueOf([][]int{1: []int{}, 2: []int{100}, 3: []int{1, 2, 3}, 4: nil})},
-		{e: `[][]int{
-	0:<nil>,
-	1:[],
-	2:[100],
-	3:[1 2 3],
-	4:<nil>,
-	5:<nil>,
-	6:<nil>,
-	7:<nil>,
-	8:<nil>,
-	9:<nil>,
-	10:<nil>
-}`, v: reflect.ValueOf([][]int{1: []int{}, 2: []int{100}, 3: []int{1, 2, 3}, 10: nil})},
+		{v: reflect.ValueOf([][]int{1: []int{}, 2: []int{100}, 3: []int{1, 2, 3}, 4: nil}),
+			e: "[][]int{\n\t<nil>, [],\n\t[100],\n\t[1 2 3],\n\t<nil>\n}",
+			h: "\x1b[41m[][]int{\x1b[0m\n\t\x1b[41m<nil>, [],\x1b[0m\n\t\x1b[41m[100],\x1b[0m\n\t\x1b[41m[1 2 3],\x1b[0m\n\t\x1b[41m<nil>\x1b[0m\n\x1b[41m}\x1b[0m"},
+		{v: reflect.ValueOf([][]int{1: []int{}, 2: []int{100}, 3: []int{1, 2, 3}, 10: nil}),
+			e: "[][]int{\n\t0:<nil>,\n\t1:[],\n\t2:[100],\n\t3:[1 2 3],\n\t4:<nil>,\n\t5:<nil>,\n\t6:<nil>,\n\t7:<nil>,\n\t8:<nil>,\n\t9:<nil>,\n\t10:<nil>\n}",
+			h: "\x1b[41m[][]int{\x1b[0m\n\t\x1b[41m0:<nil>,\x1b[0m\n\t\x1b[41m1:[],\x1b[0m\n\t\x1b[41m2:[100],\x1b[0m\n\t\x1b[41m3:[1 2 3],\x1b[0m\n\t\x1b[41m4:<nil>,\x1b[0m\n\t\x1b[41m5:<nil>,\x1b[0m\n\t\x1b[41m6:<nil>,\x1b[0m\n\t\x1b[41m7:<nil>,\x1b[0m\n\t\x1b[41m8:<nil>,\x1b[0m\n\t\x1b[41m9:<nil>,\x1b[0m\n\t\x1b[41m10:<nil>\x1b[0m\n\x1b[41m}\x1b[0m"},
 		{e: "<nil>", v: reflect.ValueOf(map[bool]int(nil))},
 		{e: "map[]", v: reflect.ValueOf(map[bool]int{})},
 		{e: "map[true:100 false:200]", e2: "map[false:200 true:100]", v: reflect.ValueOf(map[bool]int{true: 100, false: 200})},
 		{e: "map[bool]chan int{true:<nil>}", v: reflect.ValueOf(map[bool]chan int{true: nil})},
 		{e: fmt.Sprintf("map[*int]int{%v:10}", pa), v: reflect.ValueOf(map[*int]int{pa: 10})},
-		{e: `map[bool][]int{
-	true:[1 2 3],
-	false:[100 200]
-}`, e2: `map[bool][]int{
-	false:[100 200],
-	true:[1 2 3]
-}`, v: reflect.ValueOf(map[bool][]int{true: []int{1, 2, 3}, false: []int{100, 200}})},
-		{e: `map[[3]int]bool{
-	[1 2 3]:true,
-	[100 200 300]:false
-}`, e2: `map[[3]int]bool{
-	[100 200 300]:false,
-	[1 2 3]:true
-}`, v: reflect.ValueOf(map[[3]int]bool{[3]int{1, 2, 3}: true, [3]int{100, 200, 300}: false})},
+		{v: reflect.ValueOf(map[bool][]int{true: []int{1, 2, 3}, false: []int{100, 200}}),
+			e:  "map[bool][]int{\n\ttrue:[1 2 3],\n\tfalse:[100 200]\n}",
+			e2: "map[bool][]int{\n\tfalse:[100 200],\n\ttrue:[1 2 3]\n}",
+			h:  "\x1b[41mmap[bool][]int{\x1b[0m\n\t\x1b[41mtrue:[1 2 3],\x1b[0m\n\t\x1b[41mfalse:[100 200]\x1b[0m\n\x1b[41m}\x1b[0m",
+			h2: "\x1b[41mmap[bool][]int{\x1b[0m\n\t\x1b[41mfalse:[100 200],\x1b[0m\n\t\x1b[41mtrue:[1 2 3]\x1b[0m\n\x1b[41m}\x1b[0m"},
+		{v: reflect.ValueOf(map[[3]int]bool{[3]int{1, 2, 3}: true, [3]int{100, 200, 300}: false}),
+			e:  "map[[3]int]bool{\n\t[1 2 3]:true,\n\t[100 200 300]:false\n}",
+			e2: "map[[3]int]bool{\n\t[100 200 300]:false,\n\t[1 2 3]:true\n}",
+			h:  "\x1b[41mmap[[3]int]bool{\x1b[0m\n\t\x1b[41m[1 2 3]:true,\x1b[0m\n\t\x1b[41m[100 200 300]:false\x1b[0m\n\x1b[41m}\x1b[0m",
+			h2: "\x1b[41mmap[[3]int]bool{\x1b[0m\n\t\x1b[41m[100 200 300]:false,\x1b[0m\n\t\x1b[41m[1 2 3]:true\x1b[0m\n\x1b[41m}\x1b[0m",
+		},
 		{e: "{}", v: reflect.ValueOf(struct{}{})},
 		{e: `{a:0 b:"" c:<nil>}`, v: reflect.ValueOf(struct {
 			a int
 			b string
 			c []uint
 		}{})},
-		{e: `struct{
-	b:"",
-	c:[1 2 3],
-	a:0
-}`, v: reflect.ValueOf(struct {
+		{v: reflect.ValueOf(struct {
 			b string
 			c []uint
 			a int
-		}{c: []uint{1, 2, 3}})},
+		}{c: []uint{1, 2, 3}}),
+			e: "struct{\n\tb:\"\",\n\tc:[1 2 3],\n\ta:0\n}",
+			h: "\x1b[41mstruct{\x1b[0m\n\t\x1b[41mb:\"\",\x1b[0m\n\t\x1b[41mc:[1 2 3],\x1b[0m\n\t\x1b[41ma:0\x1b[0m\n\x1b[41m}\x1b[0m"},
 	}
 	for i, c := range cs {
 		var d ValueDiffer
@@ -409,10 +379,17 @@ func TestWriteElem(t *testing.T) {
 		} else {
 			Equal(t, r1, d.String(0), "i=%v, r=\n%v", i, d.String(0))
 		}
-		if r2 != "" && H(r2) == d.String(1) {
-			Equal(t, H(r2), d.String(1), "i=%v, r=\n%v", i, d.String(1))
+		h1, h2 := c.h, c.h2
+		if h1 == "" {
+			h1 = H(r1)
+		}
+		if h2 == "" {
+			h2 = H(r2)
+		}
+		if h2 != "" && h2 == d.String(1) {
+			Equal(t, h2, d.String(1), "i=%v, r=\n%v", i, d.String(1))
 		} else {
-			Equal(t, H(r1), d.String(1), "i=%v, r=\n%v", i, d.String(1))
+			Equal(t, h1, d.String(1), "i=%v, r=\n%v", i, d.String(1))
 		}
 	}
 }
