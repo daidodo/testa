@@ -55,9 +55,9 @@ func (b *FeatureBuf) Plain(a ...interface{}) *FeatureBuf {
 }
 
 func (b *FeatureBuf) NL() *FeatureBuf {
-	b.Plain("\n")
+	b.Normal("\n")
 	for i := 0; i < b.Tab; i++ {
-		b.Plain("\t")
+		b.Normal("\t")
 	}
 	return b
 }
