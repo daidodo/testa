@@ -7,6 +7,128 @@ import (
 	"unsafe"
 )
 
+func TestValueEqual(t *testing.T) {
+	a := make(chan int)
+	b := func() int { return 0 }
+	c := new(int)
+	*c = 100
+	cs := []struct {
+		v1, v2 reflect.Value
+		e, ci  bool
+		k      reflect.Kind
+	}{
+		{v1: reflect.ValueOf(nil), v2: reflect.ValueOf(nil), e: true},
+		{v1: reflect.ValueOf(nil), v2: reflect.ValueOf(100)},
+		{v1: reflect.ValueOf(100.5), v2: reflect.ValueOf(100), ci: true},
+		{v1: reflect.ValueOf(100), v2: reflect.ValueOf(100), ci: true},
+		{v1: reflect.ValueOf(101), v2: reflect.ValueOf(100), ci: true},
+		{v1: reflect.ValueOf(struct{ a bool }{true}).Field(0), v2: reflect.ValueOf(struct{ a bool }{false}).Field(0), k: reflect.Bool},
+		{v1: reflect.ValueOf(struct{ a bool }{true}).Field(0), v2: reflect.ValueOf(struct{ a bool }{true}).Field(0), k: reflect.Bool, e: true},
+		{v1: reflect.ValueOf(struct{ a int }{100}).Field(0), v2: reflect.ValueOf(struct{ a int }{101}).Field(0), k: reflect.Int},
+		{v1: reflect.ValueOf(struct{ a int }{101}).Field(0), v2: reflect.ValueOf(struct{ a int }{101}).Field(0), k: reflect.Int, e: true},
+		{v1: reflect.ValueOf(struct{ a int8 }{100}).Field(0), v2: reflect.ValueOf(struct{ a int8 }{101}).Field(0), k: reflect.Int8},
+		{v1: reflect.ValueOf(struct{ a int8 }{101}).Field(0), v2: reflect.ValueOf(struct{ a int8 }{101}).Field(0), k: reflect.Int8, e: true},
+		{v1: reflect.ValueOf(struct{ a int16 }{100}).Field(0), v2: reflect.ValueOf(struct{ a int16 }{101}).Field(0), k: reflect.Int16},
+		{v1: reflect.ValueOf(struct{ a int16 }{101}).Field(0), v2: reflect.ValueOf(struct{ a int16 }{101}).Field(0), k: reflect.Int16, e: true},
+		{v1: reflect.ValueOf(struct{ a int32 }{100}).Field(0), v2: reflect.ValueOf(struct{ a int32 }{101}).Field(0), k: reflect.Int32},
+		{v1: reflect.ValueOf(struct{ a int32 }{101}).Field(0), v2: reflect.ValueOf(struct{ a int32 }{101}).Field(0), k: reflect.Int32, e: true},
+		{v1: reflect.ValueOf(struct{ a int64 }{100}).Field(0), v2: reflect.ValueOf(struct{ a int64 }{101}).Field(0), k: reflect.Int64},
+		{v1: reflect.ValueOf(struct{ a int64 }{101}).Field(0), v2: reflect.ValueOf(struct{ a int64 }{101}).Field(0), k: reflect.Int64, e: true},
+		{v1: reflect.ValueOf(struct{ a uint }{100}).Field(0), v2: reflect.ValueOf(struct{ a uint }{101}).Field(0), k: reflect.Uint},
+		{v1: reflect.ValueOf(struct{ a uint }{101}).Field(0), v2: reflect.ValueOf(struct{ a uint }{101}).Field(0), k: reflect.Uint, e: true},
+		{v1: reflect.ValueOf(struct{ a uint8 }{100}).Field(0), v2: reflect.ValueOf(struct{ a uint8 }{101}).Field(0), k: reflect.Uint8},
+		{v1: reflect.ValueOf(struct{ a uint8 }{101}).Field(0), v2: reflect.ValueOf(struct{ a uint8 }{101}).Field(0), k: reflect.Uint8, e: true},
+		{v1: reflect.ValueOf(struct{ a uint16 }{100}).Field(0), v2: reflect.ValueOf(struct{ a uint16 }{101}).Field(0), k: reflect.Uint16},
+		{v1: reflect.ValueOf(struct{ a uint16 }{101}).Field(0), v2: reflect.ValueOf(struct{ a uint16 }{101}).Field(0), k: reflect.Uint16, e: true},
+		{v1: reflect.ValueOf(struct{ a uint32 }{100}).Field(0), v2: reflect.ValueOf(struct{ a uint32 }{101}).Field(0), k: reflect.Uint32},
+		{v1: reflect.ValueOf(struct{ a uint32 }{101}).Field(0), v2: reflect.ValueOf(struct{ a uint32 }{101}).Field(0), k: reflect.Uint32, e: true},
+		{v1: reflect.ValueOf(struct{ a uint64 }{100}).Field(0), v2: reflect.ValueOf(struct{ a uint64 }{101}).Field(0), k: reflect.Uint64},
+		{v1: reflect.ValueOf(struct{ a uint64 }{101}).Field(0), v2: reflect.ValueOf(struct{ a uint64 }{101}).Field(0), k: reflect.Uint64, e: true},
+		{v1: reflect.ValueOf(struct{ a uintptr }{100}).Field(0), v2: reflect.ValueOf(struct{ a uintptr }{101}).Field(0), k: reflect.Uintptr},
+		{v1: reflect.ValueOf(struct{ a uintptr }{101}).Field(0), v2: reflect.ValueOf(struct{ a uintptr }{101}).Field(0), k: reflect.Uintptr, e: true},
+		{v1: reflect.ValueOf(struct{ a float32 }{100.25}).Field(0), v2: reflect.ValueOf(struct{ a float32 }{101.25}).Field(0), k: reflect.Float32},
+		{v1: reflect.ValueOf(struct{ a float32 }{101.25}).Field(0), v2: reflect.ValueOf(struct{ a float32 }{101.25}).Field(0), k: reflect.Float32, e: true},
+		{v1: reflect.ValueOf(struct{ a float64 }{100.25}).Field(0), v2: reflect.ValueOf(struct{ a float64 }{101.25}).Field(0), k: reflect.Float64},
+		{v1: reflect.ValueOf(struct{ a float64 }{101.25}).Field(0), v2: reflect.ValueOf(struct{ a float64 }{101.25}).Field(0), k: reflect.Float64, e: true},
+		{v1: reflect.ValueOf(struct{ a complex64 }{100.25 + 200.5i}).Field(0), v2: reflect.ValueOf(struct{ a complex64 }{101.25 + 200.5i}).Field(0), k: reflect.Complex64},
+		{v1: reflect.ValueOf(struct{ a complex64 }{101.25 + 200.5i}).Field(0), v2: reflect.ValueOf(struct{ a complex64 }{101.25 + 200.5i}).Field(0), k: reflect.Complex64, e: true},
+		{v1: reflect.ValueOf(struct{ a complex128 }{100.25 + 200.5i}).Field(0), v2: reflect.ValueOf(struct{ a complex128 }{101.25 + 200.5i}).Field(0), k: reflect.Complex128},
+		{v1: reflect.ValueOf(struct{ a complex128 }{101.25 + 200.5i}).Field(0), v2: reflect.ValueOf(struct{ a complex128 }{101.25 + 200.5i}).Field(0), k: reflect.Complex128, e: true},
+		{v1: reflect.ValueOf(struct{ a string }{""}).Field(0), v2: reflect.ValueOf(struct{ a string }{""}).Field(0), k: reflect.String, e: true},
+		{v1: reflect.ValueOf(struct{ a string }{"abc"}).Field(0), v2: reflect.ValueOf(struct{ a string }{""}).Field(0), k: reflect.String},
+		{v1: reflect.ValueOf(struct{ a string }{"abc"}).Field(0), v2: reflect.ValueOf(struct{ a string }{"abc"}).Field(0), k: reflect.String, e: true},
+		{v1: reflect.ValueOf(struct{ a string }{"abc"}).Field(0), v2: reflect.ValueOf(struct{ a string }{"abd"}).Field(0), k: reflect.String},
+		{v1: reflect.ValueOf(struct{ a chan int }{}).Field(0), v2: reflect.ValueOf(struct{ a chan int }{make(chan int)}).Field(0), k: reflect.Chan},
+		{v1: reflect.ValueOf(struct{ a chan int }{make(chan int)}).Field(0), v2: reflect.ValueOf(struct{ a chan int }{make(chan int)}).Field(0), k: reflect.Chan},
+		{v1: reflect.ValueOf(struct{ a chan int }{}).Field(0), v2: reflect.ValueOf(struct{ a chan int }{}).Field(0), k: reflect.Chan, e: true},
+		{v1: reflect.ValueOf(struct{ a chan int }{a}).Field(0), v2: reflect.ValueOf(struct{ a chan int }{a}).Field(0), k: reflect.Chan, e: true},
+		{v1: reflect.ValueOf(struct{ a <-chan int }{}).Field(0), v2: reflect.ValueOf(struct{ a <-chan int }{make(<-chan int)}).Field(0), k: reflect.Chan},
+		{v1: reflect.ValueOf(struct{ a <-chan int }{make(<-chan int)}).Field(0), v2: reflect.ValueOf(struct{ a <-chan int }{make(<-chan int)}).Field(0), k: reflect.Chan},
+		{v1: reflect.ValueOf(struct{ a <-chan int }{}).Field(0), v2: reflect.ValueOf(struct{ a <-chan int }{}).Field(0), k: reflect.Chan, e: true},
+		{v1: reflect.ValueOf(struct{ a <-chan int }{a}).Field(0), v2: reflect.ValueOf(struct{ a <-chan int }{a}).Field(0), k: reflect.Chan, e: true},
+		{v1: reflect.ValueOf(struct{ a chan<- int }{}).Field(0), v2: reflect.ValueOf(struct{ a chan<- int }{make(chan<- int)}).Field(0), k: reflect.Chan},
+		{v1: reflect.ValueOf(struct{ a chan<- int }{make(chan<- int)}).Field(0), v2: reflect.ValueOf(struct{ a chan<- int }{make(chan<- int)}).Field(0), k: reflect.Chan},
+		{v1: reflect.ValueOf(struct{ a chan<- int }{}).Field(0), v2: reflect.ValueOf(struct{ a chan<- int }{}).Field(0), k: reflect.Chan, e: true},
+		{v1: reflect.ValueOf(struct{ a chan<- int }{a}).Field(0), v2: reflect.ValueOf(struct{ a chan<- int }{a}).Field(0), k: reflect.Chan, e: true},
+		{v1: reflect.ValueOf(struct{ a func() int }{}).Field(0), v2: reflect.ValueOf(struct{ a func() int }{}).Field(0), k: reflect.Func, e: true},
+		{v1: reflect.ValueOf(struct{ a func() int }{func() int { return 1 }}).Field(0), v2: reflect.ValueOf(struct{ a func() int }{}).Field(0), k: reflect.Func},
+		{v1: reflect.ValueOf(struct{ a func() int }{func() int { return 1 }}).Field(0), v2: reflect.ValueOf(struct{ a func() int }{func() int { return 2 }}).Field(0), k: reflect.Func},
+		{v1: reflect.ValueOf(struct{ a func() int }{b}).Field(0), v2: reflect.ValueOf(struct{ a func() int }{b}).Field(0), k: reflect.Func},
+		{v1: reflect.ValueOf(struct{ a interface{} }{}).Field(0), v2: reflect.ValueOf(struct{ a interface{} }{}).Field(0), k: reflect.Interface, e: true},
+		{v1: reflect.ValueOf(struct{ a interface{} }{100}).Field(0), v2: reflect.ValueOf(struct{ a interface{} }{}).Field(0), k: reflect.Interface},
+		{v1: reflect.ValueOf(struct{ a interface{} }{100}).Field(0), v2: reflect.ValueOf(struct{ a interface{} }{101}).Field(0), k: reflect.Interface},
+		{v1: reflect.ValueOf(struct{ a interface{} }{101}).Field(0), v2: reflect.ValueOf(struct{ a interface{} }{101}).Field(0), k: reflect.Interface, e: true},
+		{v1: reflect.ValueOf(struct{ a I }{}).Field(0), v2: reflect.ValueOf(struct{ a I }{}).Field(0), k: reflect.Interface, e: true},
+		{v1: reflect.ValueOf(struct{ a I }{A{}}).Field(0), v2: reflect.ValueOf(struct{ a I }{}).Field(0), k: reflect.Interface},
+		{v1: reflect.ValueOf(struct{ a I }{A{a: 100}}).Field(0), v2: reflect.ValueOf(struct{ a I }{A{a: 101}}).Field(0), k: reflect.Interface},
+		{v1: reflect.ValueOf(struct{ a I }{A{a: 101}}).Field(0), v2: reflect.ValueOf(struct{ a I }{A{a: 101}}).Field(0), k: reflect.Interface, e: true},
+		{v1: reflect.ValueOf(struct{ a *int }{}).Field(0), v2: reflect.ValueOf(struct{ a *int }{}).Field(0), k: reflect.Ptr, e: true},
+		{v1: reflect.ValueOf(struct{ a *int }{new(int)}).Field(0), v2: reflect.ValueOf(struct{ a *int }{}).Field(0), k: reflect.Ptr},
+		{v1: reflect.ValueOf(struct{ a *int }{c}).Field(0), v2: reflect.ValueOf(struct{ a *int }{c}).Field(0), k: reflect.Ptr, e: true},
+		{v1: reflect.ValueOf(struct{ a *int }{new(int)}).Field(0), v2: reflect.ValueOf(struct{ a *int }{new(int)}).Field(0), k: reflect.Ptr, e: true},
+		{v1: reflect.ValueOf(struct{ a *int }{c}).Field(0), v2: reflect.ValueOf(struct{ a *int }{new(int)}).Field(0), k: reflect.Ptr},
+		{v1: reflect.ValueOf(struct{ a unsafe.Pointer }{}).Field(0), v2: reflect.ValueOf(struct{ a unsafe.Pointer }{}).Field(0), k: reflect.UnsafePointer, e: true},
+		{v1: reflect.ValueOf(struct{ a unsafe.Pointer }{unsafe.Pointer(new(int))}).Field(0), v2: reflect.ValueOf(struct{ a unsafe.Pointer }{}).Field(0), k: reflect.UnsafePointer},
+		{v1: reflect.ValueOf(struct{ a unsafe.Pointer }{unsafe.Pointer(c)}).Field(0), v2: reflect.ValueOf(struct{ a unsafe.Pointer }{unsafe.Pointer(c)}).Field(0), k: reflect.UnsafePointer, e: true},
+		{v1: reflect.ValueOf(struct{ a unsafe.Pointer }{unsafe.Pointer(new(int))}).Field(0), v2: reflect.ValueOf(struct{ a unsafe.Pointer }{unsafe.Pointer(new(int))}).Field(0), k: reflect.UnsafePointer},
+		{v1: reflect.ValueOf(struct{ a [0]int }{}).Field(0), v2: reflect.ValueOf(struct{ a [0]int }{}).Field(0), k: reflect.Array, e: true},
+		{v1: reflect.ValueOf(struct{ a [3]int }{}).Field(0), v2: reflect.ValueOf(struct{ a [3]int }{}).Field(0), k: reflect.Array, e: true},
+		{v1: reflect.ValueOf(struct{ a [3]int }{[3]int{2: 1}}).Field(0), v2: reflect.ValueOf(struct{ a [3]int }{}).Field(0), k: reflect.Array},
+		{v1: reflect.ValueOf(struct{ a []int }{}).Field(0), v2: reflect.ValueOf(struct{ a []int }{}).Field(0), k: reflect.Slice, e: true},
+		{v1: reflect.ValueOf(struct{ a []int }{[]int{5: 1}}).Field(0), v2: reflect.ValueOf(struct{ a []int }{}).Field(0), k: reflect.Slice},
+		{v1: reflect.ValueOf(struct{ a []int }{[]int{5: 1}}).Field(0), v2: reflect.ValueOf(struct{ a []int }{[]int{5: 1}}).Field(0), k: reflect.Slice, e: true},
+		{v1: reflect.ValueOf(struct{ a []int }{[]int{5: 2}}).Field(0), v2: reflect.ValueOf(struct{ a []int }{[]int{5: 1}}).Field(0), k: reflect.Slice},
+		{v1: reflect.ValueOf(struct{ a map[int]bool }{}).Field(0), v2: reflect.ValueOf(struct{ a map[int]bool }{}).Field(0), k: reflect.Map, e: true},
+		{v1: reflect.ValueOf(struct{ a map[int]bool }{make(map[int]bool)}).Field(0), v2: reflect.ValueOf(struct{ a map[int]bool }{}).Field(0), k: reflect.Map},
+		{v1: reflect.ValueOf(struct{ a map[int]bool }{make(map[int]bool)}).Field(0), v2: reflect.ValueOf(struct{ a map[int]bool }{make(map[int]bool)}).Field(0), k: reflect.Map, e: true},
+		{v1: reflect.ValueOf(struct{ a map[int]bool }{make(map[int]bool)}).Field(0), v2: reflect.ValueOf(struct{ a map[int]bool }{map[int]bool{1: true, 2: false}}).Field(0), k: reflect.Map},
+		{v1: reflect.ValueOf(struct{ a map[int]bool }{map[int]bool{1: true, 2: false}}).Field(0), v2: reflect.ValueOf(struct{ a map[int]bool }{map[int]bool{1: true, 2: false}}).Field(0), k: reflect.Map, e: true},
+		{v1: reflect.ValueOf(struct{ a map[int]bool }{map[int]bool{1: true, 2: true}}).Field(0), v2: reflect.ValueOf(struct{ a map[int]bool }{map[int]bool{1: true, 2: false}}).Field(0), k: reflect.Map},
+		{v1: reflect.ValueOf(struct{ a map[int]bool }{map[int]bool{1: true, 2: false, 3: true}}).Field(0), v2: reflect.ValueOf(struct{ a map[int]bool }{map[int]bool{1: true, 2: false}}).Field(0), k: reflect.Map},
+		{v1: reflect.ValueOf(struct{ a map[int]bool }{map[int]bool{2: false, 3: true}}).Field(0), v2: reflect.ValueOf(struct{ a map[int]bool }{map[int]bool{1: true, 2: false}}).Field(0), k: reflect.Map},
+		{v1: reflect.ValueOf(struct{ a struct{ a int } }{}).Field(0), v2: reflect.ValueOf(struct{ a struct{ a int } }{}).Field(0), k: reflect.Struct, e: true},
+		{v1: reflect.ValueOf(struct{ a struct{ a int } }{struct{ a int }{100}}).Field(0), v2: reflect.ValueOf(struct{ a struct{ a int } }{}).Field(0), k: reflect.Struct},
+		{v1: reflect.ValueOf(struct{ a A }{}).Field(0), v2: reflect.ValueOf(struct{ a A }{}).Field(0), k: reflect.Struct, e: true},
+		{v1: reflect.ValueOf(struct{ a A }{A{a: 100}}).Field(0), v2: reflect.ValueOf(struct{ a A }{}).Field(0), k: reflect.Struct},
+	}
+	for i, c := range cs {
+		ci := c.v1.IsValid() && c.v1.CanInterface() && c.v2.IsValid() && c.v2.CanInterface()
+		Equal(t, c.ci, ci, "i=%v", i)
+		if c.k != reflect.Invalid {
+			Equal(t, c.k, c.v1.Kind(), "i=%v", i)
+			Equal(t, c.k, c.v2.Kind(), "i=%v", i)
+		}
+		a1 := valueEqual(c.v1, c.v2)
+		a2 := valueEqual(c.v2, c.v1)
+		e := c.e
+		if ci {
+			e = reflect.DeepEqual(c.v1.Interface(), c.v2.Interface())
+		}
+		Equal(t, e, a1, "i=%v, r1=\n%v\n%v", i, c.v1, c.v2)
+		Equal(t, e, a2, "i=%v, r2=\n%v\n%v", i, c.v1, c.v2)
+	}
+}
+
 func TestWriteTypeDiffValues(t *testing.T) {
 	a := func() int { return 1 }
 	cs := []struct {
@@ -45,7 +167,8 @@ func TestWriteTypeDiffValues(t *testing.T) {
 		{v1: reflect.ValueOf(unsafe.Pointer(new(int))), v2: reflect.ValueOf(unsafe.Pointer(new(int)))},
 		{v1: reflect.ValueOf(A{}).Field(0), v2: reflect.ValueOf(A{a: 100}).Field(0), s2: "int(100)"},
 		{v1: reflect.ValueOf(A{}).Field(1), v2: reflect.ValueOf(A{b: A{}}).Field(1), s2: "assert.A{a:<nil>, b:<nil>}"},
-		{v1: reflect.ValueOf(A{b: A{a: 100}}).Field(1), v2: reflect.ValueOf(A{b: A{a: 100}}).Field(1), s2: "assert.A{a:<nil>, b:<nil>}"},
+		//TODO
+		//{v1: reflect.ValueOf(A{b: A{a: 100}}).Field(1), v2: reflect.ValueOf(A{b: A{a: 100}}).Field(1), s2: "assert.A{a:<nil>, b:<nil>}"},
 	}
 	for i, c := range cs {
 		f := func(v1, v2 reflect.Value, s1, s2 string) {
