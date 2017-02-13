@@ -565,20 +565,28 @@ func (vd *ValueDiffer) writeTypeDiffValuesStruct(v1, v2 reflect.Value) {
 
 func (vd *ValueDiffer) writeDiffValuesStruct(v1, v2 reflect.Value, ml1, ml2 bool) {
 	b1, b2 := vd.bufs()
+	id := v1.NumField() > 10
 	t := v1.Type()
-	for i := 0; i < v1.NumField(); i++ {
-		if i > 0 {
+	for i, j := 0, 0; i < v1.NumField(); i++ {
+		e1, e2 := v1.Field(i), v2.Field(i)
+		eq := valueEqual(e1, e2)
+		if eq && id {
+			vd.Attrs[OmitSame] = true
+			continue
+		}
+		if j > 0 {
 			if ml1 {
-				b1.Normal(",")
+				b1.Plain(",")
 			} else {
-				b1.Normal(" ")
+				b1.Plain(" ")
 			}
 			if ml2 {
-				b2.Normal(",")
+				b2.Plain(",")
 			} else {
-				b2.Normal(" ")
+				b2.Plain(" ")
 			}
 		}
+		j++
 		if ml1 {
 			b1.NL()
 		}
@@ -588,7 +596,7 @@ func (vd *ValueDiffer) writeDiffValuesStruct(v1, v2 reflect.Value, ml1, ml2 bool
 		n := t.Field(i).Name
 		b1.Normal(n, ":")
 		b2.Normal(n, ":")
-		if e1, e2 := v1.Field(i), v2.Field(i); valueEqual(e1, e2) {
+		if eq {
 			vd.writeElem(0, e1, false)
 			vd.writeElem(1, e2, false)
 		} else {
