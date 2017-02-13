@@ -12,7 +12,11 @@ type I interface {
 }
 
 type A struct {
+	a interface{}
+	b I
 }
+
+func (A) Fun() {}
 
 func H(s string) string {
 	if len(s) < 1 {
@@ -817,7 +821,7 @@ func TestWriteTypeValue(t *testing.T) {
 			c []uint
 			a int
 		}{c: []uint{1, 2, 3}})},
-		{e: "assert.A{}", v: reflect.ValueOf(A{})},
+		{e: "assert.A{a:<nil>, b:<nil>}", v: reflect.ValueOf(A{})},
 	}
 	for i, c := range cs {
 		var d ValueDiffer
