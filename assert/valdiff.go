@@ -462,7 +462,12 @@ func (vd *ValueDiffer) writeDiffValuesMap(v1, v2 reflect.Value, tp, ml1, ml2 boo
 		vd.writeKey(1, k, false)
 		b1.Normal(":")
 		b2.Normal(":")
-		vd.writeDiff(v1.MapIndex(k), v2.MapIndex(k))
+		if e1, e2 := v1.MapIndex(k), v2.MapIndex(k); reflect.DeepEqual(e1.Interface(), e1.Interface()) {
+			vd.writeElem(0, e1, false)
+			vd.writeElem(1, e2, false)
+		} else {
+			vd.writeDiff(v1.MapIndex(k), v2.MapIndex(k))
+		}
 		i++
 	}
 	f := func(idx int, v reflect.Value, ks []reflect.Value, ml bool, i int) {
@@ -538,7 +543,12 @@ func (vd *ValueDiffer) writeDiffValuesStruct(v1, v2 reflect.Value, ml1, ml2 bool
 		n := t.Field(i).Name
 		b1.Normal(n, ":")
 		b2.Normal(n, ":")
-		vd.writeDiff(v1.Field(i), v2.Field(i))
+		if e1, e2 := v1.Field(i), v2.Field(i); reflect.DeepEqual(e1.Interface(), e2.Interface()) {
+			vd.writeElem(0, e1, false)
+			vd.writeElem(1, e2, false)
+		} else {
+			vd.writeDiff(v1.Field(i), v2.Field(i))
+		}
 	}
 }
 
