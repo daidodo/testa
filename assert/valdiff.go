@@ -290,7 +290,7 @@ func (vd *ValueDiffer) writeDiffValuesSlice(v1, v2 reflect.Value, tp, id, ml1, m
 		t1, t2 := g1 && isNonTrivialElem(v1.Index(i)), g2 && isNonTrivialElem(v2.Index(i))
 		t1, p1 = (t1 || p1 || (ml1 && (id || i == 0))), t1
 		t2, p2 = (t2 || p2 || (ml2 && (id || i == 0))), t2
-		df := !g1 || !g2 || !reflect.DeepEqual(v1.Index(i).Interface(), v2.Index(i).Interface())
+		df := !g1 || !g2 || !valueEqual(v1.Index(i), v2.Index(i))
 		if i > 0 {
 			if tp {
 				if g1 {
@@ -352,7 +352,7 @@ func (vd *ValueDiffer) writeDiffValuesArray(v1, v2 reflect.Value, tp, id, ml1, m
 		t1, t2 := isNonTrivialElem(e1), isNonTrivialElem(e2)
 		t1, p1 = (t1 || p1 || (ml1 && (id || i == 0))), t1
 		t2, p2 = (t2 || p2 || (ml2 && (id || i == 0))), t2
-		df := !reflect.DeepEqual(e1.Interface(), e2.Interface())
+		df := !valueEqual(e1, e2)
 		if i > 0 {
 			if tp {
 				b1.Normal(",")
@@ -462,7 +462,7 @@ func (vd *ValueDiffer) writeDiffValuesMap(v1, v2 reflect.Value, tp, ml1, ml2 boo
 		vd.writeKey(1, k, false)
 		b1.Normal(":")
 		b2.Normal(":")
-		if e1, e2 := v1.MapIndex(k), v2.MapIndex(k); reflect.DeepEqual(e1.Interface(), e1.Interface()) {
+		if e1, e2 := v1.MapIndex(k), v2.MapIndex(k); valueEqual(e1, e1) {
 			vd.writeElem(0, e1, false)
 			vd.writeElem(1, e2, false)
 		} else {
@@ -543,7 +543,7 @@ func (vd *ValueDiffer) writeDiffValuesStruct(v1, v2 reflect.Value, ml1, ml2 bool
 		n := t.Field(i).Name
 		b1.Normal(n, ":")
 		b2.Normal(n, ":")
-		if e1, e2 := v1.Field(i), v2.Field(i); reflect.DeepEqual(e1.Interface(), e2.Interface()) {
+		if e1, e2 := v1.Field(i), v2.Field(i); valueEqual(e1, e2) {
 			vd.writeElem(0, e1, false)
 			vd.writeElem(1, e2, false)
 		} else {
@@ -577,4 +577,90 @@ func (vd *ValueDiffer) writeDiffValuesString(v1, v2 reflect.Value) {
 
 func (vd *ValueDiffer) bufs() (b1, b2 *FeatureBuf) {
 	return vd.bufi(0), vd.bufi(1)
+}
+
+func valueEqual(v1, v2 reflect.Value) bool {
+	if !v1.IsValid() || !v2.IsValid() {
+		return v1.IsValid() == v2.IsValid()
+	}
+	if v1.Type() != v2.Type() {
+		return false
+	}
+	if v1.CanInterface() && v2.CanInterface() {
+		return reflect.DeepEqual(v1.Interface(), v2.Interface())
+	}
+	switch v1.Kind() {
+	case reflect.Bool:
+		return v1.Bool() == v2.Bool()
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+		return v1.Int() == v2.Int()
+	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr:
+		return v1.Uint() == v2.Uint()
+	case reflect.Float32, reflect.Float64:
+		return v1.Float() == v2.Float()
+	case reflect.Complex64, reflect.Complex128:
+		return v1.Complex() == v2.Complex()
+	case reflect.String:
+		return v1.String() == v2.String()
+	case reflect.Chan, reflect.UnsafePointer:
+		return v1.Pointer() == v2.Pointer()
+	case reflect.Func:
+		return v1.IsNil() && v2.IsNil()
+	case reflect.Ptr:
+		if v1.IsNil() || v2.IsNil() {
+			return v1.IsNil() && v2.IsNil()
+		}
+		if v1.Pointer() == v2.Pointer() {
+			return true
+		}
+		return valueEqual(v1.Elem(), v2.Elem())
+	case reflect.Interface:
+		if v1.IsNil() || v2.IsNil() {
+			return v1.IsNil() == v2.IsNil()
+		}
+		return valueEqual(v1.Elem(), v2.Elem())
+	case reflect.Slice:
+		if v1.IsNil() != v2.IsNil() {
+			return false
+		}
+		if v1.Len() != v2.Len() {
+			return false
+		}
+		if v1.Pointer() == v2.Pointer() {
+			return true
+		}
+		fallthrough
+	case reflect.Array:
+		for i := 0; i < v1.Len(); i++ {
+			if !valueEqual(v1.Index(i), v2.Index(i)) {
+				return false
+			}
+		}
+		return true
+	case reflect.Map:
+		if v1.IsNil() != v2.IsNil() {
+			return false
+		}
+		if v1.Len() != v2.Len() {
+			return false
+		}
+		if v1.Pointer() == v2.Pointer() {
+			return true
+		}
+		for _, k := range v1.MapKeys() {
+			if e1, e2 := v1.MapIndex(k), v2.MapIndex(k); !valueEqual(e1, e2) {
+				return false
+			}
+		}
+		return true
+	case reflect.Struct:
+		for i, n := 0, v1.NumField(); i < n; i++ {
+			if !valueEqual(v1.Field(i), v2.Field(i)) {
+				return false
+			}
+		}
+		return true
+	default: // reflect.Invalid
+	}
+	return false
 }
