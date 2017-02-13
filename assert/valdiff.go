@@ -462,8 +462,15 @@ func (vd *ValueDiffer) writeDiffValuesMap(v1, v2 reflect.Value, tp, ml1, ml2 boo
 			ks2 = append(ks2, k)
 		}
 	}
+	id := v1.Len() > 10 || v2.Len() > 10
 	i := 0
 	for _, k := range ks {
+		e1, e2 := v1.MapIndex(k), v2.MapIndex(k)
+		eq := valueEqual(e1, e2)
+		if eq && id {
+			vd.Attrs[OmitSame] = true
+			continue
+		}
 		if i > 0 {
 			if tp {
 				b1.Plain(",")
@@ -486,13 +493,27 @@ func (vd *ValueDiffer) writeDiffValuesMap(v1, v2 reflect.Value, tp, ml1, ml2 boo
 		vd.writeKey(1, k, false)
 		b1.Normal(":")
 		b2.Normal(":")
-		if e1, e2 := v1.MapIndex(k), v2.MapIndex(k); valueEqual(e1, e2) {
+		if eq {
 			vd.writeElem(0, e1, false)
 			vd.writeElem(1, e2, false)
 		} else {
 			vd.writeDiff(e1, e2)
 		}
 		i++
+	}
+	// If all are skipped, show "...:..." if NOT empty
+	if len(ks) > 0 && i == 0 {
+		if len(ks1) == 0 {
+			if ml1 {
+				b1.NL()
+			}
+			b1.Normal("...:...")
+		} else if len(ks2) == 0 {
+			if ml2 {
+				b2.NL()
+			}
+			b2.Normal("...:...")
+		}
 	}
 	f := func(idx int, v reflect.Value, ks []reflect.Value, ml bool, i int) {
 		b := vd.bufi(idx)
