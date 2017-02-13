@@ -68,6 +68,17 @@ func main() {
 	fj()
 	fk()
 	fl()
+	fm()
+}
+
+func pp(p uintptr) unsafe.Pointer {
+	return unsafe.Pointer(p)
+}
+
+func fm() {
+	//a := []unsafe.Pointer{1: unsafe.Pointer(uintptr(10)), 4: unsafe.Pointer(uintptr(20)), 5: unsafe.Pointer(uintptr(30)), 7: unsafe.Pointer(uintptr(40))}
+	a := []unsafe.Pointer{1: pp(10)}
+	desc(a)
 }
 
 func fl() {
@@ -103,6 +114,8 @@ func fl() {
 	i1, i2 := new(int), new(int)
 	desc(i1 == i2)
 	desc(reflect.DeepEqual(i1, i2))
+	var a []int
+	fmt.Println(a)
 }
 
 func fk() {
