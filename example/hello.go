@@ -90,6 +90,13 @@ func fk() {
 		return a == b
 	}
 	desc(eq(d, e))
+	type C struct {
+		a I
+		b interface{}
+	}
+	f1 := C{a: A{}, b: 100}
+	f2 := C{a: A{}, b: 100}
+	desc(reflect.DeepEqual(f1, f2))
 }
 
 func fj() {
