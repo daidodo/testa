@@ -179,23 +179,23 @@ func TestEqualArrayShort3Dense(t *testing.T) {
 	assert.Equal(t, b, a, "a is not b")
 }
 
-//func TestEqualArrayLong3(t *testing.T) {
-//    var a [15][15][15]int
-//    for i := range a {
-//        for j := range a[0] {
-//            for k := range a[0][0] {
-//                a[i][j][k] = 100 + i + j*j + k*k*k
-//            }
-//        }
-//    }
-//    b := a
-//    assert.Equal(t, b, a)
-//    b[1][1][1]++
-//    b[len(b)/2][len(b[0])/2][len(b[0][0])/3]++
-//    b[len(b)-1][len(b[0])-1][len(b[0][0])-2]++
-//    b[len(b)-1][len(b[0])-1][len(b[0][0])-1]++
-//    assert.Equal(t, b, a, "a is not b")
-//}
+func TestEqualArrayLong3(t *testing.T) {
+	var a [15][15][15]int
+	for i := range a {
+		for j := range a[0] {
+			for k := range a[0][0] {
+				a[i][j][k] = 100 + i + j*j + k*k*k
+			}
+		}
+	}
+	b := a
+	assert.Equal(t, b, a)
+	b[1][1][1]++
+	b[len(b)/2][len(b[0])/2][len(b[0][0])/3]++
+	b[len(b)-1][len(b[0])-1][len(b[0][0])-2]++
+	b[len(b)-1][len(b[0])-1][len(b[0][0])-1]++
+	assert.Equal(t, b, a, "a is not b")
+}
 
 func TestEqualArrayShort3(t *testing.T) {
 	var a [5][5][5]int
