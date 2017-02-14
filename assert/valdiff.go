@@ -140,22 +140,21 @@ func (vd *ValueDiffer) writeDiffTypesFunc(t1, t2 reflect.Type) {
 	b1.Normal("func(")
 	b2.Normal("func(")
 	for i := 0; i < t1.NumIn() || i < t2.NumIn(); i++ {
-		if i >= t1.NumIn() {
-			if i > 0 {
-				b2.Plain(", ")
-			}
-			vd.writeType(1, t2.In(i), true)
-		} else if i >= t2.NumIn() {
-			if i > 0 {
+		g1, g2 := i < t1.NumIn(), i < t2.NumIn()
+		if i > 0 {
+			if g1 {
 				b1.Plain(", ")
 			}
+			if g2 {
+				b2.Plain(", ")
+			}
+		}
+		if g1 && g2 {
+			vd.writeDiffKinds(t1.In(i), t2.In(i))
+		} else if g1 {
 			vd.writeType(0, t1.In(i), true)
 		} else {
-			if i > 0 {
-				b1.Normal(", ")
-				b2.Normal(", ")
-			}
-			vd.writeDiffKinds(t1.In(i), t2.In(i))
+			vd.writeType(1, t2.In(i), true)
 		}
 	}
 	switch t1.NumOut() {
@@ -177,22 +176,21 @@ func (vd *ValueDiffer) writeDiffTypesFunc(t1, t2 reflect.Type) {
 		defer b2.Normal(")")
 	}
 	for i := 0; i < t1.NumOut() || i < t2.NumOut(); i++ {
-		if i >= t1.NumOut() {
-			if i > 0 {
-				b2.Plain(", ")
-			}
-			vd.writeType(1, t2.Out(i), true)
-		} else if i >= t2.NumOut() {
-			if i > 0 {
+		g1, g2 := i < t1.NumOut(), i < t2.NumOut()
+		if i > 0 {
+			if g1 {
 				b1.Plain(", ")
 			}
+			if g2 {
+				b2.Plain(", ")
+			}
+		}
+		if g1 && g2 {
+			vd.writeDiffKinds(t1.Out(i), t2.Out(i))
+		} else if g1 {
 			vd.writeType(0, t1.Out(i), true)
 		} else {
-			if i > 0 {
-				b1.Normal(", ")
-				b2.Normal(", ")
-			}
-			vd.writeDiffKinds(t1.Out(i), t2.Out(i))
+			vd.writeType(1, t2.Out(i), true)
 		}
 	}
 }

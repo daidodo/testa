@@ -434,3 +434,38 @@ func TestWriteTypeDiffValuesArrayShort3Dense(t *testing.T) {
 	Equal(t, s1, d.String(0), "%v\n%v", d.String(0), d.String(1))
 	Equal(t, s2, d.String(1), "%v\n%v", d.String(0), d.String(1))
 }
+
+func TestWriteDiffKinds(t *testing.T) {
+	cs := []struct {
+		t1, t2 reflect.Type
+		s1, s2 string
+	}{
+		{t1: reflect.TypeOf(100), t2: reflect.TypeOf(101), s1: "int", s2: "int"},
+		{t1: reflect.TypeOf(100), t2: reflect.TypeOf(101.2), s1: H("int"), s2: H("float64")},
+		{t1: reflect.TypeOf(make(chan int)), t2: reflect.TypeOf(make(chan int)), s1: "chan int", s2: "chan int"},
+		{t1: reflect.TypeOf(make(<-chan int)), t2: reflect.TypeOf(make(chan int)), s1: H("<-") + "chan int", s2: "chan int"},
+		{t1: reflect.TypeOf(make(chan<- int)), t2: reflect.TypeOf(make(chan int)), s1: "chan" + H("<-") + " int", s2: "chan int"},
+		{t1: reflect.TypeOf(make(chan<- int)), t2: reflect.TypeOf(make(<-chan int)), s1: "chan" + H("<-") + " int", s2: H("<-") + "chan int"},
+		{t1: reflect.TypeOf(make(<-chan chan int)), t2: reflect.TypeOf(make(chan int)), s1: H("<-") + "chan " + H("chan int"), s2: "chan " + H("int")},
+		{t1: reflect.TypeOf(make(chan<- chan int)), t2: reflect.TypeOf(make(chan int)), s1: "chan" + H("<- chan int"), s2: "chan " + H("int")},
+		{t1: reflect.TypeOf(make(chan<- chan int)), t2: reflect.TypeOf(make(<-chan int)), s1: "chan" + H("<- chan int"), s2: H("<-") + "chan " + H("int")},
+		{t1: reflect.TypeOf(func() {}), t2: reflect.TypeOf(func() {}), s1: "func()", s2: "func()"},
+		{t1: reflect.TypeOf(func(int) float32 { return .1 }), t2: reflect.TypeOf(func() {}), s1: "func(" + H("int") + ") " + H("float32"), s2: "func()"},
+		{t1: reflect.TypeOf(func(int, string) (uint, float32) { return 1, .1 }), t2: reflect.TypeOf(func() {}), s1: "func(" + H("int, string") + ") (" + H("uint, float32") + ")", s2: "func()"},
+		{t1: reflect.TypeOf(func(int, string) (uint, float32) { return 1, .1 }),
+			t2: reflect.TypeOf(func(int) uint { return 2 }),
+			s1: "func(int, " + H("string") + ") (uint, " + H("float32") + ")",
+			s2: "func(int) uint"},
+		{t1: reflect.TypeOf(func(struct{ x bool }, struct{ y int }) (interface{}, I) { return 100, A{} }),
+			t2: reflect.TypeOf(func(struct{ a bool }, struct{ y uint }) (I, interface{}) { return A{}, 101 }),
+			s1: "func(" + H("struct, struct") + ") (" + H("interface {}, assert.I") + ")",
+			s2: "func(" + H("struct, struct") + ") (" + H("assert.I, interface {}") + ")",
+		},
+	}
+	for i, c := range cs {
+		var d ValueDiffer
+		d.writeDiffKinds(c.t1, c.t2)
+		Equal(t, c.s1, d.String(0), "i=%v, s1\n%v\n%v", i, d.String(0), d.String(1))
+		Equal(t, c.s2, d.String(1), "i=%v, s2\n%v\n%v", i, d.String(0), d.String(1))
+	}
+}
