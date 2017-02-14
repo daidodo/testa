@@ -213,6 +213,21 @@ func TestAttrElemArray(t *testing.T) {
 	}
 }
 
+type PInt uintptr
+type PStr uintptr
+
+func (p PInt) String() string {
+	return "String of PInt"
+}
+
+func (p PStr) GoString() string {
+	return "Go String of PStr"
+}
+
+func (p PStr) String() string {
+	return "String of PStr"
+}
+
 func TestWriteKey(t *testing.T) {
 	cs := []struct {
 		e, e2 string
@@ -258,6 +273,12 @@ func TestWriteKey(t *testing.T) {
 			b bool
 			c uintptr
 		}{100, false, 200})},
+		{e: "array", v: reflect.ValueOf(reflect.Array)},
+		{e: "17", v: reflect.ValueOf(struct{ a reflect.Kind }{reflect.Array}).Field(0)},
+		{e: "String of PInt", v: reflect.ValueOf(PInt(100))},
+		{e: "0x64", v: reflect.ValueOf(struct{ a PInt }{100}).Field(0)},
+		{e: "Go String of PStr", v: reflect.ValueOf(PStr(100))},
+		{e: "0x64", v: reflect.ValueOf(struct{ a PStr }{100}).Field(0)},
 	}
 	for i, c := range cs {
 		var d ValueDiffer
@@ -368,6 +389,12 @@ func TestWriteElem(t *testing.T) {
 		}{c: []uint{1, 2, 3}}),
 			e: "struct{\n\tb:\"\",\n\tc:[1 2 3],\n\ta:0\n}",
 			h: "\x1b[41mstruct{\x1b[0m\n\t\x1b[41mb:\"\",\x1b[0m\n\t\x1b[41mc:[1 2 3],\x1b[0m\n\t\x1b[41ma:0\x1b[0m\n\x1b[41m}\x1b[0m"},
+		{e: "array", v: reflect.ValueOf(reflect.Array)},
+		{e: "17", v: reflect.ValueOf(struct{ a reflect.Kind }{reflect.Array}).Field(0)},
+		{e: "String of PInt", v: reflect.ValueOf(PInt(100))},
+		{e: "0x64", v: reflect.ValueOf(struct{ a PInt }{100}).Field(0)},
+		{e: "Go String of PStr", v: reflect.ValueOf(PStr(100))},
+		{e: "0x64", v: reflect.ValueOf(struct{ a PStr }{100}).Field(0)},
 	}
 	for i, c := range cs {
 		var d ValueDiffer
