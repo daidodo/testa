@@ -302,6 +302,12 @@ func TestWriteTypeDiffValues(t *testing.T) {
 			s1: "struct{b:\x1b[41m<nil>\x1b[0m e:\x1b[41m<nil>\x1b[0m f:\x1b[41m<nil>\x1b[0m}",
 			s2: "struct{\n\tb:\x1b[41m[]\x1b[0m,\n\te:\x1b[41m[1]\x1b[0m,\n\tf:\x1b[41m[2 3]\x1b[0m\n}",
 			n2: true, om: true},
+		{v1: reflect.ValueOf(reflect.Array), v2: reflect.ValueOf(reflect.Bool), s1: H("array"), s2: H("bool")},
+		{v1: reflect.ValueOf(struct{ a reflect.Kind }{reflect.Array}).Field(0), v2: reflect.ValueOf(struct{ a reflect.Kind }{reflect.Bool}).Field(0)},
+		{v1: reflect.ValueOf(PInt(100)), v2: reflect.ValueOf(PInt(101)), s1: H("String of PInt"), s2: H("String of PInt")},
+		{v1: reflect.ValueOf(struct{ a PInt }{100}).Field(0), v2: reflect.ValueOf(struct{ a PInt }{101}).Field(0), s1: H("0x64"), s2: H("0x65")},
+		{v1: reflect.ValueOf(PStr(100)), v2: reflect.ValueOf(PStr(101)), s1: H("Go String of PStr"), s2: H("Go String of PStr")},
+		{v1: reflect.ValueOf(struct{ a PStr }{100}).Field(0), v2: reflect.ValueOf(struct{ a PStr }{101}).Field(0), s1: H("0x64"), s2: H("0x65")},
 	}
 	for i, c := range cs {
 		f := func(v1, v2 reflect.Value, s1, s2, ss1, ss2 string, n1, n2 bool) {
