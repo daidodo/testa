@@ -1,6 +1,9 @@
 package assert
 
-import "reflect"
+import (
+	"fmt"
+	"reflect"
+)
 
 func (vd *ValueDiffer) WriteTypeValue(idx int, v reflect.Value, tab int) {
 	vd.bufi(idx).Tab = tab
@@ -360,35 +363,49 @@ func (vd *ValueDiffer) writeKey(idx int, v reflect.Value, hl bool) {
 		b.Write(hl, nil)
 	} else {
 		switch v.Kind() {
-		case reflect.Uintptr, reflect.String:
+		case reflect.String:
 			b.Writef(hl, "%#v", v)
-		case reflect.Array:
-			vd.writeKeyArray(idx, v, hl)
+		case reflect.Uintptr:
+			if v.CanInterface() {
+				switch x := v.Interface().(type) {
+				case fmt.GoStringer:
+					b.Write(hl, x.GoString())
+				case fmt.Stringer:
+					b.Write(hl, x.String())
+				default:
+					b.Writef(hl, "%#v", v.Interface())
+				}
+			} else {
+				b.Writef(hl, "%#v", v)
+			}
+		case reflect.Complex64, reflect.Complex128, reflect.Func: // accord to writeTypeDiffValues
+			b.Write(hl, v)
+		case reflect.Ptr:
+			if v.IsNil() {
+				b.Write(hl, nil)
+			} else {
+				b.Write(hl, v)
+			}
 		case reflect.Interface:
 			if v.IsNil() {
 				b.Write(hl, nil)
 			} else {
 				vd.writeKey(idx, v.Elem(), hl)
 			}
-		case reflect.Map:
-			vd.writeKeyMap(idx, v, hl)
-		case reflect.Ptr:
-			if v.IsNil() {
-				b.Write(hl, nil)
-			} else {
-				b.Writef(hl, "%#v", v.Pointer())
-			}
+		case reflect.Array:
+			vd.writeKeyArray(idx, v, hl)
 		case reflect.Slice:
 			vd.writeKeySlice(idx, v, hl)
+		case reflect.Map:
+			vd.writeKeyMap(idx, v, hl)
 		case reflect.Struct:
 			vd.writeKeyStruct(idx, v, hl)
-		default: // bool, integer, float, complex, channel, function, unsafe pointer
-			//TODO:
-			//if v.CanInterface() {
-			//    b.Write(hl, v.Interface())
-			//} else {
-			b.Write(hl, v)
-			//}
+		default:
+			if v.CanInterface() {
+				b.Write(hl, v.Interface())
+			} else {
+				b.Write(hl, v)
+			}
 		}
 	}
 }
