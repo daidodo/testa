@@ -18,6 +18,11 @@ type A struct {
 
 func (A) Fun() {}
 
+type B struct {
+}
+
+type Int int
+
 func H(s string) string {
 	if len(s) < 1 {
 		return ""
