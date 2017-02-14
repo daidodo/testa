@@ -508,3 +508,27 @@ func TestWriteDiffKinds(t *testing.T) {
 		Equal(t, c.s2, d.String(1), "i=%v, s2\n%v\n%v", i, d.String(0), d.String(1))
 	}
 }
+
+func TestWriteDiffTypesBeforeValue(t *testing.T) {
+	cs := []struct {
+		v1, v2 reflect.Value
+		s1, s2 string
+	}{
+		{v1: reflect.ValueOf(func() {}), v2: reflect.ValueOf(func(int) uint { return 1 }), s1: "(func())", s2: "(func(" + H("int") + ") " + H("uint") + ")"},
+		{v1: reflect.ValueOf(make(chan int)), v2: reflect.ValueOf(make(chan uint)), s1: "(chan " + H("int") + ")", s2: "(chan " + H("uint") + ")"},
+		{v1: reflect.ValueOf(new(int)), v2: reflect.ValueOf(new(uint)), s1: "(*" + H("int") + ")", s2: "(*" + H("uint") + ")"},
+		{v1: reflect.ValueOf(A{}).Field(0), v2: reflect.ValueOf(A{a: 100}).Field(0), s1: H("<nil>"), s2: H("int")},
+		{v1: reflect.ValueOf(A{a: 100.25}).Field(0), v2: reflect.ValueOf(A{a: 100}).Field(0), s1: H("float64"), s2: H("int")},
+		{v1: reflect.ValueOf(A{}).Field(1), v2: reflect.ValueOf(A{b: A{}}).Field(1), s1: H("assert.I"), s2: H("assert.A")},
+		{v1: reflect.ValueOf(A{b: Int(100)}).Field(1), v2: reflect.ValueOf(A{b: A{}}).Field(1), s1: H("assert.Int"), s2: H("assert.A")},
+	}
+	for i, c := range cs {
+		var d1, d2 ValueDiffer
+		d1.writeDiffTypesBeforeValue(c.v1, c.v2)
+		d2.writeDiffTypesBeforeValue(c.v2, c.v1)
+		Equal(t, c.s1, d1.String(0), "i=%v, s1\n%v\n%v", i, d1.String(0), d1.String(1))
+		Equal(t, c.s2, d1.String(1), "i=%v, s2\n%v\n%v", i, d1.String(0), d1.String(1))
+		Equal(t, c.s1, d2.String(1), "i=%v, rs2\n%v\n%v", i, d2.String(1), d2.String(0))
+		Equal(t, c.s2, d2.String(0), "i=%v, rs1\n%v\n%v", i, d2.String(1), d2.String(0))
+	}
+}

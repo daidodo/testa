@@ -23,6 +23,8 @@ type B struct {
 
 type Int int
 
+func (Int) Fun() {}
+
 func H(s string) string {
 	if len(s) < 1 {
 		return ""
