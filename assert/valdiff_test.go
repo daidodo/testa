@@ -456,11 +456,50 @@ func TestWriteDiffKinds(t *testing.T) {
 			t2: reflect.TypeOf(func(int) uint { return 2 }),
 			s1: "func(int, " + H("string") + ") (uint, " + H("float32") + ")",
 			s2: "func(int) uint"},
+		{t1: reflect.TypeOf(func(a, b, c, d, e, f, g, h, i int) (j, k, l, m, n, o, p, q int) { return }),
+			t2: reflect.TypeOf(func(a int, b uint, c, d int, e float32, f string, g int) (j uintptr, k int, l complex64, m string, n int, o chan int) {
+				return
+			}),
+			s1: "func(int, \x1b[41mint\x1b[0m, int, int, \x1b[41mint, int\x1b[0m, int, \x1b[41mint, int\x1b[0m) (\x1b[41mint\x1b[0m, int, \x1b[41mint, int\x1b[0m, int, \x1b[41mint, int, int\x1b[0m)",
+			s2: "func(int, \x1b[41muint\x1b[0m, int, int, \x1b[41mfloat32, string\x1b[0m, int) (\x1b[41muintptr\x1b[0m, int, \x1b[41mcomplex64, string\x1b[0m, int, \x1b[41mchan int\x1b[0m)"},
+		{t1: reflect.TypeOf(func(a int, b uint, c, d int, e float32, f string, g int) (j uintptr, k int, l complex64, m string, n int, o chan int) {
+			return
+		}),
+			t2: reflect.TypeOf(func(a int, b uint, c, d int, e float32, f string, g int) (j uintptr, k int, l complex64, m string, n int, o chan int) {
+				return
+			}),
+			s1: "func(int, uint, int, int, float32, string, int) (uintptr, int, complex64, string, int, chan int)",
+			s2: "func(int, uint, int, int, float32, string, int) (uintptr, int, complex64, string, int, chan int)"},
+		{t1: reflect.TypeOf(func(interface{}, I, interface{}, I) {}),
+			t2: reflect.TypeOf(func(I, interface{}, interface{}, I) {}),
+			s1: "func(" + H("interface {}, assert.I") + ", interface {}, assert.I)",
+			s2: "func(" + H("assert.I, interface {}") + ", interface {}, assert.I)"},
 		{t1: reflect.TypeOf(func(struct{ x bool }, struct{ y int }) (interface{}, I) { return 100, A{} }),
 			t2: reflect.TypeOf(func(struct{ a bool }, struct{ y uint }) (I, interface{}) { return A{}, 101 }),
 			s1: "func(" + H("struct, struct") + ") (" + H("interface {}, assert.I") + ")",
-			s2: "func(" + H("struct, struct") + ") (" + H("assert.I, interface {}") + ")",
-		},
+			s2: "func(" + H("struct, struct") + ") (" + H("assert.I, interface {}") + ")"},
+		{t1: reflect.TypeOf(new(int)), t2: reflect.TypeOf(new(float32)), s1: "*" + H("int"), s2: "*" + H("float32")},
+		{t1: reflect.TypeOf([0]int{}), t2: reflect.TypeOf([10]int{}), s1: "[" + H("0") + "]int", s2: "[" + H("10") + "]int"},
+		{t1: reflect.TypeOf([10]chan int{}), t2: reflect.TypeOf([10]int{}), s1: "[10]" + H("chan int"), s2: "[10]" + H("int")},
+		{t1: reflect.TypeOf([10]chan int{}), t2: reflect.TypeOf([100]int{}), s1: "[" + H("10") + "]" + H("chan int"), s2: "[" + H("100") + "]" + H("int")},
+		{t1: reflect.TypeOf([10]chan int{}), t2: reflect.TypeOf([10]chan uint{}), s1: "[10]chan " + H("int"), s2: "[10]chan " + H("uint")},
+		{t1: reflect.TypeOf([]int{}), t2: reflect.TypeOf(make([]int, 10)), s1: "[]int", s2: "[]int"},
+		{t1: reflect.TypeOf([]int{}), t2: reflect.TypeOf(make([]float32, 10)), s1: "[]" + H("int"), s2: "[]" + H("float32")},
+		{t1: reflect.TypeOf([]chan int{}), t2: reflect.TypeOf(make([]chan float32, 10)), s1: "[]chan " + H("int"), s2: "[]chan " + H("float32")},
+		{t1: reflect.TypeOf(map[bool]int{}), t2: reflect.TypeOf(make(map[bool]int)), s1: "map[bool]int", s2: "map[bool]int"},
+		{t1: reflect.TypeOf(map[bool]uint{}), t2: reflect.TypeOf(make(map[bool]int)), s1: "map[bool]" + H("uint"), s2: "map[bool]" + H("int")},
+		{t1: reflect.TypeOf(map[bool]chan uint{}), t2: reflect.TypeOf(make(map[bool]chan int)), s1: "map[bool]chan " + H("uint"), s2: "map[bool]chan " + H("int")},
+		{t1: reflect.TypeOf(map[string]int{}), t2: reflect.TypeOf(make(map[bool]int)), s1: "map[" + H("string") + "]int", s2: "map[" + H("bool") + "]int"},
+		{t1: reflect.TypeOf(map[*string]int{}), t2: reflect.TypeOf(make(map[*bool]int)), s1: "map[*" + H("string") + "]int", s2: "map[*" + H("bool") + "]int"},
+		{t1: reflect.TypeOf(map[string]uint{}), t2: reflect.TypeOf(make(map[bool]int)), s1: "map[" + H("string") + "]" + H("uint"), s2: "map[" + H("bool") + "]" + H("int")},
+		{t1: reflect.TypeOf(map[*string]*uint{}), t2: reflect.TypeOf(make(map[*bool]*int)), s1: "map[*" + H("string") + "]*" + H("uint"), s2: "map[*" + H("bool") + "]*" + H("int")},
+		{t1: reflect.TypeOf(struct{}{}), t2: reflect.TypeOf(struct{}{}), s1: "struct", s2: "struct"},
+		{t1: reflect.TypeOf(struct{ a int }{}), t2: reflect.TypeOf(struct{ a int }{}), s1: "struct", s2: "struct"},
+		{t1: reflect.TypeOf(struct{ b int }{}), t2: reflect.TypeOf(struct{ a int }{}), s1: H("struct"), s2: H("struct")},
+		{t1: reflect.TypeOf(struct{ a uint }{}), t2: reflect.TypeOf(struct{ a int }{}), s1: H("struct"), s2: H("struct")},
+		{t1: reflect.TypeOf(A{}), t2: reflect.TypeOf(struct{ a int }{}), s1: H("assert.A"), s2: H("struct")},
+		{t1: reflect.TypeOf(A{}), t2: reflect.TypeOf(B{}), s1: H("assert.A"), s2: H("assert.B")},
+		{t1: reflect.TypeOf(Int(0)), t2: reflect.TypeOf(int(100)), s1: H("assert.Int"), s2: H("int")},
 	}
 	for i, c := range cs {
 		var d ValueDiffer
