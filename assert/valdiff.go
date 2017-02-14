@@ -111,7 +111,7 @@ func (vd *ValueDiffer) writeDiffTypes(t1, t2 reflect.Type) {
 		vd.writeTypeHeadChan(1, t2, false, hd)
 		vd.writeDiffKinds(t1.Elem(), t2.Elem())
 	case reflect.Array:
-		h := t1.Len() == t2.Len()
+		h := t1.Len() != t2.Len()
 		b1.Normal("[").Write(h, t1.Len()).Normal("]")
 		b2.Normal("[").Write(h, t2.Len()).Normal("]")
 		vd.writeDiffKinds(t1.Elem(), t2.Elem())
