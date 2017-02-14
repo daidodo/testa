@@ -82,52 +82,25 @@ func fail(c caller, t *testing.T, expected, actual interface{}, eq bool, msg ...
 func writeFailEq(buf *FeatureBuf, expected, actual interface{}) {
 	var v ValueDiffer
 	v.WriteDiff(reflect.ValueOf(expected), reflect.ValueOf(actual), buf.Tab+1)
-	if v.Attrs[NewLine+0] {
-		buf.NL().Normal("Expect:")
-		if v.Attrs[OmitSame] {
-			buf.Normal("\t(").Highlight("Only diffs are shown").Normal(")")
-			v.Attrs[OmitSame] = false
-		}
-		buf.Tab++
-		buf.NL().Normal(v.String(0))
-		buf.Tab--
-	} else {
-		buf.NL().Normalf("Expect:\t%v", v.String(0))
-	}
-	if v.Attrs[NewLine+1] {
-		buf.NL().Normal("Actual:")
-		if v.Attrs[OmitSame] {
-			buf.Normal("\t(").Highlight("Only diffs are shown").Normal(")")
-		}
-		buf.Tab++
-		buf.NL().Normal(v.String(1))
-		if v.Attrs[CompFunc] {
-			buf.NL().Normal("(").Highlight("func can only be compared to nil").Normal(")")
-		}
-		buf.Tab--
-	} else {
-		buf.NL().Normalf("Actual:\t%v", v.String(1))
-		if v.Attrs[OmitSame] {
-			buf.NL().Normal("\t(").Highlight("Only diffs are shown").Normal(")")
-		}
-		if v.Attrs[CompFunc] {
-			buf.NL().Normal("\t(").Highlight("func can only be compared to nil").Normal(")")
-		}
-	}
+	buf.NL().Normalf("Expect:\t%v", v.String(0))
+	buf.NL().Normalf("Actual:\t%v", v.String(1))
+	writeAttrs(buf, v)
 }
 
 func writeFailNe(buf *FeatureBuf, actual interface{}) {
 	var v ValueDiffer
 	v.WriteTypeValue(0, reflect.ValueOf(actual), buf.Tab+1)
-	if v.Attrs[NewLine] {
-		buf.NL().Normal("Expect:\t").Highlight("SAME as Actual").Finish()
-		buf.NL().Normal("Actual:")
-		buf.Tab++
-		buf.NL().Normal(v.String(0))
-		buf.Tab--
-	} else {
-		buf.NL().Normal("Expect:\t").Highlight("SAME as Actual").Finish()
-		buf.NL().Normalf("Actual:\t%v", v.String(0))
+	buf.NL().Normal("Expect:\t").Highlight("SAME as Actual").Finish()
+	buf.NL().Normalf("Actual:\t%v", v.String(0))
+	writeAttrs(buf, v)
+}
+
+func writeAttrs(buf *FeatureBuf, v ValueDiffer) {
+	if v.Attrs[OmitSame] {
+		buf.NL().Normal("\t(").Highlight("Only diffs are shown").Normal(")")
+	}
+	if v.Attrs[CompFunc] {
+		buf.NL().Normal("\t(").Highlight("func can only be compared to nil").Normal(")")
 	}
 }
 
