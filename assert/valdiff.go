@@ -63,6 +63,8 @@ func (vd *tValueDiffer) writeDiffTypeValues(v1, v2 reflect.Value) {
 	if !v1.IsValid() || !v2.IsValid() {
 		vd.writeTypeBeforeValueNoInterface(0, v1, true)
 		vd.writeTypeBeforeValueNoInterface(1, v2, true)
+		vd.writeValueAfterType(0, v1)
+		vd.writeValueAfterType(1, v2)
 	} else {
 		re := false
 		if v1.Kind() == reflect.Interface && !v1.IsNil() {
