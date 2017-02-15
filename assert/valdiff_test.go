@@ -5,6 +5,8 @@ import (
 	"reflect"
 	"testing"
 	"unsafe"
+
+	assert2 "github.com/stretchr/testify/assert"
 )
 
 func P(p uintptr) unsafe.Pointer {
@@ -114,6 +116,8 @@ func TestValueEqual(t *testing.T) {
 		{v1: reflect.ValueOf(struct{ a struct{ a int } }{struct{ a int }{100}}).Field(0), v2: reflect.ValueOf(struct{ a struct{ a int } }{}).Field(0), k: reflect.Struct},
 		{v1: reflect.ValueOf(struct{ a A }{}).Field(0), v2: reflect.ValueOf(struct{ a A }{}).Field(0), k: reflect.Struct, e: true},
 		{v1: reflect.ValueOf(struct{ a A }{A{a: 100}}).Field(0), v2: reflect.ValueOf(struct{ a A }{}).Field(0), k: reflect.Struct},
+		//TODO
+		//{v1: reflect.ValueOf(struct{ a interface{} }{100}).Field(0), v2: reflect.ValueOf(100), k: reflect.Int},
 	}
 	for i, c := range cs {
 		ci := c.v1.IsValid() && c.v1.CanInterface() && c.v2.IsValid() && c.v2.CanInterface()
@@ -448,6 +452,7 @@ func TestWriteDiffKinds(t *testing.T) {
 	}{
 		{t1: reflect.TypeOf(100), t2: reflect.TypeOf(101), s1: "int", s2: "int"},
 		{t1: reflect.TypeOf(100), t2: reflect.TypeOf(101.2), s1: H("int"), s2: H("float64")},
+		{t1: reflect.TypeOf(Int(0)), t2: reflect.TypeOf(int(100)), s1: H("assert.Int"), s2: H("int")},
 		{t1: reflect.TypeOf(make(chan int)), t2: reflect.TypeOf(make(chan int)), s1: "chan int", s2: "chan int"},
 		{t1: reflect.TypeOf(make(<-chan int)), t2: reflect.TypeOf(make(chan int)), s1: H("<-") + "chan int", s2: "chan int"},
 		{t1: reflect.TypeOf(make(chan<- int)), t2: reflect.TypeOf(make(chan int)), s1: "chan" + H("<-") + " int", s2: "chan int"},
@@ -455,6 +460,8 @@ func TestWriteDiffKinds(t *testing.T) {
 		{t1: reflect.TypeOf(make(<-chan chan int)), t2: reflect.TypeOf(make(chan int)), s1: H("<-") + "chan " + H("chan int"), s2: "chan " + H("int")},
 		{t1: reflect.TypeOf(make(chan<- chan int)), t2: reflect.TypeOf(make(chan int)), s1: "chan" + H("<- chan int"), s2: "chan " + H("int")},
 		{t1: reflect.TypeOf(make(chan<- chan int)), t2: reflect.TypeOf(make(<-chan int)), s1: "chan" + H("<- chan int"), s2: H("<-") + "chan " + H("int")},
+		{t1: reflect.TypeOf(make(chan Array)), t2: reflect.TypeOf(make(chan int)), s1: "chan " + H("assert.Array"), s2: "chan " + H("int")},
+		{t1: reflect.TypeOf(make(Chan)), t2: reflect.TypeOf(make(chan int)), s1: H("assert.Chan"), s2: H("chan int")},
 		{t1: reflect.TypeOf(func() {}), t2: reflect.TypeOf(func() {}), s1: "func()", s2: "func()"},
 		{t1: reflect.TypeOf(func(int) float32 { return .1 }), t2: reflect.TypeOf(func() {}), s1: "func(" + H("int") + ") " + H("float32"), s2: "func()"},
 		{t1: reflect.TypeOf(func(int, string) (uint, float32) { return 1, .1 }), t2: reflect.TypeOf(func() {}), s1: "func(" + H("int, string") + ") (" + H("uint, float32") + ")", s2: "func()"},
@@ -480,18 +487,28 @@ func TestWriteDiffKinds(t *testing.T) {
 			t2: reflect.TypeOf(func(I, interface{}, interface{}, I) {}),
 			s1: "func(" + H("interface {}, assert.I") + ", interface {}, assert.I)",
 			s2: "func(" + H("assert.I, interface {}") + ", interface {}, assert.I)"},
+		{t1: reflect.TypeOf(func(Int) Float { return .1 }), t2: reflect.TypeOf(func(int) float64 { return .2 }),
+			s1: "func(" + H("assert.Int") + ") " + H("assert.Float"),
+			s2: "func(" + H("int") + ") " + H("float64")},
 		{t1: reflect.TypeOf(func(struct{ x bool }, struct{ y int }) (interface{}, I) { return 100, A{} }),
 			t2: reflect.TypeOf(func(struct{ a bool }, struct{ y uint }) (I, interface{}) { return A{}, 101 }),
 			s1: "func(" + H("struct, struct") + ") (" + H("interface {}, assert.I") + ")",
 			s2: "func(" + H("struct, struct") + ") (" + H("assert.I, interface {}") + ")"},
+		{t1: reflect.TypeOf(Func(nil)), t2: reflect.TypeOf(func() {}), s1: H("assert.Func"), s2: H("func()")},
 		{t1: reflect.TypeOf(new(int)), t2: reflect.TypeOf(new(float32)), s1: "*" + H("int"), s2: "*" + H("float32")},
+		{t1: reflect.TypeOf(new(Array)), t2: reflect.TypeOf(new(float32)), s1: "*" + H("assert.Array"), s2: "*" + H("float32")},
+		{t1: reflect.TypeOf(Ptr(nil)), t2: reflect.TypeOf(new(float32)), s1: H("assert.Ptr"), s2: H("*float32")},
 		{t1: reflect.TypeOf([0]int{}), t2: reflect.TypeOf([10]int{}), s1: "[" + H("0") + "]int", s2: "[" + H("10") + "]int"},
 		{t1: reflect.TypeOf([10]chan int{}), t2: reflect.TypeOf([10]int{}), s1: "[10]" + H("chan int"), s2: "[10]" + H("int")},
 		{t1: reflect.TypeOf([10]chan int{}), t2: reflect.TypeOf([100]int{}), s1: "[" + H("10") + "]" + H("chan int"), s2: "[" + H("100") + "]" + H("int")},
 		{t1: reflect.TypeOf([10]chan int{}), t2: reflect.TypeOf([10]chan uint{}), s1: "[10]chan " + H("int"), s2: "[10]chan " + H("uint")},
+		{t1: reflect.TypeOf([0]Slice{}), t2: reflect.TypeOf([10]int{}), s1: "[" + H("0") + "]" + H("assert.Slice"), s2: "[" + H("10") + "]" + H("int")},
+		{t1: reflect.TypeOf(Array{}), t2: reflect.TypeOf([10]int{}), s1: H("assert.Array"), s2: H("[10]int")},
 		{t1: reflect.TypeOf([]int{}), t2: reflect.TypeOf(make([]int, 10)), s1: "[]int", s2: "[]int"},
 		{t1: reflect.TypeOf([]int{}), t2: reflect.TypeOf(make([]float32, 10)), s1: "[]" + H("int"), s2: "[]" + H("float32")},
+		{t1: reflect.TypeOf([]Map{}), t2: reflect.TypeOf(make([]float32, 10)), s1: "[]" + H("assert.Map"), s2: "[]" + H("float32")},
 		{t1: reflect.TypeOf([]chan int{}), t2: reflect.TypeOf(make([]chan float32, 10)), s1: "[]chan " + H("int"), s2: "[]chan " + H("float32")},
+		{t1: reflect.TypeOf(Slice(nil)), t2: reflect.TypeOf(make([]int, 10)), s1: H("assert.Slice"), s2: H("[]int")},
 		{t1: reflect.TypeOf(map[bool]int{}), t2: reflect.TypeOf(make(map[bool]int)), s1: "map[bool]int", s2: "map[bool]int"},
 		{t1: reflect.TypeOf(map[bool]uint{}), t2: reflect.TypeOf(make(map[bool]int)), s1: "map[bool]" + H("uint"), s2: "map[bool]" + H("int")},
 		{t1: reflect.TypeOf(map[bool]chan uint{}), t2: reflect.TypeOf(make(map[bool]chan int)), s1: "map[bool]chan " + H("uint"), s2: "map[bool]chan " + H("int")},
@@ -499,13 +516,15 @@ func TestWriteDiffKinds(t *testing.T) {
 		{t1: reflect.TypeOf(map[*string]int{}), t2: reflect.TypeOf(make(map[*bool]int)), s1: "map[*" + H("string") + "]int", s2: "map[*" + H("bool") + "]int"},
 		{t1: reflect.TypeOf(map[string]uint{}), t2: reflect.TypeOf(make(map[bool]int)), s1: "map[" + H("string") + "]" + H("uint"), s2: "map[" + H("bool") + "]" + H("int")},
 		{t1: reflect.TypeOf(map[*string]*uint{}), t2: reflect.TypeOf(make(map[*bool]*int)), s1: "map[*" + H("string") + "]*" + H("uint"), s2: "map[*" + H("bool") + "]*" + H("int")},
+		{t1: reflect.TypeOf(map[String]If{}), t2: reflect.TypeOf(make(map[bool]int)), s1: "map[" + H("assert.String") + "]" + H("assert.If"), s2: "map[" + H("bool") + "]" + H("int")},
+		{t1: reflect.TypeOf(Map{}), t2: reflect.TypeOf(make(map[bool]int)), s1: H("assert.Map"), s2: H("map[bool]int")},
 		{t1: reflect.TypeOf(struct{}{}), t2: reflect.TypeOf(struct{}{}), s1: "struct", s2: "struct"},
 		{t1: reflect.TypeOf(struct{ a int }{}), t2: reflect.TypeOf(struct{ a int }{}), s1: "struct", s2: "struct"},
 		{t1: reflect.TypeOf(struct{ b int }{}), t2: reflect.TypeOf(struct{ a int }{}), s1: H("struct"), s2: H("struct")},
 		{t1: reflect.TypeOf(struct{ a uint }{}), t2: reflect.TypeOf(struct{ a int }{}), s1: H("struct"), s2: H("struct")},
 		{t1: reflect.TypeOf(A{}), t2: reflect.TypeOf(struct{ a int }{}), s1: H("assert.A"), s2: H("struct")},
-		{t1: reflect.TypeOf(A{}), t2: reflect.TypeOf(B{}), s1: H("assert.A"), s2: H("assert.B")},
-		{t1: reflect.TypeOf(Int(0)), t2: reflect.TypeOf(int(100)), s1: H("assert.Int"), s2: H("int")},
+		{t1: reflect.TypeOf(A{}), t2: reflect.TypeOf(Struct{}), s1: "assert." + H("A"), s2: "assert." + H("Struct")},
+		{t1: reflect.TypeOf(A{}), t2: reflect.TypeOf(B{}), s1: "assert." + H("A"), s2: "assert." + H("B")},
 	}
 	for i, c := range cs {
 		var d ValueDiffer
@@ -515,7 +534,7 @@ func TestWriteDiffKinds(t *testing.T) {
 	}
 }
 
-func TestWriteDiffTypesBeforeValue(t *testing.T) {
+func TestWriteDiffKindsBeforeValue(t *testing.T) {
 	cs := []struct {
 		v1, v2 reflect.Value
 		s1, s2 string
@@ -523,18 +542,41 @@ func TestWriteDiffTypesBeforeValue(t *testing.T) {
 		{v1: reflect.ValueOf(func() {}), v2: reflect.ValueOf(func(int) uint { return 1 }), s1: "(func())", s2: "(func(" + H("int") + ") " + H("uint") + ")"},
 		{v1: reflect.ValueOf(make(chan int)), v2: reflect.ValueOf(make(chan uint)), s1: "(chan " + H("int") + ")", s2: "(chan " + H("uint") + ")"},
 		{v1: reflect.ValueOf(new(int)), v2: reflect.ValueOf(new(uint)), s1: "(*" + H("int") + ")", s2: "(*" + H("uint") + ")"},
-		{v1: reflect.ValueOf(A{}).Field(0), v2: reflect.ValueOf(A{a: 100}).Field(0), s1: H("<nil>"), s2: H("int")},
-		{v1: reflect.ValueOf(A{a: 100.25}).Field(0), v2: reflect.ValueOf(A{a: 100}).Field(0), s1: H("float64"), s2: H("int")},
-		{v1: reflect.ValueOf(A{}).Field(1), v2: reflect.ValueOf(A{b: A{}}).Field(1), s1: H("assert.I"), s2: H("assert.A")},
-		{v1: reflect.ValueOf(A{b: Int(100)}).Field(1), v2: reflect.ValueOf(A{b: A{}}).Field(1), s1: H("assert.Int"), s2: H("assert.A")},
+		{v1: reflect.ValueOf(unsafe.Pointer(new(int))), v2: reflect.ValueOf(100), s1: "(" + H("unsafe.Pointer") + ")", s2: H("int")},
+		{v1: reflect.ValueOf(Func(nil)), v2: reflect.ValueOf(100), s1: "(" + H("assert.Func") + ")", s2: H("int")},
+		{v1: reflect.ValueOf(Chan(nil)), v2: reflect.ValueOf(100), s1: "(" + H("assert.Chan") + ")", s2: H("int")},
+		{v1: reflect.ValueOf(Ptr(nil)), v2: reflect.ValueOf(100), s1: "(" + H("assert.Ptr") + ")", s2: H("int")},
+		{v1: reflect.ValueOf(UPtr(nil)), v2: reflect.ValueOf(100), s1: "(" + H("assert.UPtr") + ")", s2: H("int")},
 	}
 	for i, c := range cs {
 		var d1, d2 ValueDiffer
-		d1.writeDiffTypesBeforeValue(c.v1, c.v2)
-		d2.writeDiffTypesBeforeValue(c.v2, c.v1)
+		d1.writeDiffKindsBeforeValue(c.v1, c.v2)
+		d2.writeDiffKindsBeforeValue(c.v2, c.v1)
 		Equal(t, c.s1, d1.String(0), "i=%v, s1\n%v\n%v", i, d1.String(0), d1.String(1))
 		Equal(t, c.s2, d1.String(1), "i=%v, s2\n%v\n%v", i, d1.String(0), d1.String(1))
 		Equal(t, c.s1, d2.String(1), "i=%v, rs2\n%v\n%v", i, d2.String(1), d2.String(0))
 		Equal(t, c.s2, d2.String(0), "i=%v, rs1\n%v\n%v", i, d2.String(1), d2.String(0))
+	}
+}
+
+type Assertions struct{}
+type Kind uint
+
+func TestWriteDiffPkgTypes(t *testing.T) {
+	cs := []struct {
+		t1, t2 reflect.Type
+		s1, s2 string
+	}{
+		{t1: reflect.TypeOf(reflect.Value{}), t2: reflect.TypeOf(make(Chan)), s1: H("reflect.Value"), s2: H("assert.Chan")},
+		{t1: reflect.TypeOf(Int(100)), t2: reflect.TypeOf(make(Chan)), s1: "assert." + H("Int"), s2: "assert." + H("Chan")},
+		{t1: reflect.TypeOf(reflect.Int), t2: reflect.TypeOf(Kind(100)), s1: H("reflect") + ".Kind", s2: H("assert") + ".Kind"},
+		{t1: reflect.TypeOf(Assertions{}), t2: reflect.TypeOf(assert2.Assertions{}), s1: H("testa") + "/assert.Assertions", s2: H("testify") + "/assert.Assertions"},
+		{t1: reflect.TypeOf(Int(100)), t2: reflect.TypeOf(assert2.Assertions{}), s1: H("testa") + "/assert." + H("Int"), s2: H("testify") + "/assert." + H("Assertions")},
+	}
+	for i, c := range cs {
+		var d ValueDiffer
+		d.writeDiffKinds(c.t1, c.t2)
+		Equal(t, c.s1, d.String(0), "i=%v, s1\n%v\n%v", i, d.String(0), d.String(1))
+		Equal(t, c.s2, d.String(1), "i=%v, s2\n%v\n%v", i, d.String(0), d.String(1))
 	}
 }
