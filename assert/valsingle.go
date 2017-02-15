@@ -5,17 +5,17 @@ import (
 	"reflect"
 )
 
-func (vd *ValueDiffer) WriteTypeValue(idx int, v reflect.Value, tab int) {
+func (vd *tValueDiffer) WriteTypeValue(idx int, v reflect.Value, tab int) {
 	vd.bufi(idx).Tab = tab
 	vd.writeTypeValue(idx, v)
 }
 
-func (vd *ValueDiffer) writeTypeValue(idx int, v reflect.Value) {
+func (vd *tValueDiffer) writeTypeValue(idx int, v reflect.Value) {
 	v = vd.writeTypeBeforeValue(idx, v, false)
 	vd.writeValueAfterType(idx, v)
 }
 
-func (vd *ValueDiffer) writeTypeBeforeValue(idx int, v reflect.Value, hl bool) reflect.Value {
+func (vd *tValueDiffer) writeTypeBeforeValue(idx int, v reflect.Value, hl bool) reflect.Value {
 	b := vd.bufi(idx)
 	if v.IsValid() && v.Kind() == reflect.Interface {
 		if !v.IsNil() {
@@ -31,7 +31,7 @@ func (vd *ValueDiffer) writeTypeBeforeValue(idx int, v reflect.Value, hl bool) r
 	return v
 }
 
-func (vd *ValueDiffer) writeTypeBeforeValueNoInterface(idx int, v reflect.Value, hl bool) {
+func (vd *tValueDiffer) writeTypeBeforeValueNoInterface(idx int, v reflect.Value, hl bool) {
 	b := vd.bufi(idx)
 	if !v.IsValid() {
 		b.Write(hl, nil)
@@ -46,7 +46,7 @@ func (vd *ValueDiffer) writeTypeBeforeValueNoInterface(idx int, v reflect.Value,
 	}
 }
 
-func (vd *ValueDiffer) writeType(idx int, t reflect.Type, hl bool) {
+func (vd *tValueDiffer) writeType(idx int, t reflect.Type, hl bool) {
 	b := vd.bufi(idx)
 	if t.PkgPath() == "" {
 		switch t.Kind() {
@@ -79,7 +79,7 @@ func (vd *ValueDiffer) writeType(idx int, t reflect.Type, hl bool) {
 	}
 }
 
-func (vd *ValueDiffer) writeTypeFunc(idx int, t reflect.Type, hl bool) {
+func (vd *tValueDiffer) writeTypeFunc(idx int, t reflect.Type, hl bool) {
 	b := vd.bufi(idx)
 	b.Write(hl, "func(")
 	for i := 0; i < t.NumIn(); i++ {
@@ -105,7 +105,7 @@ func (vd *ValueDiffer) writeTypeFunc(idx int, t reflect.Type, hl bool) {
 	}
 }
 
-func (vd *ValueDiffer) writeTypeHeadChan(idx int, t reflect.Type, hl, hldir bool) {
+func (vd *tValueDiffer) writeTypeHeadChan(idx int, t reflect.Type, hl, hldir bool) {
 	b := vd.bufi(idx)
 	switch t.ChanDir() {
 	case reflect.RecvDir:
@@ -118,7 +118,7 @@ func (vd *ValueDiffer) writeTypeHeadChan(idx int, t reflect.Type, hl, hldir bool
 	b.Plain(" ")
 }
 
-func (vd *ValueDiffer) writeValueAfterType(idx int, v reflect.Value) {
+func (vd *tValueDiffer) writeValueAfterType(idx int, v reflect.Value) {
 	b := vd.bufi(idx)
 	if !v.IsValid() {
 		return
@@ -155,7 +155,7 @@ func (vd *ValueDiffer) writeValueAfterType(idx int, v reflect.Value) {
 	}
 }
 
-func (vd *ValueDiffer) writeValueAfterTypeArray(idx int, v reflect.Value) {
+func (vd *tValueDiffer) writeValueAfterTypeArray(idx int, v reflect.Value) {
 	b := vd.bufi(idx)
 	_, id, ml := attrElemArray(v)
 	b.Normal("{")
@@ -167,7 +167,7 @@ func (vd *ValueDiffer) writeValueAfterTypeArray(idx int, v reflect.Value) {
 	vd.writeElemArrayC(idx, v, true, id, ml, false)
 }
 
-func (vd *ValueDiffer) writeValueAfterTypeSlice(idx int, v reflect.Value) {
+func (vd *tValueDiffer) writeValueAfterTypeSlice(idx int, v reflect.Value) {
 	b := vd.bufi(idx)
 	if v.IsNil() {
 		b.Normal("(nil)")
@@ -176,7 +176,7 @@ func (vd *ValueDiffer) writeValueAfterTypeSlice(idx int, v reflect.Value) {
 	vd.writeValueAfterTypeArray(idx, v)
 }
 
-func (vd *ValueDiffer) writeValueAfterTypeMap(idx int, v reflect.Value) {
+func (vd *tValueDiffer) writeValueAfterTypeMap(idx int, v reflect.Value) {
 	b := vd.bufi(idx)
 	if v.IsNil() {
 		b.Normal("(nil)")
@@ -192,7 +192,7 @@ func (vd *ValueDiffer) writeValueAfterTypeMap(idx int, v reflect.Value) {
 	vd.writeElemMapC(idx, v, true, ml, false)
 }
 
-func (vd *ValueDiffer) writeValueAfterTypeStruct(idx int, v reflect.Value) {
+func (vd *tValueDiffer) writeValueAfterTypeStruct(idx int, v reflect.Value) {
 	b := vd.bufi(idx)
 	if ml := attrElemStruct(v); ml {
 		vd.writeElemStructML(idx, v, false)
@@ -210,7 +210,7 @@ func (vd *ValueDiffer) writeValueAfterTypeStruct(idx int, v reflect.Value) {
 	}
 }
 
-func (vd *ValueDiffer) writeElem(idx int, v reflect.Value, hl bool) {
+func (vd *tValueDiffer) writeElem(idx int, v reflect.Value, hl bool) {
 	b := vd.bufi(idx)
 	if !v.IsValid() {
 		b.Write(hl, nil)
@@ -236,7 +236,7 @@ func (vd *ValueDiffer) writeElem(idx int, v reflect.Value, hl bool) {
 	}
 }
 
-func (vd *ValueDiffer) writeElemArray(idx int, v reflect.Value, hl bool) {
+func (vd *tValueDiffer) writeElemArray(idx int, v reflect.Value, hl bool) {
 	b := vd.bufi(idx)
 	tp, id, ml := attrElemArray(v)
 	if tp {
@@ -255,7 +255,7 @@ func (vd *ValueDiffer) writeElemArray(idx int, v reflect.Value, hl bool) {
 	vd.writeElemArrayC(idx, v, tp, id, ml, hl)
 }
 
-func (vd *ValueDiffer) writeElemArrayC(idx int, v reflect.Value, tp, id, ml, hl bool) {
+func (vd *tValueDiffer) writeElemArrayC(idx int, v reflect.Value, tp, id, ml, hl bool) {
 	b := vd.bufi(idx)
 	p := false
 	for i := 0; i < v.Len(); i++ {
@@ -280,7 +280,7 @@ func (vd *ValueDiffer) writeElemArrayC(idx int, v reflect.Value, tp, id, ml, hl 
 	}
 }
 
-func (vd *ValueDiffer) writeElemSlice(idx int, v reflect.Value, hl bool) {
+func (vd *tValueDiffer) writeElemSlice(idx int, v reflect.Value, hl bool) {
 	b := vd.bufi(idx)
 	if v.IsNil() {
 		b.Write(hl, nil)
@@ -289,7 +289,7 @@ func (vd *ValueDiffer) writeElemSlice(idx int, v reflect.Value, hl bool) {
 	vd.writeElemArray(idx, v, hl)
 }
 
-func (vd *ValueDiffer) writeElemMap(idx int, v reflect.Value, hl bool) {
+func (vd *tValueDiffer) writeElemMap(idx int, v reflect.Value, hl bool) {
 	b := vd.bufi(idx)
 	if v.IsNil() {
 		b.Write(hl, nil)
@@ -312,7 +312,7 @@ func (vd *ValueDiffer) writeElemMap(idx int, v reflect.Value, hl bool) {
 	vd.writeElemMapC(idx, v, tp, ml, hl)
 }
 
-func (vd *ValueDiffer) writeElemMapC(idx int, v reflect.Value, tp, ml, hl bool) {
+func (vd *tValueDiffer) writeElemMapC(idx int, v reflect.Value, tp, ml, hl bool) {
 	b := vd.bufi(idx)
 	for i, k := range v.MapKeys() {
 		if i > 0 {
@@ -332,7 +332,7 @@ func (vd *ValueDiffer) writeElemMapC(idx int, v reflect.Value, tp, ml, hl bool) 
 	}
 }
 
-func (vd *ValueDiffer) writeElemStruct(idx int, v reflect.Value, hl bool) {
+func (vd *tValueDiffer) writeElemStruct(idx int, v reflect.Value, hl bool) {
 	if ml := attrElemStruct(v); ml {
 		vd.writeType(idx, v.Type(), hl)
 		vd.writeElemStructML(idx, v, hl)
@@ -342,7 +342,7 @@ func (vd *ValueDiffer) writeElemStruct(idx int, v reflect.Value, hl bool) {
 	}
 }
 
-func (vd *ValueDiffer) writeElemStructML(idx int, v reflect.Value, hl bool) {
+func (vd *tValueDiffer) writeElemStructML(idx int, v reflect.Value, hl bool) {
 	b := vd.bufi(idx)
 	b.Write(hl, "{")
 	b.Tab++
@@ -358,7 +358,7 @@ func (vd *ValueDiffer) writeElemStructML(idx int, v reflect.Value, hl bool) {
 	b.NL().Write(hl, "}")
 }
 
-func (vd *ValueDiffer) writeKey(idx int, v reflect.Value, hl bool) {
+func (vd *tValueDiffer) writeKey(idx int, v reflect.Value, hl bool) {
 	b := vd.bufi(idx)
 	if !v.IsValid() {
 		b.Write(hl, nil)
@@ -411,7 +411,7 @@ func (vd *ValueDiffer) writeKey(idx int, v reflect.Value, hl bool) {
 	}
 }
 
-func (vd *ValueDiffer) writeKeyArray(idx int, v reflect.Value, hl bool) {
+func (vd *tValueDiffer) writeKeyArray(idx int, v reflect.Value, hl bool) {
 	b := vd.bufi(idx)
 	b.Write(hl, "[")
 	for i := 0; i < v.Len(); i++ {
@@ -423,7 +423,7 @@ func (vd *ValueDiffer) writeKeyArray(idx int, v reflect.Value, hl bool) {
 	b.Write(hl, "]")
 }
 
-func (vd *ValueDiffer) writeKeySlice(idx int, v reflect.Value, hl bool) {
+func (vd *tValueDiffer) writeKeySlice(idx int, v reflect.Value, hl bool) {
 	b := vd.bufi(idx)
 	if v.IsNil() {
 		b.Write(hl, nil)
@@ -432,7 +432,7 @@ func (vd *ValueDiffer) writeKeySlice(idx int, v reflect.Value, hl bool) {
 	vd.writeKeyArray(idx, v, hl)
 }
 
-func (vd *ValueDiffer) writeKeyMap(idx int, v reflect.Value, hl bool) {
+func (vd *tValueDiffer) writeKeyMap(idx int, v reflect.Value, hl bool) {
 	b := vd.bufi(idx)
 	if v.IsNil() {
 		b.Write(hl, nil)
@@ -450,7 +450,7 @@ func (vd *ValueDiffer) writeKeyMap(idx int, v reflect.Value, hl bool) {
 	b.Write(hl, "]")
 }
 
-func (vd *ValueDiffer) writeKeyStruct(idx int, v reflect.Value, hl bool) {
+func (vd *tValueDiffer) writeKeyStruct(idx int, v reflect.Value, hl bool) {
 	b := vd.bufi(idx)
 	b.Write(hl, "{")
 	t := v.Type()
@@ -544,7 +544,7 @@ func isPointer(t reflect.Type) bool {
 	return k == reflect.Chan || k == reflect.Func || k == reflect.Ptr || k == reflect.UnsafePointer
 }
 
-func (vd *ValueDiffer) bufi(i int) (b *FeatureBuf) {
+func (vd *tValueDiffer) bufi(i int) (b *tFeatureBuf) {
 	b = &vd.b[i]
 	if b.w == nil {
 		b.w = &vd.buf[i]

@@ -315,7 +315,7 @@ func TestWriteTypeDiffValues(t *testing.T) {
 	}
 	for i, c := range cs {
 		f := func(v1, v2 reflect.Value, s1, s2, ss1, ss2 string, n1, n2 bool) {
-			var d ValueDiffer
+			var d tValueDiffer
 			d.writeTypeDiffValues(v1, v2)
 			if s1 == "" {
 				s1 = H(fmt.Sprintf("%v", v1))
@@ -355,7 +355,7 @@ func TestWriteTypeDiffValuesArrayShort2(t *testing.T) {
 	b[len(b)/2][len(b[0])/2]++
 	b[len(b)-1][len(b[0])-2]++
 	b[len(b)-1][len(b[0])-1]++
-	var d ValueDiffer
+	var d tValueDiffer
 	d.writeTypeDiffValues(reflect.ValueOf(a), reflect.ValueOf(b))
 	s1 := "[10][10]int{\n\t[100 101 104 109 116 125 136 149 164 181],\n\t[101 \x1b[41m102\x1b[0m 105 110 117 126 137 150 165 182],\n\t[102 103 106 111 118 127 138 151 166 183],\n\t[103 104 107 112 119 128 139 152 167 184],\n\t[104 105 108 113 120 129 140 153 168 185],\n\t[105 106 109 114 121 \x1b[41m130\x1b[0m 141 154 169 186],\n\t[106 107 110 115 122 131 142 155 170 187],\n\t[107 108 111 116 123 132 143 156 171 188],\n\t[108 109 112 117 124 133 144 157 172 189],\n\t[109 110 113 118 125 134 145 158 \x1b[41m173 190\x1b[0m]\n}"
 	s2 := "[10][10]int{\n\t[100 101 104 109 116 125 136 149 164 181],\n\t[101 \x1b[41m103\x1b[0m 105 110 117 126 137 150 165 182],\n\t[102 103 106 111 118 127 138 151 166 183],\n\t[103 104 107 112 119 128 139 152 167 184],\n\t[104 105 108 113 120 129 140 153 168 185],\n\t[105 106 109 114 121 \x1b[41m131\x1b[0m 141 154 169 186],\n\t[106 107 110 115 122 131 142 155 170 187],\n\t[107 108 111 116 123 132 143 156 171 188],\n\t[108 109 112 117 124 133 144 157 172 189],\n\t[109 110 113 118 125 134 145 158 \x1b[41m174 191\x1b[0m]\n}"
@@ -375,7 +375,7 @@ func TestWriteTypeDiffValuesArrayLong2(t *testing.T) {
 	b[len(b)/2][len(b[0])/2]++
 	b[len(b)-1][len(b[0])-2]++
 	b[len(b)-1][len(b[0])-1]++
-	var d ValueDiffer
+	var d tValueDiffer
 	d.writeTypeDiffValues(reflect.ValueOf(a), reflect.ValueOf(b))
 	s1 := "[14][14]int{\n\t1:[14]int{1:\x1b[41m102\x1b[0m},\n\t7:[14]int{7:\x1b[41m156\x1b[0m},\n\t13:[14]int{12:\x1b[41m257\x1b[0m, 13:\x1b[41m282\x1b[0m}\n}"
 	s2 := "[14][14]int{\n\t1:[14]int{1:\x1b[41m103\x1b[0m},\n\t7:[14]int{7:\x1b[41m157\x1b[0m},\n\t13:[14]int{12:\x1b[41m258\x1b[0m, 13:\x1b[41m283\x1b[0m}\n}"
@@ -397,7 +397,7 @@ func TestWriteTypeDiffValuesArrayShort3(t *testing.T) {
 	b[len(b)/2][len(b[0])/2][len(b[0][0])/3]++
 	b[len(b)-1][len(b[0])-1][len(b[0][0])-2]++
 	b[len(b)-1][len(b[0])-1][len(b[0][0])-1]++
-	var d ValueDiffer
+	var d tValueDiffer
 	d.writeTypeDiffValues(reflect.ValueOf(a), reflect.ValueOf(b))
 	s1 := "[5][5][5]int{\n\t[5][5]int{\n\t\t[100 101 108 127 164],\n\t\t[101 102 109 128 165],\n\t\t[104 105 112 131 168],\n\t\t[109 110 117 136 173],\n\t\t[116 117 124 143 180]\n\t},\n\t[5][5]int{\n\t\t[101 102 109 128 165],\n\t\t[102 \x1b[41m103\x1b[0m 110 129 166],\n\t\t[105 106 113 132 169],\n\t\t[110 111 118 137 174],\n\t\t[117 118 125 144 181]\n\t},\n\t[5][5]int{\n\t\t[102 103 110 129 166],\n\t\t[103 104 111 130 167],\n\t\t[106 \x1b[41m107\x1b[0m 114 133 170],\n\t\t[111 112 119 138 175],\n\t\t[118 119 126 145 182]\n\t},\n\t[5][5]int{\n\t\t[103 104 111 130 167],\n\t\t[104 105 112 131 168],\n\t\t[107 108 115 134 171],\n\t\t[112 113 120 139 176],\n\t\t[119 120 127 146 183]\n\t},\n\t[5][5]int{\n\t\t[104 105 112 131 168],\n\t\t[105 106 113 132 169],\n\t\t[108 109 116 135 172],\n\t\t[113 114 121 140 177],\n\t\t[120 121 128 \x1b[41m147 184\x1b[0m]\n\t}\n}"
 	s2 := "[5][5][5]int{\n\t[5][5]int{\n\t\t[100 101 108 127 164],\n\t\t[101 102 109 128 165],\n\t\t[104 105 112 131 168],\n\t\t[109 110 117 136 173],\n\t\t[116 117 124 143 180]\n\t},\n\t[5][5]int{\n\t\t[101 102 109 128 165],\n\t\t[102 \x1b[41m104\x1b[0m 110 129 166],\n\t\t[105 106 113 132 169],\n\t\t[110 111 118 137 174],\n\t\t[117 118 125 144 181]\n\t},\n\t[5][5]int{\n\t\t[102 103 110 129 166],\n\t\t[103 104 111 130 167],\n\t\t[106 \x1b[41m108\x1b[0m 114 133 170],\n\t\t[111 112 119 138 175],\n\t\t[118 119 126 145 182]\n\t},\n\t[5][5]int{\n\t\t[103 104 111 130 167],\n\t\t[104 105 112 131 168],\n\t\t[107 108 115 134 171],\n\t\t[112 113 120 139 176],\n\t\t[119 120 127 146 183]\n\t},\n\t[5][5]int{\n\t\t[104 105 112 131 168],\n\t\t[105 106 113 132 169],\n\t\t[108 109 116 135 172],\n\t\t[113 114 121 140 177],\n\t\t[120 121 128 \x1b[41m148 185\x1b[0m]\n\t}\n}"
@@ -419,7 +419,7 @@ func TestWriteTypeDiffValuesArrayLong3(t *testing.T) {
 	b[len(b)/2][len(b[0])/2][len(b[0][0])/3]++
 	b[len(b)-1][len(b[0])-1][len(b[0][0])-2]++
 	b[len(b)-1][len(b[0])-1][len(b[0][0])-1]++
-	var d ValueDiffer
+	var d tValueDiffer
 	d.writeTypeDiffValues(reflect.ValueOf(a), reflect.ValueOf(b))
 	s1 := "[15][15][15]int{\n\t1:[15][15]int{\n\t\t1:[15]int{1:\x1b[41m103\x1b[0m}\n\t},\n\t7:[15][15]int{\n\t\t7:[15]int{5:\x1b[41m281\x1b[0m}\n\t},\n\t14:[15][15]int{\n\t\t14:[15]int{13:\x1b[41m2507\x1b[0m, 14:\x1b[41m3054\x1b[0m}\n\t}\n}"
 	s2 := "[15][15][15]int{\n\t1:[15][15]int{\n\t\t1:[15]int{1:\x1b[41m104\x1b[0m}\n\t},\n\t7:[15][15]int{\n\t\t7:[15]int{5:\x1b[41m282\x1b[0m}\n\t},\n\t14:[15][15]int{\n\t\t14:[15]int{13:\x1b[41m2508\x1b[0m, 14:\x1b[41m3055\x1b[0m}\n\t}\n}"
@@ -437,7 +437,7 @@ func TestWriteTypeDiffValuesArrayShort3Dense(t *testing.T) {
 			}
 		}
 	}
-	var d ValueDiffer
+	var d tValueDiffer
 	d.writeTypeDiffValues(reflect.ValueOf(a), reflect.ValueOf(b))
 	s1 := "[5][5][5]int{\n\t[5][5]int{\n\t\t[1 2 \x1b[41m9 28 65\x1b[0m],\n\t\t[2 3 \x1b[41m10 29 66\x1b[0m],\n\t\t[\x1b[41m5 6 13 32 69\x1b[0m],\n\t\t[\x1b[41m10 11 18 37 74\x1b[0m],\n\t\t[\x1b[41m17 18 25 44 81\x1b[0m]\n\t},\n\t[5][5]int{\n\t\t[2 3 \x1b[41m10 29 66\x1b[0m],\n\t\t[3 4 \x1b[41m11 30 67\x1b[0m],\n\t\t[\x1b[41m6 7 14 33 70\x1b[0m],\n\t\t[\x1b[41m11 12 19 38 75\x1b[0m],\n\t\t[\x1b[41m18 19 26 45 82\x1b[0m]\n\t},\n\t[5][5]int{\n\t\t[\x1b[41m3 4 11 30 67\x1b[0m],\n\t\t[\x1b[41m4 5 12 31 68\x1b[0m],\n\t\t[\x1b[41m7 8\x1b[0m 15 \x1b[41m34 71\x1b[0m],\n\t\t[\x1b[41m12 13 20 39 76\x1b[0m],\n\t\t[\x1b[41m19 20 27 46 83\x1b[0m]\n\t},\n\t[5][5]int{\n\t\t[\x1b[41m4 5\x1b[0m 12 \x1b[41m31 68\x1b[0m],\n\t\t[\x1b[41m5 6\x1b[0m 13 \x1b[41m32 69\x1b[0m],\n\t\t[\x1b[41m8 9 16 35 72\x1b[0m],\n\t\t[\x1b[41m13 14 21\x1b[0m 40 \x1b[41m77\x1b[0m],\n\t\t[\x1b[41m20 21 28 47 84\x1b[0m]\n\t},\n\t[5][5]int{\n\t\t[\x1b[41m5 6 13 32 69\x1b[0m],\n\t\t[\x1b[41m6 7 14 33 70\x1b[0m],\n\t\t[\x1b[41m9 10 17 36 73\x1b[0m],\n\t\t[\x1b[41m14 15 22 41 78\x1b[0m],\n\t\t[\x1b[41m21 22 29 48\x1b[0m 85]\n\t}\n}"
 	s2 := "[5][5][5]int{\n\t[5][5]int{\n\t\t[1 2 \x1b[41m3 4 5\x1b[0m],\n\t\t[2 3 \x1b[41m4 5 6\x1b[0m],\n\t\t[\x1b[41m9 10 11 12 13\x1b[0m],\n\t\t[\x1b[41m28 29 30 31 32\x1b[0m],\n\t\t[\x1b[41m65 66 67 68 69\x1b[0m]\n\t},\n\t[5][5]int{\n\t\t[2 3 \x1b[41m4 5 6\x1b[0m],\n\t\t[3 4 \x1b[41m5 6 7\x1b[0m],\n\t\t[\x1b[41m10 11 12 13 14\x1b[0m],\n\t\t[\x1b[41m29 30 31 32 33\x1b[0m],\n\t\t[\x1b[41m66 67 68 69 70\x1b[0m]\n\t},\n\t[5][5]int{\n\t\t[\x1b[41m5 6 7 8 9\x1b[0m],\n\t\t[\x1b[41m6 7 8 9 10\x1b[0m],\n\t\t[\x1b[41m13 14\x1b[0m 15 \x1b[41m16 17\x1b[0m],\n\t\t[\x1b[41m32 33 34 35 36\x1b[0m],\n\t\t[\x1b[41m69 70 71 72 73\x1b[0m]\n\t},\n\t[5][5]int{\n\t\t[\x1b[41m10 11\x1b[0m 12 \x1b[41m13 14\x1b[0m],\n\t\t[\x1b[41m11 12\x1b[0m 13 \x1b[41m14 15\x1b[0m],\n\t\t[\x1b[41m18 19 20 21 22\x1b[0m],\n\t\t[\x1b[41m37 38 39\x1b[0m 40 \x1b[41m41\x1b[0m],\n\t\t[\x1b[41m74 75 76 77 78\x1b[0m]\n\t},\n\t[5][5]int{\n\t\t[\x1b[41m17 18 19 20 21\x1b[0m],\n\t\t[\x1b[41m18 19 20 21 22\x1b[0m],\n\t\t[\x1b[41m25 26 27 28 29\x1b[0m],\n\t\t[\x1b[41m44 45 46 47 48\x1b[0m],\n\t\t[\x1b[41m81 82 83 84\x1b[0m 85]\n\t}\n}"
@@ -527,7 +527,7 @@ func TestWriteDiffKinds(t *testing.T) {
 		{t1: reflect.TypeOf(A{}), t2: reflect.TypeOf(B{}), s1: "assert." + H("A"), s2: "assert." + H("B")},
 	}
 	for i, c := range cs {
-		var d ValueDiffer
+		var d tValueDiffer
 		d.writeDiffKinds(c.t1, c.t2)
 		Equal(t, c.s1, d.String(0), "i=%v, s1\n%v\n%v", i, d.String(0), d.String(1))
 		Equal(t, c.s2, d.String(1), "i=%v, s2\n%v\n%v", i, d.String(0), d.String(1))
@@ -549,7 +549,7 @@ func TestWriteDiffKindsBeforeValue(t *testing.T) {
 		{v1: reflect.ValueOf(UPtr(nil)), v2: reflect.ValueOf(100), s1: "(" + H("assert.UPtr") + ")", s2: H("int")},
 	}
 	for i, c := range cs {
-		var d1, d2 ValueDiffer
+		var d1, d2 tValueDiffer
 		d1.writeDiffKindsBeforeValue(c.v1, c.v2)
 		d2.writeDiffKindsBeforeValue(c.v2, c.v1)
 		Equal(t, c.s1, d1.String(0), "i=%v, s1\n%v\n%v", i, d1.String(0), d1.String(1))
@@ -574,7 +574,7 @@ func TestWriteDiffPkgTypes(t *testing.T) {
 		{t1: reflect.TypeOf(Int(100)), t2: reflect.TypeOf(assert2.Assertions{}), s1: H("testa") + "/assert." + H("Int"), s2: H("testify") + "/assert." + H("Assertions")},
 	}
 	for i, c := range cs {
-		var d ValueDiffer
+		var d tValueDiffer
 		d.writeDiffKinds(c.t1, c.t2)
 		Equal(t, c.s1, d.String(0), "i=%v, s1\n%v\n%v", i, d.String(0), d.String(1))
 		Equal(t, c.s2, d.String(1), "i=%v, s2\n%v\n%v", i, d.String(0), d.String(1))

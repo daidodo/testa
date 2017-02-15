@@ -275,7 +275,7 @@ func TestWriteKey(t *testing.T) {
 		{e: "0x64", v: reflect.ValueOf(struct{ a PStr }{100}).Field(0)},
 	}
 	for i, c := range cs {
-		var d ValueDiffer
+		var d tValueDiffer
 		d.writeKey(0, c.v, false)
 		d.writeKey(1, c.v, true)
 		r1 := c.e
@@ -391,7 +391,7 @@ func TestWriteElem(t *testing.T) {
 		{e: "0x64", v: reflect.ValueOf(struct{ a PStr }{100}).Field(0)},
 	}
 	for i, c := range cs {
-		var d ValueDiffer
+		var d tValueDiffer
 		d.writeElem(0, c.v, false)
 		d.writeElem(1, c.v, true)
 		r1 := c.e
@@ -539,7 +539,7 @@ func TestWriteValueAfterType(t *testing.T) {
 		}{c: []uint{1, 2, 3}})},
 	}
 	for i, c := range cs {
-		var d ValueDiffer
+		var d tValueDiffer
 		d.writeValueAfterType(0, c.v)
 		r1 := c.e
 		if c.p {
@@ -589,7 +589,7 @@ func TestWriteTypeHeadChan(t *testing.T) {
 		{H("chan<- int"), reflect.TypeOf(make(chan<- int)), true, true, true},
 	}
 	for i, c := range cs {
-		var d ValueDiffer
+		var d tValueDiffer
 		d.writeTypeHeadChan(0, c.v, c.h, c.hd)
 		d.bufi(0).Write(c.he, "int")
 		Equal(t, c.e, d.String(0), "i=%v, r=\n%v", i, d.String(0))
@@ -668,7 +668,7 @@ func TestWriteType(t *testing.T) {
 		{v: reflect.TypeOf(Struct{})},
 	}
 	for i, c := range cs {
-		var d ValueDiffer
+		var d tValueDiffer
 		d.writeType(0, c.v, false)
 		d.writeType(1, c.v, true)
 		e := c.e
@@ -761,7 +761,7 @@ func TestWriteTypeBeforeValue(t *testing.T) {
 		{v: reflect.ValueOf(Struct{})},
 	}
 	for i, c := range cs {
-		var d ValueDiffer
+		var d tValueDiffer
 		d.writeTypeBeforeValue(0, c.v, false)
 		d.writeTypeBeforeValue(1, c.v, true)
 		e, h := c.e, c.h
@@ -895,7 +895,7 @@ func TestWriteTypeValue(t *testing.T) {
 		{v: reflect.ValueOf(Struct{}), e: "assert.Struct{a:<nil>, b:<nil>}"},
 	}
 	for i, c := range cs {
-		var d ValueDiffer
+		var d tValueDiffer
 		d.writeTypeValue(0, c.v)
 		e := c.e
 		if c.p {

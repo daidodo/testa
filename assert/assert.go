@@ -64,7 +64,7 @@ func (c caller) NotEqual(t *testing.T, expected, actual interface{}, messages ..
 
 func fail(c caller, t *testing.T, expected, actual interface{}, eq bool, msg ...interface{}) {
 	var buf bytes.Buffer
-	b := FeatureBuf{w: &buf, Tab: 0}
+	b := tFeatureBuf{w: &buf, Tab: 0}
 	writeCodeInfo(c, &b)
 	b.Tab++
 	if eq {
@@ -79,23 +79,23 @@ func fail(c caller, t *testing.T, expected, actual interface{}, eq bool, msg ...
 	t.FailNow()
 }
 
-func writeFailEq(buf *FeatureBuf, expected, actual interface{}) {
-	var v ValueDiffer
+func writeFailEq(buf *tFeatureBuf, expected, actual interface{}) {
+	var v tValueDiffer
 	v.WriteDiff(reflect.ValueOf(expected), reflect.ValueOf(actual), buf.Tab+1)
 	buf.NL().Normalf("Expect:\t%v", v.String(0))
 	buf.NL().Normalf("Actual:\t%v", v.String(1))
 	writeAttrs(buf, v)
 }
 
-func writeFailNe(buf *FeatureBuf, actual interface{}) {
-	var v ValueDiffer
+func writeFailNe(buf *tFeatureBuf, actual interface{}) {
+	var v tValueDiffer
 	v.WriteTypeValue(0, reflect.ValueOf(actual), buf.Tab+1)
 	buf.NL().Normal("Expect:\t").Highlight("SAME as Actual").Finish()
 	buf.NL().Normalf("Actual:\t%v", v.String(0))
 	writeAttrs(buf, v)
 }
 
-func writeAttrs(buf *FeatureBuf, v ValueDiffer) {
+func writeAttrs(buf *tFeatureBuf, v tValueDiffer) {
 	if v.Attrs[OmitSame] {
 		buf.NL().Normal("\t(").Highlight("Only diffs are shown").Normal(")")
 	}
@@ -104,7 +104,7 @@ func writeAttrs(buf *FeatureBuf, v ValueDiffer) {
 	}
 }
 
-func writeCodeInfo(c caller, buf *FeatureBuf) {
+func writeCodeInfo(c caller, buf *tFeatureBuf) {
 	narrow(&c.from, 0, 100)
 	narrow(&c.to, c.from, 100)
 	for find := false; c.to >= c.from; c.to-- {
@@ -124,7 +124,7 @@ func writeCodeInfo(c caller, buf *FeatureBuf) {
 	}
 }
 
-func writeMessages(buf *FeatureBuf, messages ...interface{}) {
+func writeMessages(buf *tFeatureBuf, messages ...interface{}) {
 	if len(messages) < 1 {
 		return
 	}

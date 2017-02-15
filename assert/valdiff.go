@@ -16,24 +16,24 @@ const (
 	kAttrSize
 )
 
-type ValueDiffer struct {
+type tValueDiffer struct {
 	buf   [2]bytes.Buffer
-	b     [2]FeatureBuf
+	b     [2]tFeatureBuf
 	Attrs [kAttrSize]bool
 }
 
-func (vd *ValueDiffer) String(i int) string {
+func (vd *tValueDiffer) String(i int) string {
 	vd.b[i].Finish()
 	return vd.buf[i].String()
 }
 
-func (vd *ValueDiffer) WriteDiff(v1, v2 reflect.Value, tab int) {
+func (vd *tValueDiffer) WriteDiff(v1, v2 reflect.Value, tab int) {
 	b1, b2 := vd.bufs()
 	b1.Tab, b2.Tab = tab, tab
 	vd.writeDiff(v1, v2)
 }
 
-func (vd *ValueDiffer) writeDiff(v1, v2 reflect.Value) {
+func (vd *tValueDiffer) writeDiff(v1, v2 reflect.Value) {
 	if !v1.IsValid() || !v2.IsValid() || v1.Type() != v2.Type() {
 		vd.writeDiffTypeValues(v1, v2)
 	} else {
@@ -41,7 +41,7 @@ func (vd *ValueDiffer) writeDiff(v1, v2 reflect.Value) {
 	}
 }
 
-func (vd *ValueDiffer) writeDiffTypeValues(v1, v2 reflect.Value) {
+func (vd *tValueDiffer) writeDiffTypeValues(v1, v2 reflect.Value) {
 	if !v1.IsValid() || !v2.IsValid() {
 		vd.writeTypeBeforeValueNoInterface(0, v1, true)
 		vd.writeTypeBeforeValueNoInterface(1, v2, true)
@@ -63,7 +63,7 @@ func (vd *ValueDiffer) writeDiffTypeValues(v1, v2 reflect.Value) {
 	}
 }
 
-func (vd *ValueDiffer) writeDiffKindsBeforeValue(v1, v2 reflect.Value) {
+func (vd *tValueDiffer) writeDiffKindsBeforeValue(v1, v2 reflect.Value) {
 	b1, b2 := vd.bufs()
 	t1, t2 := v1.Type(), v2.Type()
 	if isPointer(t1) {
@@ -77,7 +77,7 @@ func (vd *ValueDiffer) writeDiffKindsBeforeValue(v1, v2 reflect.Value) {
 	vd.writeDiffKinds(t1, t2)
 }
 
-func (vd *ValueDiffer) writeDiffKinds(t1, t2 reflect.Type) {
+func (vd *tValueDiffer) writeDiffKinds(t1, t2 reflect.Type) {
 	if t1 == nil || t2 == nil {
 		panic("Should not come here!")
 	}
@@ -94,7 +94,7 @@ func (vd *ValueDiffer) writeDiffKinds(t1, t2 reflect.Type) {
 	}
 }
 
-func (vd *ValueDiffer) writeDiffPkgTypes(t1, t2 reflect.Type) {
+func (vd *tValueDiffer) writeDiffPkgTypes(t1, t2 reflect.Type) {
 	b1, b2 := vd.bufs()
 	if t1.PkgPath() == t2.PkgPath() {
 		p := lastPartOf(t1.PkgPath())
@@ -112,7 +112,7 @@ func (vd *ValueDiffer) writeDiffPkgTypes(t1, t2 reflect.Type) {
 		if i < len(p2) {
 			p2 = p2[len(p2)-i:]
 		}
-		pt := func(b *FeatureBuf, p []string, nh bool) {
+		pt := func(b *tFeatureBuf, p []string, nh bool) {
 			if !nh {
 				b.Highlight(p[0])
 				p = p[1:]
@@ -136,7 +136,7 @@ func (vd *ValueDiffer) writeDiffPkgTypes(t1, t2 reflect.Type) {
 	}
 }
 
-func (vd *ValueDiffer) writeDiffTypes(t1, t2 reflect.Type) {
+func (vd *tValueDiffer) writeDiffTypes(t1, t2 reflect.Type) {
 	b1, b2 := vd.bufs()
 	switch t1.Kind() {
 	case reflect.Ptr:
@@ -175,7 +175,7 @@ func (vd *ValueDiffer) writeDiffTypes(t1, t2 reflect.Type) {
 	}
 }
 
-func (vd *ValueDiffer) writeDiffTypesFunc(t1, t2 reflect.Type) {
+func (vd *tValueDiffer) writeDiffTypesFunc(t1, t2 reflect.Type) {
 	b1, b2 := vd.bufs()
 	b1.Normal("func(")
 	b2.Normal("func(")
@@ -235,7 +235,7 @@ func (vd *ValueDiffer) writeDiffTypesFunc(t1, t2 reflect.Type) {
 	}
 }
 
-func (vd *ValueDiffer) writeTypeDiffValues(v1, v2 reflect.Value) {
+func (vd *tValueDiffer) writeTypeDiffValues(v1, v2 reflect.Value) {
 	b1, b2 := vd.bufs()
 	switch v1.Kind() {
 	case reflect.Complex64, reflect.Complex128:
@@ -287,7 +287,7 @@ func (vd *ValueDiffer) writeTypeDiffValues(v1, v2 reflect.Value) {
 	}
 }
 
-func (vd *ValueDiffer) writeDiffValuesFunc(v1, v2 reflect.Value) {
+func (vd *tValueDiffer) writeDiffValuesFunc(v1, v2 reflect.Value) {
 	b1, b2 := vd.bufs()
 	if v1.IsNil() && v2.IsNil() {
 		b1.Normal("nil")
@@ -301,7 +301,7 @@ func (vd *ValueDiffer) writeDiffValuesFunc(v1, v2 reflect.Value) {
 	}
 }
 
-func (vd *ValueDiffer) writeTypeDiffValuesArray(v1, v2 reflect.Value, slice bool) {
+func (vd *tValueDiffer) writeTypeDiffValuesArray(v1, v2 reflect.Value, slice bool) {
 	b1, b2 := vd.bufs()
 	tp1, id1, ml1 := attrElemArray(v1)
 	tp2, id2, ml2 := attrElemArray(v2)
@@ -336,7 +336,7 @@ func (vd *ValueDiffer) writeTypeDiffValuesArray(v1, v2 reflect.Value, slice bool
 	}
 }
 
-func (vd *ValueDiffer) writeDiffValuesArray(v1, v2 reflect.Value, tp, id, ml1, ml2 bool) {
+func (vd *tValueDiffer) writeDiffValuesArray(v1, v2 reflect.Value, tp, id, ml1, ml2 bool) {
 	b1, b2 := vd.bufs()
 	var p1, p2 bool
 	for i, j := 0, 0; i < v1.Len(); i++ {
@@ -381,7 +381,7 @@ func (vd *ValueDiffer) writeDiffValuesArray(v1, v2 reflect.Value, tp, id, ml1, m
 	}
 }
 
-func (vd *ValueDiffer) writeDiffValuesSlice(v1, v2 reflect.Value, tp, id, ml1, ml2 bool) {
+func (vd *tValueDiffer) writeDiffValuesSlice(v1, v2 reflect.Value, tp, id, ml1, ml2 bool) {
 	b1, b2 := vd.bufs()
 	var p1, p2 bool
 	for i, j := 0, 0; i < v1.Len() || i < v2.Len(); i++ {
@@ -454,7 +454,7 @@ func (vd *ValueDiffer) writeDiffValuesSlice(v1, v2 reflect.Value, tp, id, ml1, m
 	}
 }
 
-func (vd *ValueDiffer) writeTypeDiffValuesMap(v1, v2 reflect.Value) {
+func (vd *tValueDiffer) writeTypeDiffValuesMap(v1, v2 reflect.Value) {
 	b1, b2 := vd.bufs()
 	tp1, ml1 := attrElemMap(v1)
 	tp2, ml2 := attrElemMap(v2)
@@ -485,7 +485,7 @@ func (vd *ValueDiffer) writeTypeDiffValuesMap(v1, v2 reflect.Value) {
 	vd.writeDiffValuesMap(v1, v2, tp, ml1, ml2)
 }
 
-func (vd *ValueDiffer) writeDiffValuesMap(v1, v2 reflect.Value, tp, ml1, ml2 bool) {
+func (vd *tValueDiffer) writeDiffValuesMap(v1, v2 reflect.Value, tp, ml1, ml2 bool) {
 	b1, b2 := vd.bufs()
 	var ks, ks1, ks2 []reflect.Value
 	for _, k := range v1.MapKeys() {
@@ -577,7 +577,7 @@ func (vd *ValueDiffer) writeDiffValuesMap(v1, v2 reflect.Value, tp, ml1, ml2 boo
 	f(1, v2, ks2, ml2, i)
 }
 
-func (vd *ValueDiffer) writeTypeDiffValuesStruct(v1, v2 reflect.Value) {
+func (vd *tValueDiffer) writeTypeDiffValuesStruct(v1, v2 reflect.Value) {
 	b1, b2 := vd.bufs()
 	ml1, ml2 := attrElemStruct(v1), attrElemStruct(v2)
 	if ml1 || ml2 {
@@ -601,7 +601,7 @@ func (vd *ValueDiffer) writeTypeDiffValuesStruct(v1, v2 reflect.Value) {
 	vd.writeDiffValuesStruct(v1, v2, ml1, ml2)
 }
 
-func (vd *ValueDiffer) writeDiffValuesStruct(v1, v2 reflect.Value, ml1, ml2 bool) {
+func (vd *tValueDiffer) writeDiffValuesStruct(v1, v2 reflect.Value, ml1, ml2 bool) {
 	b1, b2 := vd.bufs()
 	id := v1.NumField() > 10
 	t := v1.Type()
@@ -643,7 +643,7 @@ func (vd *ValueDiffer) writeDiffValuesStruct(v1, v2 reflect.Value, ml1, ml2 bool
 	}
 }
 
-func (vd *ValueDiffer) writeDiffValuesString(v1, v2 reflect.Value) {
+func (vd *tValueDiffer) writeDiffValuesString(v1, v2 reflect.Value) {
 	b1, b2 := vd.bufs()
 	s1, s2 := []rune(fmt.Sprintf("%#v", v1)), []rune(fmt.Sprintf("%#v", v2))
 	s1, s2 = s1[1:len(s1)-1], s2[1:len(s2)-1] // skip front and end "
@@ -666,7 +666,7 @@ func (vd *ValueDiffer) writeDiffValuesString(v1, v2 reflect.Value) {
 	b2.Normal(`"`)
 }
 
-func (vd *ValueDiffer) bufs() (b1, b2 *FeatureBuf) {
+func (vd *tValueDiffer) bufs() (b1, b2 *tFeatureBuf) {
 	return vd.bufi(0), vd.bufi(1)
 }
 

@@ -6,18 +6,18 @@ import (
 	"io"
 )
 
-type FeatureBuf struct {
+type tFeatureBuf struct {
 	w    io.Writer
 	pl   bytes.Buffer
 	code string
 	Tab  int
 }
 
-func (b *FeatureBuf) Writef(hl bool, format string, a ...interface{}) *FeatureBuf {
+func (b *tFeatureBuf) Writef(hl bool, format string, a ...interface{}) *tFeatureBuf {
 	return b.Write(hl, fmt.Sprintf(format, a...))
 }
 
-func (b *FeatureBuf) Write(hl bool, a ...interface{}) *FeatureBuf {
+func (b *tFeatureBuf) Write(hl bool, a ...interface{}) *tFeatureBuf {
 	if s := fmt.Sprint(a...); len(s) > 0 {
 		if hl {
 			b.highlight()
@@ -29,32 +29,32 @@ func (b *FeatureBuf) Write(hl bool, a ...interface{}) *FeatureBuf {
 	return b
 }
 
-func (b *FeatureBuf) Normalf(format string, a ...interface{}) *FeatureBuf {
+func (b *tFeatureBuf) Normalf(format string, a ...interface{}) *tFeatureBuf {
 	return b.Writef(false, format, a...)
 }
 
-func (b *FeatureBuf) Normal(a ...interface{}) *FeatureBuf {
+func (b *tFeatureBuf) Normal(a ...interface{}) *tFeatureBuf {
 	return b.Write(false, a...)
 }
 
-func (b *FeatureBuf) Highlightf(format string, a ...interface{}) *FeatureBuf {
+func (b *tFeatureBuf) Highlightf(format string, a ...interface{}) *tFeatureBuf {
 	return b.Writef(true, format, a...)
 }
 
-func (b *FeatureBuf) Highlight(a ...interface{}) *FeatureBuf {
+func (b *tFeatureBuf) Highlight(a ...interface{}) *tFeatureBuf {
 	return b.Write(true, a...)
 }
 
-func (b *FeatureBuf) Plainf(format string, a ...interface{}) *FeatureBuf {
+func (b *tFeatureBuf) Plainf(format string, a ...interface{}) *tFeatureBuf {
 	return b.Plain(fmt.Sprintf(format, a...))
 }
 
-func (b *FeatureBuf) Plain(a ...interface{}) *FeatureBuf {
+func (b *tFeatureBuf) Plain(a ...interface{}) *tFeatureBuf {
 	b.pl.WriteString(fmt.Sprint(a...))
 	return b
 }
 
-func (b *FeatureBuf) NL() *FeatureBuf {
+func (b *tFeatureBuf) NL() *tFeatureBuf {
 	b.Normal("\n")
 	for i := 0; i < b.Tab; i++ {
 		b.Normal("\t")
@@ -62,18 +62,18 @@ func (b *FeatureBuf) NL() *FeatureBuf {
 	return b
 }
 
-func (b *FeatureBuf) Finish() {
+func (b *tFeatureBuf) Finish() {
 	b.normal()
 }
 
-func (b *FeatureBuf) writeString(s string) *FeatureBuf {
+func (b *tFeatureBuf) writeString(s string) *tFeatureBuf {
 	if len(s) > 0 {
 		b.w.Write([]byte(s))
 	}
 	return b
 }
 
-func (b *FeatureBuf) flushPlain() {
+func (b *tFeatureBuf) flushPlain() {
 	b.writeString(b.pl.String())
 	b.pl.Reset()
 }
@@ -81,7 +81,7 @@ func (b *FeatureBuf) flushPlain() {
 const kEND = "\033[0m"
 const kRED = "\033[41m"
 
-func (b *FeatureBuf) normal() {
+func (b *tFeatureBuf) normal() {
 	defer b.flushPlain()
 	if b.code == "" {
 		return
@@ -90,7 +90,7 @@ func (b *FeatureBuf) normal() {
 	b.code = ""
 }
 
-func (b *FeatureBuf) highlight() {
+func (b *tFeatureBuf) highlight() {
 	b.flushPlain()
 	if b.code == kRED {
 		return
