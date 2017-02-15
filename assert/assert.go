@@ -37,66 +37,66 @@ EqualValue/NotEqualValue
 EqualError
 */
 
-// True asserts that a is true.
-func True(t *testing.T, a bool, messages ...interface{}) {
-	CallerT{1, 1}.True(t, a, messages...)
-}
-
-// False asserts that a is false.
-func False(t *testing.T, a bool, messages ...interface{}) {
-	CallerT{1, 1}.False(t, a, messages...)
-}
-
-// Equal asserts that e and a are exactly the same, both type and value.
-func Equal(t *testing.T, e, a interface{}, messages ...interface{}) {
-	CallerT{1, 1}.Equal(t, e, a, messages...)
-}
-
-// NotEqual asserts that e and a are not the same, either type or value.
-func NotEqual(t *testing.T, e, a interface{}, messages ...interface{}) {
-	CallerT{1, 1}.NotEqual(t, e, a, messages...)
-}
-
-// CallerT is useful for customizing caller information shown for assertions.
-type CallerT struct {
-	from, to int
-}
-
-// Caller changes caller information shown for assertions.
+// Caller changes calling information shown for assertions.
 func Caller(lv int) CallerT {
 	return CallerT{0, lv}
 }
 
 // True asserts that a is true.
-func (c CallerT) True(t *testing.T, actual bool, messages ...interface{}) {
-	if actual {
+func True(t *testing.T, a bool, m ...interface{}) {
+	CallerT{1, 1}.True(t, a, m...)
+}
+
+// True asserts that a is true.
+func (c CallerT) True(t *testing.T, a bool, m ...interface{}) {
+	if a {
 		return
 	}
-	fail(c, t, true, actual, true, messages...)
+	fail(c, t, true, a, true, m...)
 }
 
 // False asserts that a is false.
-func (c CallerT) False(t *testing.T, actual bool, messages ...interface{}) {
-	if !actual {
+func False(t *testing.T, a bool, m ...interface{}) {
+	CallerT{1, 1}.False(t, a, m...)
+}
+
+// False asserts that a is false.
+func (c CallerT) False(t *testing.T, a bool, m ...interface{}) {
+	if !a {
 		return
 	}
-	fail(c, t, false, actual, true, messages...)
+	fail(c, t, false, a, true, m...)
 }
 
 // Equal asserts that e and a are exactly the same, both type and value.
-func (c CallerT) Equal(t *testing.T, expected, actual interface{}, messages ...interface{}) {
-	if reflect.DeepEqual(expected, actual) {
+func Equal(t *testing.T, e, a interface{}, m ...interface{}) {
+	CallerT{1, 1}.Equal(t, e, a, m...)
+}
+
+// Equal asserts that e and a are exactly the same, both type and value.
+func (c CallerT) Equal(t *testing.T, e, a interface{}, m ...interface{}) {
+	if reflect.DeepEqual(e, a) {
 		return
 	}
-	fail(c, t, expected, actual, true, messages...)
+	fail(c, t, e, a, true, m...)
 }
 
 // NotEqual asserts that e and a are not the same, either type or value.
-func (c CallerT) NotEqual(t *testing.T, expected, actual interface{}, messages ...interface{}) {
-	if !reflect.DeepEqual(expected, actual) {
+func NotEqual(t *testing.T, e, a interface{}, m ...interface{}) {
+	CallerT{1, 1}.NotEqual(t, e, a, m...)
+}
+
+// NotEqual asserts that e and a are not the same, either type or value.
+func (c CallerT) NotEqual(t *testing.T, e, a interface{}, m ...interface{}) {
+	if !reflect.DeepEqual(e, a) {
 		return
 	}
-	fail(c, t, expected, actual, false, messages...)
+	fail(c, t, e, a, false, m...)
+}
+
+// CallerT is useful for customizing calling information shown for assertions.
+type CallerT struct {
+	from, to int
 }
 
 func fail(c CallerT, t *testing.T, expected, actual interface{}, eq bool, msg ...interface{}) {
