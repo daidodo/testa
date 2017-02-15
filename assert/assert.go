@@ -28,6 +28,15 @@ import (
 	"unsafe"
 )
 
+/* TODO:
+Nil/NotNil
+Error/NoError
+Contain/NotContain
+Empty/NotEmpty
+EqualValue/NotEqualValue
+EqualError
+*/
+
 // True asserts that a is true.
 func True(t *testing.T, a bool, messages ...interface{}) {
 	CallerT{1, 1}.True(t, a, messages...)
