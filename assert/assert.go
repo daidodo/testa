@@ -152,7 +152,6 @@ func flushLog(t *testing.T, buf *bytes.Buffer) {
 	} else {
 		t.Log("\n" + buf.String())
 	}
-	t.FailNow()
 }
 
 func narrow(i *int, min, max int) {
