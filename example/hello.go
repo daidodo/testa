@@ -5,6 +5,9 @@ import (
 	"reflect"
 	"runtime"
 	"unsafe"
+
+	"github.com/daidodo/testa/assert"
+	assert2 "github.com/stretchr/testify/assert"
 )
 
 const f = "%T\t%[1]v\t%#[1]v\n"
@@ -79,11 +82,37 @@ func fm() {
 	//a := []unsafe.Pointer{1: unsafe.Pointer(uintptr(10)), 4: unsafe.Pointer(uintptr(20)), 5: unsafe.Pointer(uintptr(30)), 7: unsafe.Pointer(uintptr(40))}
 	a := []unsafe.Pointer{1: pp(10)}
 	desc(a)
+	t1 := reflect.TypeOf(A{})
+	t2 := reflect.TypeOf(reflect.Bool)
+	t3 := reflect.TypeOf(assert.Caller(1))
+	t4 := reflect.TypeOf(struct{}{})
+	t5 := reflect.TypeOf(assert2.Assertions{})
+	desc(t1.PkgPath())
+	desc(t1.String())
+	desc(t2.PkgPath())
+	desc(t2.String())
+	desc(t3.PkgPath())
+	desc(t3.String())
+	desc(t4.PkgPath())
+	desc(t4.String())
+	desc(t5.PkgPath())
+	desc(t5.String())
+
+	dest(int(0))
+	dest(map[int]bool{})
+	dest(struct{}{})
+	dest(A{})
+	type PInt *int
+	dest(PInt(new(int)))
+	desc(PInt(new(int)))
+	type Int int
+	desc(reflect.DeepEqual(int(100), Int(100)))
+	b := struct{ a interface{} }{100}
+	desc(reflect.DeepEqual(b.a, 100))
+	fmt.Printf("%#v\n", unsafe.Pointer(new(int)))
 }
 
 func fl() {
-	//v1 := reflect.ValueOf(struct{ a *chan int }{new(chan int)}).Field(0)
-	//v2 := reflect.ValueOf(struct{ a *chan int }{new(chan int)}).Field(0)
 	c1, c2 := new(chan int), new(chan int)
 	v1 := reflect.ValueOf(c1)
 	v2 := reflect.ValueOf(c2)
@@ -527,4 +556,12 @@ func desc(a interface{}, sep ...string) {
 		s = sep[0]
 	}
 	fmt.Printf("%[2]v%[1]T%[2]v%[1]v%[2]v%+[1]v%[2]v%#[1]v\n", a, s)
+}
+
+func dest(a interface{}) {
+	if _, _, ln, ok := runtime.Caller(1); ok {
+		fmt.Print(ln, ": ")
+	}
+	t := reflect.TypeOf(a)
+	fmt.Printf("name: %v\tstring: %v\tpkg: %v\n", t.Name(), t.String(), t.PkgPath())
 }
