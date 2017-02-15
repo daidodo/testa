@@ -15,7 +15,7 @@ func TestWriteDiffPkgTypes(t *testing.T) {
 		v1, v2 reflect.Value
 		s1, s2 string
 	}{
-		{v1: reflect.ValueOf(reflect.Int), v2: reflect.ValueOf(Kind(100)), s1: "reflect.Kind(int)", s2: "\x1b[41massert\x1b[0m/reflect.Kind(100)"},
+		{v1: reflect.ValueOf(reflect.Int), v2: reflect.ValueOf(Kind(100)), s1: "reflect.Kind(int)", s2: "\x1b[41mexample\x1b[0m/reflect.Kind(100)"},
 	}
 	for i, c := range cs {
 		var d assert.ValueDiffer
@@ -26,7 +26,7 @@ func TestWriteDiffPkgTypes(t *testing.T) {
 }
 
 func TestWriteDiffPkgTypes1(t *testing.T) {
-	assert.Equal(t, reflect.Int, Kind(100))
+	assert.Equal(t, reflect.Int, Kind(100), "Msg")
 }
 
 func TestWriteDiffPkgTypes2(t *testing.T) {
