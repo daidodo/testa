@@ -246,7 +246,7 @@ func (vd *tValueDiffer) writeElemArray(idx int, v reflect.Value, hl bool) {
 		if ml {
 			b.Tab++
 			defer func() { b.Tab--; b.NL() }()
-			vd.Attrs[NewLine+idx] = true
+			vd.Attrs[kNewLine+idx] = true
 		}
 	} else {
 		b.Write(hl, "[")
@@ -303,7 +303,7 @@ func (vd *tValueDiffer) writeElemMap(idx int, v reflect.Value, hl bool) {
 		if ml {
 			b.Tab++
 			defer func() { b.Tab--; b.NL() }()
-			vd.Attrs[NewLine+idx] = true
+			vd.Attrs[kNewLine+idx] = true
 		}
 	} else {
 		b.Write(hl, "map[")
@@ -336,7 +336,7 @@ func (vd *tValueDiffer) writeElemStruct(idx int, v reflect.Value, hl bool) {
 	if ml := attrElemStruct(v); ml {
 		vd.writeType(idx, v.Type(), hl)
 		vd.writeElemStructML(idx, v, hl)
-		vd.Attrs[NewLine+idx] = true
+		vd.Attrs[kNewLine+idx] = true
 	} else {
 		vd.writeKeyStruct(idx, v, hl)
 	}

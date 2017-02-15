@@ -8,10 +8,10 @@ import (
 )
 
 const (
-	NewLine = iota
+	kNewLine = iota
 	_
-	OmitSame
-	CompFunc
+	kOmitSame
+	kCompFunc
 
 	kAttrSize
 )
@@ -296,7 +296,7 @@ func (vd *tValueDiffer) writeDiffValuesFunc(v1, v2 reflect.Value) {
 		b1.Highlight(v1)
 		b2.Highlight(v2)
 		if v1.Pointer() == v2.Pointer() {
-			vd.Attrs[CompFunc] = true
+			vd.Attrs[kCompFunc] = true
 		}
 	}
 }
@@ -316,12 +316,12 @@ func (vd *tValueDiffer) writeTypeDiffValuesArray(v1, v2 reflect.Value, slice boo
 		if ml1 {
 			b1.Tab++
 			defer func() { b1.Tab--; b1.NL() }()
-			vd.Attrs[NewLine+0] = true
+			vd.Attrs[kNewLine+0] = true
 		}
 		if ml2 {
 			b2.Tab++
 			defer func() { b2.Tab--; b2.NL() }()
-			vd.Attrs[NewLine+1] = true
+			vd.Attrs[kNewLine+1] = true
 		}
 	} else {
 		b1.Normal("[")
@@ -343,7 +343,7 @@ func (vd *tValueDiffer) writeDiffValuesArray(v1, v2 reflect.Value, tp, id, ml1, 
 		e1, e2 := v1.Index(i), v2.Index(i)
 		eq := valueEqual(e1, e2)
 		if eq && id {
-			vd.Attrs[OmitSame] = true
+			vd.Attrs[kOmitSame] = true
 			continue
 		}
 		t1, t2 := isNonTrivialElem(e1), isNonTrivialElem(e2)
@@ -388,7 +388,7 @@ func (vd *tValueDiffer) writeDiffValuesSlice(v1, v2 reflect.Value, tp, id, ml1, 
 		g1, g2 := i < v1.Len(), i < v2.Len()
 		eq := g1 && g2 && valueEqual(v1.Index(i), v2.Index(i))
 		if eq && id { // If equal, skip
-			vd.Attrs[OmitSame] = true
+			vd.Attrs[kOmitSame] = true
 			// If all elems are skipped, show last elem's index (if it's NOT empty):
 			// IDX:...
 			if i+1 == v1.Len() && j == 0 {
@@ -469,12 +469,12 @@ func (vd *tValueDiffer) writeTypeDiffValuesMap(v1, v2 reflect.Value) {
 		if ml1 {
 			b1.Tab++
 			defer func() { b1.Tab--; b1.NL() }()
-			vd.Attrs[NewLine+0] = true
+			vd.Attrs[kNewLine+0] = true
 		}
 		if ml2 {
 			b2.Tab++
 			defer func() { b2.Tab--; b2.NL() }()
-			vd.Attrs[NewLine+1] = true
+			vd.Attrs[kNewLine+1] = true
 		}
 	} else {
 		b1.Normal("map[")
@@ -506,7 +506,7 @@ func (vd *tValueDiffer) writeDiffValuesMap(v1, v2 reflect.Value, tp, ml1, ml2 bo
 		e1, e2 := v1.MapIndex(k), v2.MapIndex(k)
 		eq := valueEqual(e1, e2)
 		if eq && id {
-			vd.Attrs[OmitSame] = true
+			vd.Attrs[kOmitSame] = true
 			continue
 		}
 		if i > 0 {
@@ -591,12 +591,12 @@ func (vd *tValueDiffer) writeTypeDiffValuesStruct(v1, v2 reflect.Value) {
 	if ml1 {
 		b1.Tab++
 		defer func() { b1.Tab--; b1.NL() }()
-		vd.Attrs[NewLine+0] = true
+		vd.Attrs[kNewLine+0] = true
 	}
 	if ml2 {
 		b2.Tab++
 		defer func() { b2.Tab--; b2.NL() }()
-		vd.Attrs[NewLine+1] = true
+		vd.Attrs[kNewLine+1] = true
 	}
 	vd.writeDiffValuesStruct(v1, v2, ml1, ml2)
 }
@@ -609,7 +609,7 @@ func (vd *tValueDiffer) writeDiffValuesStruct(v1, v2 reflect.Value, ml1, ml2 boo
 		e1, e2 := v1.Field(i), v2.Field(i)
 		eq := valueEqual(e1, e2)
 		if eq && id {
-			vd.Attrs[OmitSame] = true
+			vd.Attrs[kOmitSame] = true
 			continue
 		}
 		if j > 0 {

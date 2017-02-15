@@ -333,10 +333,10 @@ func TestWriteTypeDiffValues(t *testing.T) {
 			} else {
 				Caller(1).Equal(t, s2, d.String(1), "i=%v, s2\n%v\n%v", i, d.String(0), d.String(1))
 			}
-			Caller(1).Equal(t, n1, d.Attrs[NewLine], "i=%v, NewLine1: Attrs=%v", i, d.Attrs)
-			Caller(1).Equal(t, n2, d.Attrs[NewLine+1], "i=%v, NewLine2: Attrs=%v", i, d.Attrs)
-			Caller(1).Equal(t, c.om, d.Attrs[OmitSame], "i=%v, OmitSame: Attrs=%v", i, d.Attrs)
-			Caller(1).Equal(t, c.cf, d.Attrs[CompFunc], "i=%v, CompFunc: Attrs=%v", i, d.Attrs)
+			Caller(1).Equal(t, n1, d.Attrs[kNewLine], "i=%v, NewLine1: Attrs=%v", i, d.Attrs)
+			Caller(1).Equal(t, n2, d.Attrs[kNewLine+1], "i=%v, NewLine2: Attrs=%v", i, d.Attrs)
+			Caller(1).Equal(t, c.om, d.Attrs[kOmitSame], "i=%v, kOmitSame: Attrs=%v", i, d.Attrs)
+			Caller(1).Equal(t, c.cf, d.Attrs[kCompFunc], "i=%v, kCompFunc: Attrs=%v", i, d.Attrs)
 		}
 		f(c.v1, c.v2, c.s1, c.s2, c.ss1, c.ss2, c.n1, c.n2)
 		f(c.v2, c.v1, c.s2, c.s1, c.ss2, c.ss1, c.n2, c.n1)

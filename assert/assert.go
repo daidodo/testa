@@ -10,59 +10,69 @@ import (
 	"unsafe"
 )
 
-func True(t *testing.T, actual bool, messages ...interface{}) {
-	caller{1, 1}.True(t, actual, messages...)
+// True asserts that a is true.
+func True(t *testing.T, a bool, messages ...interface{}) {
+	CallerT{1, 1}.True(t, a, messages...)
 }
 
-func False(t *testing.T, actual bool, messages ...interface{}) {
-	caller{1, 1}.False(t, actual, messages...)
+// False asserts that a is false.
+func False(t *testing.T, a bool, messages ...interface{}) {
+	CallerT{1, 1}.False(t, a, messages...)
 }
 
-func Equal(t *testing.T, expected, actual interface{}, messages ...interface{}) {
-	caller{1, 1}.Equal(t, expected, actual, messages...)
+// Equal asserts that e and a are exactly the same, both type and value.
+func Equal(t *testing.T, e, a interface{}, messages ...interface{}) {
+	CallerT{1, 1}.Equal(t, e, a, messages...)
 }
 
-func NotEqual(t *testing.T, expected, actual interface{}, messages ...interface{}) {
-	caller{1, 1}.NotEqual(t, expected, actual, messages...)
+// NotEqual asserts that e and a are not the same, either type or value.
+func NotEqual(t *testing.T, e, a interface{}, messages ...interface{}) {
+	CallerT{1, 1}.NotEqual(t, e, a, messages...)
 }
 
-type caller struct {
+// CallerT is useful for customizing caller information shown for assertions.
+type CallerT struct {
 	from, to int
 }
 
-func Caller(level int) caller {
-	return caller{0, level}
+// Caller changes caller information shown for assertions.
+func Caller(lv int) CallerT {
+	return CallerT{0, lv}
 }
 
-func (c caller) True(t *testing.T, actual bool, messages ...interface{}) {
+// True asserts that a is true.
+func (c CallerT) True(t *testing.T, actual bool, messages ...interface{}) {
 	if actual {
 		return
 	}
 	fail(c, t, true, actual, true, messages...)
 }
 
-func (c caller) False(t *testing.T, actual bool, messages ...interface{}) {
+// False asserts that a is false.
+func (c CallerT) False(t *testing.T, actual bool, messages ...interface{}) {
 	if !actual {
 		return
 	}
 	fail(c, t, false, actual, true, messages...)
 }
 
-func (c caller) Equal(t *testing.T, expected, actual interface{}, messages ...interface{}) {
+// Equal asserts that e and a are exactly the same, both type and value.
+func (c CallerT) Equal(t *testing.T, expected, actual interface{}, messages ...interface{}) {
 	if reflect.DeepEqual(expected, actual) {
 		return
 	}
 	fail(c, t, expected, actual, true, messages...)
 }
 
-func (c caller) NotEqual(t *testing.T, expected, actual interface{}, messages ...interface{}) {
+// NotEqual asserts that e and a are not the same, either type or value.
+func (c CallerT) NotEqual(t *testing.T, expected, actual interface{}, messages ...interface{}) {
 	if !reflect.DeepEqual(expected, actual) {
 		return
 	}
 	fail(c, t, expected, actual, false, messages...)
 }
 
-func fail(c caller, t *testing.T, expected, actual interface{}, eq bool, msg ...interface{}) {
+func fail(c CallerT, t *testing.T, expected, actual interface{}, eq bool, msg ...interface{}) {
 	var buf bytes.Buffer
 	b := tFeatureBuf{w: &buf, Tab: 0}
 	writeCodeInfo(c, &b)
@@ -96,15 +106,15 @@ func writeFailNe(buf *tFeatureBuf, actual interface{}) {
 }
 
 func writeAttrs(buf *tFeatureBuf, v tValueDiffer) {
-	if v.Attrs[OmitSame] {
+	if v.Attrs[kOmitSame] {
 		buf.NL().Normal("\t(").Highlight("Only diffs are shown").Normal(")")
 	}
-	if v.Attrs[CompFunc] {
+	if v.Attrs[kCompFunc] {
 		buf.NL().Normal("\t(").Highlight("func can only be compared to nil").Normal(")")
 	}
 }
 
-func writeCodeInfo(c caller, buf *tFeatureBuf) {
+func writeCodeInfo(c CallerT, buf *tFeatureBuf) {
 	narrow(&c.from, 0, 100)
 	narrow(&c.to, c.from, 100)
 	for find := false; c.to >= c.from; c.to-- {
