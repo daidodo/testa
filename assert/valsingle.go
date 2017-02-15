@@ -17,62 +17,64 @@ func (vd *ValueDiffer) writeTypeValue(idx int, v reflect.Value) {
 
 func (vd *ValueDiffer) writeTypeBeforeValue(idx int, v reflect.Value, hl bool) reflect.Value {
 	b := vd.bufi(idx)
-	if !v.IsValid() {
-		b.Write(hl, nil)
-	} else {
-		switch v.Kind() {
-		case reflect.Interface:
-			if !vd.writeTypeBeforeInterfaceNil(idx, v, hl) {
-				v = vd.writeTypeBeforeValue(idx, v.Elem(), hl)
-			}
-		case reflect.Ptr, reflect.Func, reflect.Chan:
-			b.Normal("(")
-			vd.writeType(idx, v.Type(), hl)
-			b.Normal(")")
-		default:
-			vd.writeType(idx, v.Type(), hl)
+	if v.IsValid() && v.Kind() == reflect.Interface {
+		if !v.IsNil() {
+			v = vd.writeTypeBeforeValue(idx, v.Elem(), hl)
+		} else if t := v.Type(); t.Name() == "" {
+			b.Write(hl, nil)
+		} else {
+			vd.writeType(idx, t, hl)
 		}
+	} else {
+		vd.writeTypeBeforeValueNoInterface(idx, v, hl)
 	}
 	return v
 }
 
-func (vd *ValueDiffer) writeTypeBeforeInterfaceNil(idx int, v reflect.Value, hl bool) (isNil bool) {
+func (vd *ValueDiffer) writeTypeBeforeValueNoInterface(idx int, v reflect.Value, hl bool) {
 	b := vd.bufi(idx)
-	if isNil = v.IsNil(); isNil {
-		if n := interfaceName(v.Type()); n == "" {
-			b.Write(hl, nil)
-		} else {
-			b.Write(hl, n)
-		}
+	if !v.IsValid() {
+		b.Write(hl, nil)
+	} else if isPointer(v.Type()) {
+		b.Normal("(")
+		vd.writeType(idx, v.Type(), hl)
+		b.Normal(")")
+	} else if v.Kind() == reflect.Interface {
+		panic("Should not come here!")
+	} else {
+		vd.writeType(idx, v.Type(), hl)
 	}
-	return
 }
 
 func (vd *ValueDiffer) writeType(idx int, t reflect.Type, hl bool) {
 	b := vd.bufi(idx)
-	switch t.Kind() {
-	case reflect.Ptr:
-		b.Write(hl, "*")
-		vd.writeType(idx, t.Elem(), hl)
-	case reflect.Func:
-		vd.writeTypeFunc(idx, t, hl)
-	case reflect.Chan:
-		vd.writeTypeHeadChan(idx, t, hl, false)
-		vd.writeType(idx, t.Elem(), hl)
-	case reflect.Array:
-		b.Write(hl, "[", t.Len(), "]")
-		vd.writeType(idx, t.Elem(), hl)
-	case reflect.Slice:
-		b.Write(hl, "[]")
-		vd.writeType(idx, t.Elem(), hl)
-	case reflect.Map:
-		b.Write(hl, "map[")
-		vd.writeType(idx, t.Key(), hl)
-		b.Write(hl, "]")
-		vd.writeType(idx, t.Elem(), hl)
-	case reflect.Struct:
-		b.Write(hl, structName(t))
-	default:
+	if t.PkgPath() == "" {
+		switch t.Kind() {
+		case reflect.Ptr:
+			b.Write(hl, "*")
+			vd.writeType(idx, t.Elem(), hl)
+		case reflect.Func:
+			vd.writeTypeFunc(idx, t, hl)
+		case reflect.Chan:
+			vd.writeTypeHeadChan(idx, t, hl, false)
+			vd.writeType(idx, t.Elem(), hl)
+		case reflect.Array:
+			b.Write(hl, "[", t.Len(), "]")
+			vd.writeType(idx, t.Elem(), hl)
+		case reflect.Slice:
+			b.Write(hl, "[]")
+			vd.writeType(idx, t.Elem(), hl)
+		case reflect.Map:
+			b.Write(hl, "map[")
+			vd.writeType(idx, t.Key(), hl)
+			b.Write(hl, "]")
+			vd.writeType(idx, t.Elem(), hl)
+		case reflect.Struct: // must be unnamed
+			b.Write(hl, "struct")
+		default:
+			b.Write(hl, t)
+		}
+	} else {
 		b.Write(hl, t)
 	}
 }
@@ -126,7 +128,7 @@ func (vd *ValueDiffer) writeValueAfterType(idx int, v reflect.Value) {
 		vd.writeElem(idx, v, false)
 	case reflect.Interface:
 		if v.IsNil() {
-			if interfaceName(v.Type()) != "" {
+			if v.Type().Name() != "" {
 				b.Normal("(nil)")
 			}
 		} else {
@@ -331,9 +333,8 @@ func (vd *ValueDiffer) writeElemMapC(idx int, v reflect.Value, tp, ml, hl bool) 
 }
 
 func (vd *ValueDiffer) writeElemStruct(idx int, v reflect.Value, hl bool) {
-	b := vd.bufi(idx)
 	if ml := attrElemStruct(v); ml {
-		b.Write(hl, structName(v.Type()))
+		vd.writeType(idx, v.Type(), hl)
 		vd.writeElemStructML(idx, v, hl)
 		vd.Attrs[NewLine+idx] = true
 	} else {
@@ -532,27 +533,15 @@ func isNonTrivial(t reflect.Type) bool {
 }
 
 func isReference(t reflect.Type) bool {
+	return isPointer(t) || isNonTrivial(t)
+}
+
+func isPointer(t reflect.Type) bool {
 	if t == nil {
 		return false
 	}
 	k := t.Kind()
-	return k == reflect.Chan || k == reflect.Func || k == reflect.Ptr || k == reflect.UnsafePointer || isNonTrivial(t)
-}
-
-func structName(t reflect.Type) string {
-	if t == nil {
-		return ""
-	} else if t.Name() == "" {
-		return "struct"
-	}
-	return t.String()
-}
-
-func interfaceName(t reflect.Type) string {
-	if t == nil || t.Name() == "" {
-		return ""
-	}
-	return t.String()
+	return k == reflect.Chan || k == reflect.Func || k == reflect.Ptr || k == reflect.UnsafePointer
 }
 
 func (vd *ValueDiffer) bufi(i int) (b *FeatureBuf) {

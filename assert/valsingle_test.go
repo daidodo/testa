@@ -22,6 +22,20 @@ type B struct {
 }
 
 type Int int
+type Uint uint
+type Uintptr uintptr
+type Float float64
+type Complex complex128
+type String string
+type Chan chan int
+type Func func(int) bool
+type Ptr *int
+type UPtr unsafe.Pointer
+type If I
+type Array [3]interface{}
+type Slice []interface{}
+type Map map[interface{}]interface{}
+type Struct A
 
 func (Int) Fun() {}
 
@@ -30,26 +44,6 @@ func H(s string) string {
 		return ""
 	}
 	return kRED + s + kEND
-}
-
-func TestInterfaceName(t *testing.T) {
-	type I interface {
-		Fun()
-	}
-	v := reflect.ValueOf(struct {
-		a interface{}
-		b I
-	}{})
-	Equal(t, "", interfaceName(nil))
-	Equal(t, "", interfaceName(v.Field(0).Type()))
-	Equal(t, "assert.I", interfaceName(v.Field(1).Type()))
-}
-
-func TestStructName(t *testing.T) {
-	v := reflect.ValueOf(struct{}{})
-	Equal(t, "", structName(nil))
-	Equal(t, "struct", structName(v.Type()))
-	Equal(t, "assert.A", structName(reflect.TypeOf(A{})))
 }
 
 func TestIsReference(t *testing.T) {
@@ -645,6 +639,21 @@ func TestWriteType(t *testing.T) {
 		{v: reflect.TypeOf(map[bool]int{})},
 		{v: reflect.TypeOf(struct{ a int }{}), e: "struct"},
 		{v: reflect.TypeOf(A{})},
+		{v: reflect.TypeOf(Int(100))},
+		{v: reflect.TypeOf(Uint(100))},
+		{v: reflect.TypeOf(Uintptr(100))},
+		{v: reflect.TypeOf(Float(100))},
+		{v: reflect.TypeOf(Complex(100))},
+		{v: reflect.TypeOf(String("100"))},
+		{v: reflect.TypeOf(Chan(make(Chan)))},
+		{v: reflect.TypeOf(Func(func(int) bool { return false }))},
+		{v: reflect.TypeOf(Ptr(new(int)))},
+		{v: reflect.TypeOf(UPtr(new(int)))},
+		{v: reflect.ValueOf(struct{ a If }{}).Field(0).Type()},
+		{v: reflect.TypeOf(Array{})},
+		{v: reflect.TypeOf(Slice{})},
+		{v: reflect.TypeOf(Map{})},
+		{v: reflect.TypeOf(Struct{})},
 	}
 	for i, c := range cs {
 		var d ValueDiffer
@@ -688,8 +697,8 @@ func TestWriteTypeBeforeValue(t *testing.T) {
 		{e: "(func() int)", h: "(" + H("func() int") + ")", v: reflect.ValueOf(func() int { return 0 })},
 		{e: "(*int)", h: "(" + H("*int") + ")", v: reflect.ValueOf((*int)(nil))},
 		{e: "(*int)", h: "(" + H("*int") + ")", v: reflect.ValueOf(new(int))},
-		{v: reflect.ValueOf(unsafe.Pointer(nil))},
-		{v: reflect.ValueOf(unsafe.Pointer(new(int)))},
+		{v: reflect.ValueOf(unsafe.Pointer(nil)), e: "(unsafe.Pointer)", h: "(" + H("unsafe.Pointer") + ")"},
+		{v: reflect.ValueOf(unsafe.Pointer(new(int))), e: "(unsafe.Pointer)", h: "(" + H("unsafe.Pointer") + ")"},
 		{e: "<nil>", v: reflect.ValueOf(struct{ a interface{} }{}).Field(0)},
 		{v: reflect.ValueOf(struct{ a I }{}).Field(0)},
 		{e: "int", v: reflect.ValueOf(struct{ a interface{} }{100}).Field(0)},
@@ -723,6 +732,21 @@ func TestWriteTypeBeforeValue(t *testing.T) {
 			a int
 		}{c: []uint{1, 2, 3}})},
 		{v: reflect.ValueOf(A{})},
+		{v: reflect.ValueOf(Int(100))},
+		{v: reflect.ValueOf(Uint(100))},
+		{v: reflect.ValueOf(Uintptr(100))},
+		{v: reflect.ValueOf(Float(100))},
+		{v: reflect.ValueOf(Complex(100))},
+		{v: reflect.ValueOf(String("100"))},
+		{v: reflect.ValueOf(Chan(make(Chan))), e: "(assert.Chan)", h: "(" + H("assert.Chan") + ")"},
+		{v: reflect.ValueOf(Func(func(int) bool { return false })), e: "(assert.Func)", h: "(" + H("assert.Func") + ")"},
+		{v: reflect.ValueOf(Ptr(new(int))), e: "(assert.Ptr)", h: "(" + H("assert.Ptr") + ")"},
+		{v: reflect.ValueOf(UPtr(new(int))), e: "(assert.UPtr)", h: "(" + H("assert.UPtr") + ")"},
+		{v: reflect.ValueOf(struct{ a If }{}).Field(0)},
+		{v: reflect.ValueOf(Array{})},
+		{v: reflect.ValueOf(Slice{})},
+		{v: reflect.ValueOf(Map{})},
+		{v: reflect.ValueOf(Struct{})},
 	}
 	for i, c := range cs {
 		var d ValueDiffer
@@ -771,8 +795,8 @@ func TestWriteTypeValue(t *testing.T) {
 		{e: "(func() int)(%v)", v: reflect.ValueOf(func() int { return 0 }), p: true},
 		{e: "(*int)(nil)", v: reflect.ValueOf((*int)(nil))},
 		{e: "(*int)(%v)", v: reflect.ValueOf(new(int)), p: true},
-		{e: "unsafe.Pointer(nil)", v: reflect.ValueOf(unsafe.Pointer(nil))},
-		{v: reflect.ValueOf(unsafe.Pointer(new(int)))},
+		{e: "(unsafe.Pointer)(nil)", v: reflect.ValueOf(unsafe.Pointer(nil))},
+		{e: "(unsafe.Pointer)(%v)", v: reflect.ValueOf(unsafe.Pointer(new(int))), p: true},
 		{e: "<nil>", v: reflect.ValueOf(struct{ a interface{} }{}).Field(0)},
 		{e: "assert.I(nil)", v: reflect.ValueOf(struct{ a I }{}).Field(0)},
 		{e: "int(100)", v: reflect.ValueOf(struct{ a interface{} }{100}).Field(0)},
@@ -833,6 +857,30 @@ func TestWriteTypeValue(t *testing.T) {
 			a int
 		}{c: []uint{1, 2, 3}})},
 		{e: "assert.A{a:<nil>, b:<nil>}", v: reflect.ValueOf(A{})},
+		{v: reflect.ValueOf(Int(100))},
+		{v: reflect.ValueOf(Uint(100))},
+		{v: reflect.ValueOf(Uintptr(100)), e: "assert.Uintptr(0x64)"},
+		{v: reflect.ValueOf(Float(100))},
+		{v: reflect.ValueOf(Complex(100.1 + 200.2i)), e: "assert.Complex(100.1+200.2i)"},
+		{v: reflect.ValueOf(String("100")), e: `assert.String("100")`},
+		{v: reflect.ValueOf(Chan(nil)), e: "(assert.Chan)(nil)"},
+		{v: reflect.ValueOf(Chan(make(Chan))), e: "(assert.Chan)(%v)", p: true},
+		{v: reflect.ValueOf(Func(nil)), e: "(assert.Func)(nil)"},
+		{v: reflect.ValueOf(Func(func(int) bool { return false })), e: "(assert.Func)(%v)", p: true},
+		{v: reflect.ValueOf(Ptr(nil)), e: "(assert.Ptr)(nil)"},
+		{v: reflect.ValueOf(Ptr(new(int))), e: "(assert.Ptr)(%v)", p: true},
+		{v: reflect.ValueOf(UPtr(nil)), e: "(assert.UPtr)(nil)"},
+		{v: reflect.ValueOf(UPtr(new(int))), e: "(assert.UPtr)(%v)", p: true},
+		{v: reflect.ValueOf(struct{ a If }{}).Field(0), e: "assert.If(nil)"},
+		{v: reflect.ValueOf(Array{}), e: "assert.Array{<nil>, <nil>, <nil>}"},
+		{v: reflect.ValueOf(Slice(nil)), e: "assert.Slice(nil)"},
+		{v: reflect.ValueOf(Slice{}), e: "assert.Slice{}"},
+		{v: reflect.ValueOf(make(Slice, 3)), e: "assert.Slice{<nil>, <nil>, <nil>}"},
+		{v: reflect.ValueOf(Map(nil)), e: "assert.Map(nil)"},
+		{v: reflect.ValueOf(Map{}), e: "assert.Map{}"},
+		{v: reflect.ValueOf(Map{10: true}), e: "assert.Map{10:true}"},
+		{v: reflect.ValueOf(Map{10: true, 20: false}), e: "assert.Map{10:true, 20:false}", e2: "assert.Map{20:false, 10:true}"},
+		{v: reflect.ValueOf(Struct{}), e: "assert.Struct{a:<nil>, b:<nil>}"},
 	}
 	for i, c := range cs {
 		var d ValueDiffer
