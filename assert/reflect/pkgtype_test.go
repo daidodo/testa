@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/daidodo/testa/assert"
+	assert2 "github.com/stretchr/testify/assert"
 )
 
 type Kind uint
@@ -22,4 +23,12 @@ func TestWriteDiffPkgTypes(t *testing.T) {
 		assert.Equal(t, c.s1, d.String(0), "i=%v, s1\n%v\n%v", i, d.String(0), d.String(1))
 		assert.Equal(t, c.s2, d.String(1), "i=%v, s2\n%v\n%v", i, d.String(0), d.String(1))
 	}
+}
+
+func TestWriteDiffPkgTypes1(t *testing.T) {
+	assert.Equal(t, reflect.Int, Kind(100))
+}
+
+func TestWriteDiffPkgTypes2(t *testing.T) {
+	assert2.Equal(t, reflect.Int, Kind(100))
 }
