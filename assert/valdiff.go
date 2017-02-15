@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"reflect"
+	"strings"
 )
 
 const (
@@ -41,44 +42,39 @@ func (vd *ValueDiffer) writeDiff(v1, v2 reflect.Value) {
 }
 
 func (vd *ValueDiffer) writeDiffTypeValues(v1, v2 reflect.Value) {
-	if !v1.IsValid() || !v2.IsValid() || v2.Kind() != v2.Kind() {
-		v1 = vd.writeTypeBeforeValue(0, v1, true)
-		v2 = vd.writeTypeBeforeValue(1, v2, true)
+	if !v1.IsValid() || !v2.IsValid() {
+		vd.writeTypeBeforeValueNoInterface(0, v1, true)
+		vd.writeTypeBeforeValueNoInterface(1, v2, true)
 	} else {
-		v1, v2 = vd.writeDiffTypesBeforeValue(v1, v2)
+		re := false
+		if v1.Kind() == reflect.Interface && !v1.IsNil() {
+			v1, re = v1.Elem(), true
+		}
+		if v2.Kind() == reflect.Interface && !v2.IsNil() {
+			v2, re = v2.Elem(), true
+		}
+		if re {
+			vd.writeDiff(v1, v2)
+		} else {
+			vd.writeDiffKindsBeforeValue(v1, v2)
+			vd.writeValueAfterType(0, v1)
+			vd.writeValueAfterType(1, v2)
+		}
 	}
-	vd.writeValueAfterType(0, v1)
-	vd.writeValueAfterType(1, v2)
 }
 
-func (vd *ValueDiffer) writeDiffTypesBeforeValue(v1, v2 reflect.Value) (r1, r2 reflect.Value) {
+func (vd *ValueDiffer) writeDiffKindsBeforeValue(v1, v2 reflect.Value) {
 	b1, b2 := vd.bufs()
-	r1, r2 = v1, v2
-	switch v1.Kind() {
-	case reflect.Interface:
-		if vd.writeTypeBeforeInterfaceNil(0, v1, true) {
-			r2 = vd.writeTypeBeforeValue(1, v2, true)
-		} else if vd.writeTypeBeforeInterfaceNil(1, v2, true) {
-			r1 = vd.writeTypeBeforeValue(0, v1, true)
-		} else {
-			r1, r2 = vd.writeDiffTypesBeforeValue(v1.Elem(), v2.Elem())
-		}
-	case reflect.Ptr:
-		b1.Normal("(*")
-		b2.Normal("(*")
-		vd.writeDiffTypes(v1.Type().Elem(), v2.Type().Elem())
-		b1.Normal(")")
-		b2.Normal(")")
-	case reflect.Func, reflect.Chan:
+	t1, t2 := v1.Type(), v2.Type()
+	if isPointer(t1) {
 		b1.Normal("(")
-		b2.Normal("(")
-		vd.writeDiffTypes(v1.Type(), v2.Type())
-		b1.Normal(")")
-		b2.Normal(")")
-	default:
-		vd.writeDiffTypes(v1.Type(), v2.Type())
+		defer b1.Normal(")")
 	}
-	return
+	if isPointer(t2) {
+		b2.Normal("(")
+		defer b2.Normal(")")
+	}
+	vd.writeDiffKinds(t1, t2)
 }
 
 func (vd *ValueDiffer) writeDiffKinds(t1, t2 reflect.Type) {
@@ -88,11 +84,55 @@ func (vd *ValueDiffer) writeDiffKinds(t1, t2 reflect.Type) {
 	if t1 == t2 {
 		vd.writeType(0, t1, false)
 		vd.writeType(1, t2, false)
-	} else if t1.Kind() == t2.Kind() {
+	} else if t1.PkgPath() == "" && t2.PkgPath() == "" && t1.Kind() == t2.Kind() {
 		vd.writeDiffTypes(t1, t2)
-	} else {
+	} else if t1.PkgPath() == "" || t2.PkgPath() == "" {
 		vd.writeType(0, t1, true)
 		vd.writeType(1, t2, true)
+	} else {
+		vd.writeDiffPkgTypes(t1, t2)
+	}
+}
+
+func (vd *ValueDiffer) writeDiffPkgTypes(t1, t2 reflect.Type) {
+	b1, b2 := vd.bufs()
+	if t1.PkgPath() == t2.PkgPath() {
+		p := lastPartOf(t1.PkgPath())
+		b1.Normal(p, ".").Highlight(t1.Name())
+		b2.Normal(p, ".").Highlight(t2.Name())
+	} else {
+		p1 := strings.Split(t1.PkgPath(), "/")
+		p2 := strings.Split(t2.PkgPath(), "/")
+		i := 1
+		for ; i <= len(p1) && i <= len(p2) && p1[len(p1)-i] == p2[len(p2)-i]; i++ {
+		}
+		if i < len(p1) {
+			p1 = p1[len(p1)-i:]
+		}
+		if i < len(p2) {
+			p2 = p2[len(p2)-i:]
+		}
+		pt := func(b *FeatureBuf, p []string, nh bool) {
+			if !nh {
+				b.Highlight(p[0])
+				p = p[1:]
+				if len(p) > 0 {
+					b.Normal("/")
+				}
+			}
+			for i, c := range p {
+				if i > 0 {
+					b.Normal("/")
+				}
+				b.Normal(c)
+			}
+			b.Plain(".")
+		}
+		pt(b1, p1, len(p1) < len(p2))
+		pt(b2, p2, len(p2) < len(p1))
+		h := t1.Name() != t2.Name()
+		b1.Write(h, t1.Name())
+		b2.Write(h, t2.Name())
 	}
 }
 
@@ -126,9 +166,9 @@ func (vd *ValueDiffer) writeDiffTypes(t1, t2 reflect.Type) {
 		b1.Normal("]")
 		b2.Normal("]")
 		vd.writeDiffKinds(t1.Elem(), t2.Elem())
-	case reflect.Struct:
-		b1.Highlight(structName(t1))
-		b2.Highlight(structName(t2))
+	case reflect.Struct: // must be unnamed struct
+		b1.Highlight("struct")
+		b2.Highlight("struct")
 	default:
 		b1.Highlight(t1)
 		b2.Highlight(t2)
