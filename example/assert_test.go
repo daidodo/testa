@@ -7,7 +7,9 @@ import (
 )
 
 func TestNil(t *testing.T) {
-	a := chan int(nil)
+	var a chan int
+	assert.Nil(t, a)
+	assert.Nil(t, nil)
 	assert.Equal(t, nil, a)
 }
 
