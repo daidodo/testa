@@ -24,6 +24,8 @@ type A struct {
 		aa string
 		bb [3]int
 	}
+	f interface{}
+	g I
 }
 
 func (A) Fun(int) string  { return "3" }
@@ -37,6 +39,10 @@ type I interface {
 type I2 interface {
 	Fun3(int) string
 	Fun4(int) string
+}
+
+func (I2) String() string {
+	return "I2 String"
 }
 
 func main() {
@@ -72,10 +78,25 @@ func main() {
 	fk()
 	fl()
 	fm()
+	fn()
 }
 
 func pp(p uintptr) unsafe.Pointer {
 	return unsafe.Pointer(p)
+}
+
+func fn() {
+	var a A
+	desc(nil == a.f)
+	desc(reflect.DeepEqual(nil, a.f))
+	desc(nil == a.g)
+	desc(reflect.DeepEqual(nil, a.g))
+	var b chan int
+	desc(nil == b)
+	desc(reflect.DeepEqual(nil, b))
+	desc(reflect.DeepEqual(b, nil))
+	var c I2
+	desc(c)
 }
 
 func fm() {
