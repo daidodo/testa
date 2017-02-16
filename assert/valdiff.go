@@ -25,15 +25,6 @@ import (
 	"strings"
 )
 
-const (
-	kNewLine = iota
-	_
-	kOmitSame
-	kCompFunc
-
-	kAttrSize
-)
-
 type tValueDiffer struct {
 	buf   [2]bytes.Buffer
 	b     [2]tFeatureBuf
@@ -60,26 +51,19 @@ func (vd *tValueDiffer) writeDiff(v1, v2 reflect.Value) {
 }
 
 func (vd *tValueDiffer) writeDiffTypeValues(v1, v2 reflect.Value) {
-	if !v1.IsValid() || !v2.IsValid() {
-		vd.writeTypeBeforeValueNoInterface(0, v1, true)
-		vd.writeTypeBeforeValueNoInterface(1, v2, true)
+	v1, r1 := derefInterface(v1)
+	v2, r2 := derefInterface(v2)
+	if r1 || r2 {
+		vd.writeDiff(v1, v2)
+	} else if !v1.IsValid() || !v2.IsValid() {
+		v1 = vd.writeTypeBeforeValue(0, v1, true)
+		v2 = vd.writeTypeBeforeValue(1, v2, true)
 		vd.writeValueAfterType(0, v1)
 		vd.writeValueAfterType(1, v2)
 	} else {
-		re := false
-		if v1.Kind() == reflect.Interface && !v1.IsNil() {
-			v1, re = v1.Elem(), true
-		}
-		if v2.Kind() == reflect.Interface && !v2.IsNil() {
-			v2, re = v2.Elem(), true
-		}
-		if re {
-			vd.writeDiff(v1, v2)
-		} else {
-			vd.writeDiffKindsBeforeValue(v1, v2)
-			vd.writeValueAfterType(0, v1)
-			vd.writeValueAfterType(1, v2)
-		}
+		vd.writeDiffKindsBeforeValue(v1, v2)
+		vd.writeValueAfterType(0, v1)
+		vd.writeValueAfterType(1, v2)
 	}
 }
 
@@ -690,6 +674,15 @@ func (vd *tValueDiffer) bufs() (b1, b2 *tFeatureBuf) {
 	return vd.bufi(0), vd.bufi(1)
 }
 
+const (
+	kNewLine = iota
+	_
+	kOmitSame
+	kCompFunc
+
+	kAttrSize
+)
+
 func valueEqual(v1, v2 reflect.Value) bool {
 	if !v1.IsValid() || !v2.IsValid() {
 		return v1.IsValid() == v2.IsValid()
@@ -774,4 +767,15 @@ func valueEqual(v1, v2 reflect.Value) bool {
 	default: // reflect.Invalid
 	}
 	return false
+}
+
+func derefInterface(v reflect.Value) (r reflect.Value, d bool) {
+	if v.IsValid() && v.Kind() == reflect.Interface {
+		if !v.IsNil() {
+			return v.Elem(), true
+		} else if v.Type().Name() == "" {
+			return r, true
+		}
+	}
+	return v, d
 }
