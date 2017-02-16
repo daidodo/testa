@@ -40,6 +40,9 @@ func (vd *tValueDiffer) writeTypeBeforeValue(idx int, v reflect.Value, hl bool) 
 		return v
 	} else if v, df := derefInterface(v); df {
 		return vd.writeTypeBeforeValue(idx, v, hl)
+	} else if v, df := derefPtr(v); df {
+		b.Write(hl, "&")
+		return vd.writeTypeBeforeValue(idx, v, hl)
 	} else if isPointer(v.Type()) {
 		b.Normal("(")
 		defer b.Normal(")")
@@ -142,7 +145,7 @@ func (vd *tValueDiffer) writeValueAfterType(idx int, v reflect.Value) {
 		vd.writeValueAfterTypeMap(idx, v)
 	case reflect.Struct:
 		vd.writeValueAfterTypeStruct(idx, v)
-	case reflect.Chan, reflect.Func, reflect.Ptr, reflect.UnsafePointer:
+	case reflect.Chan, reflect.Func, reflect.UnsafePointer, reflect.Ptr:
 		if v.Pointer() == 0 {
 			b.Normal("(nil)")
 			break
@@ -362,52 +365,61 @@ func (vd *tValueDiffer) writeKey(idx int, v reflect.Value, hl bool) {
 	b := vd.bufi(idx)
 	if !v.IsValid() {
 		b.Write(hl, nil)
-	} else {
-		switch v.Kind() {
-		case reflect.String:
-			b.Writef(hl, "%#v", v)
-		case reflect.Uintptr:
-			if v.CanInterface() {
-				switch x := v.Interface().(type) {
-				case fmt.GoStringer:
-					b.Write(hl, x.GoString())
-				case fmt.Stringer:
-					b.Write(hl, x.String())
-				default:
-					b.Writef(hl, "%#v", v.Interface())
-				}
-			} else {
-				b.Writef(hl, "%#v", v)
-			}
-		case reflect.Complex64, reflect.Complex128, reflect.Func: // accord to writeTypeDiffValues
-			b.Write(hl, v)
-		case reflect.Ptr:
-			if v.IsNil() {
-				b.Write(hl, nil)
-			} else {
-				b.Write(hl, v)
-			}
-		case reflect.Interface:
-			if v.IsNil() {
-				b.Write(hl, nil)
-			} else {
-				vd.writeKey(idx, v.Elem(), hl)
-			}
-		case reflect.Array:
-			vd.writeKeyArray(idx, v, hl)
-		case reflect.Slice:
-			vd.writeKeySlice(idx, v, hl)
-		case reflect.Map:
-			vd.writeKeyMap(idx, v, hl)
-		case reflect.Struct:
-			vd.writeKeyStruct(idx, v, hl)
-		default:
-			if v.CanInterface() {
-				b.Write(hl, v.Interface())
-			} else {
-				b.Write(hl, v)
-			}
+		return
+	}
+	switch v.Kind() {
+	case reflect.Bool:
+		b.Writef(hl, "%t", v.Bool())
+	case reflect.String:
+		b.Writef(hl, "%q", v.String())
+	case reflect.Float32:
+		b.Writef(hl, "%g", float32(v.Float()))
+	case reflect.Float64:
+		b.Writef(hl, "%g", v.Float())
+	case reflect.Complex64:
+		b.Writef(hl, "%g", complex64(v.Complex()))
+	case reflect.Complex128:
+		b.Writef(hl, "%g", v.Complex())
+	case reflect.Func, reflect.Chan, reflect.Ptr, reflect.UnsafePointer:
+		if v.Pointer() == 0 {
+			b.Write(hl, nil)
+		} else {
+			b.Writef(hl, "%#v", v.Pointer())
 		}
+	case reflect.Interface:
+		if v.IsNil() {
+			b.Write(hl, nil)
+		} else {
+			vd.writeKey(idx, v.Elem(), hl)
+		}
+	case reflect.Array:
+		vd.writeKeyArray(idx, v, hl)
+	case reflect.Slice:
+		vd.writeKeySlice(idx, v, hl)
+	case reflect.Map:
+		vd.writeKeyMap(idx, v, hl)
+	case reflect.Struct:
+		vd.writeKeyStruct(idx, v, hl)
+	default:
+		vd.writeKeyInteger(idx, v, hl)
+	}
+}
+
+func (vd *tValueDiffer) writeKeyInteger(idx int, v reflect.Value, hl bool) {
+	b := vd.bufi(idx)
+	if v.CanInterface() {
+		if s, ok := v.Interface().(fmt.Stringer); ok {
+			b.Write(hl, s.String())
+			return
+		}
+	}
+	switch v.Kind() {
+	case reflect.Uintptr:
+		b.Writef(hl, "%#x", v.Uint())
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+		b.Writef(hl, "%d", v.Int())
+	default: // reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
+		b.Writef(hl, "%d", v.Uint())
 	}
 }
 
