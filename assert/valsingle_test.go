@@ -241,6 +241,7 @@ func (p PStr) String() string {
 }
 
 func TestWriteKey(t *testing.T) {
+	a := &A{}
 	cs := []struct {
 		e, e2 string
 		v     reflect.Value
@@ -270,6 +271,7 @@ func TestWriteKey(t *testing.T) {
 		{e: "%v", v: reflect.ValueOf(func() {}), p: true},
 		{e: "<nil>", v: reflect.ValueOf((*int)(nil))},
 		{e: "%v", v: reflect.ValueOf(new(int)), p: true},
+		{e: fmt.Sprintf("%p", a), v: reflect.ValueOf(a)},
 		{e: "<nil>", v: reflect.ValueOf(unsafe.Pointer(nil))},
 		{e: "%v", v: reflect.ValueOf(unsafe.Pointer(new(int))), p: true},
 		{e: "<nil>", v: reflect.ValueOf(struct{ a interface{} }{}).Field(0)},
@@ -289,7 +291,7 @@ func TestWriteKey(t *testing.T) {
 		{e: "17", v: reflect.ValueOf(struct{ a reflect.Kind }{reflect.Array}).Field(0)},
 		{e: "String of PInt", v: reflect.ValueOf(PInt(100))},
 		{e: "0x64", v: reflect.ValueOf(struct{ a PInt }{100}).Field(0)},
-		{e: "Go String of PStr", v: reflect.ValueOf(PStr(100))},
+		{e: "String of PStr", v: reflect.ValueOf(PStr(100))},
 		{e: "0x64", v: reflect.ValueOf(struct{ a PStr }{100}).Field(0)},
 	}
 	for i, c := range cs {
@@ -405,7 +407,7 @@ func TestWriteElem(t *testing.T) {
 		{e: "17", v: reflect.ValueOf(struct{ a reflect.Kind }{reflect.Array}).Field(0)},
 		{e: "String of PInt", v: reflect.ValueOf(PInt(100))},
 		{e: "0x64", v: reflect.ValueOf(struct{ a PInt }{100}).Field(0)},
-		{e: "Go String of PStr", v: reflect.ValueOf(PStr(100))},
+		{e: "String of PStr", v: reflect.ValueOf(PStr(100))},
 		{e: "0x64", v: reflect.ValueOf(struct{ a PStr }{100}).Field(0)},
 	}
 	for i, c := range cs {
@@ -441,6 +443,7 @@ func TestWriteElem(t *testing.T) {
 }
 
 func TestWriteValueAfterType(t *testing.T) {
+	a := &A{}
 	pa := new(int)
 	cs := []struct {
 		e, e2 string
@@ -471,6 +474,7 @@ func TestWriteValueAfterType(t *testing.T) {
 		{e: "(%v)", v: reflect.ValueOf(func() {}), p: true},
 		{e: "(nil)", v: reflect.ValueOf((*int)(nil))},
 		{e: "(%v)", v: reflect.ValueOf(new(int)), p: true},
+		{e: fmt.Sprintf("(%p)", a), v: reflect.ValueOf(a)},
 		{e: "(nil)", v: reflect.ValueOf(unsafe.Pointer(nil))},
 		{e: "(%v)", v: reflect.ValueOf(unsafe.Pointer(new(int))), p: true},
 		{e: "", v: reflect.ValueOf(struct{ a interface{} }{}).Field(0)},
@@ -795,6 +799,7 @@ func TestWriteTypeBeforeValue(t *testing.T) {
 }
 
 func TestWriteTypeValue(t *testing.T) {
+	a := &A{}
 	pa := new(int)
 	cs := []struct {
 		e, e2 string
@@ -825,6 +830,15 @@ func TestWriteTypeValue(t *testing.T) {
 		{e: "(func() int)(%v)", v: reflect.ValueOf(func() int { return 0 }), p: true},
 		{e: "(*int)(nil)", v: reflect.ValueOf((*int)(nil))},
 		{e: "(*int)(%v)", v: reflect.ValueOf(new(int)), p: true},
+		{e: "&[3]int{1, 2, 3}", v: reflect.ValueOf(&[...]int{1, 2, 3})},
+		{e: "(*[3]int)(nil)", v: reflect.ValueOf((*[3]int)(nil))},
+		{e: "&[]int{1, 2, 3}", v: reflect.ValueOf(&[]int{1, 2, 3})},
+		{e: "(*[]int)(nil)", v: reflect.ValueOf((*[]int)(nil))},
+		{e: "&map[bool]int{true:100}", v: reflect.ValueOf(&map[bool]int{true: 100})},
+		{e: "(*map[bool]int)(nil)", v: reflect.ValueOf((*map[bool]int)(nil))},
+		{e: "&assert.A{a:<nil>, b:<nil>}", v: reflect.ValueOf(&A{})},
+		{e: "(*assert.A)(nil)", v: reflect.ValueOf((*A)(nil))},
+		{e: fmt.Sprintf("&assert.A{a:<nil>, b:%p}", a), v: reflect.ValueOf(&A{b: a})},
 		{e: "(unsafe.Pointer)(nil)", v: reflect.ValueOf(unsafe.Pointer(nil))},
 		{e: "(unsafe.Pointer)(%v)", v: reflect.ValueOf(unsafe.Pointer(new(int))), p: true},
 		{e: "<nil>", v: reflect.ValueOf(struct{ a interface{} }{}).Field(0)},
@@ -903,14 +917,24 @@ func TestWriteTypeValue(t *testing.T) {
 		{v: reflect.ValueOf(UPtr(new(int))), e: "(assert.UPtr)(%v)", p: true},
 		{v: reflect.ValueOf(struct{ a If }{}).Field(0), e: "assert.If(nil)"},
 		{v: reflect.ValueOf(Array{}), e: "assert.Array{<nil>, <nil>, <nil>}"},
+		{v: reflect.ValueOf(&Array{}), e: "&assert.Array{<nil>, <nil>, <nil>}"},
+		{v: reflect.ValueOf((*Array)(nil)), e: "(*assert.Array)(nil)"},
 		{v: reflect.ValueOf(Slice(nil)), e: "assert.Slice(nil)"},
 		{v: reflect.ValueOf(Slice{}), e: "assert.Slice{}"},
+		{v: reflect.ValueOf(&Slice{}), e: "&assert.Slice{}"},
 		{v: reflect.ValueOf(make(Slice, 3)), e: "assert.Slice{<nil>, <nil>, <nil>}"},
+		{v: reflect.ValueOf(&Slice{a, 2, 3}), e: fmt.Sprintf("&assert.Slice{%p, 2, 3}", a)},
+		{v: reflect.ValueOf((*Slice)(nil)), e: "(*assert.Slice)(nil)"},
 		{v: reflect.ValueOf(Map(nil)), e: "assert.Map(nil)"},
 		{v: reflect.ValueOf(Map{}), e: "assert.Map{}"},
+		{v: reflect.ValueOf(&Map{}), e: "&assert.Map{}"},
 		{v: reflect.ValueOf(Map{10: true}), e: "assert.Map{10:true}"},
+		{v: reflect.ValueOf(&Map{10: true}), e: "&assert.Map{10:true}"},
 		{v: reflect.ValueOf(Map{10: true, 20: false}), e: "assert.Map{10:true, 20:false}", e2: "assert.Map{20:false, 10:true}"},
+		{v: reflect.ValueOf((*Map)(nil)), e: "(*assert.Map)(nil)"},
 		{v: reflect.ValueOf(Struct{}), e: "assert.Struct{a:<nil>, b:<nil>}"},
+		{v: reflect.ValueOf(&Struct{}), e: "&assert.Struct{a:<nil>, b:<nil>}"},
+		{v: reflect.ValueOf((*Struct)(nil)), e: "(*assert.Struct)(nil)"},
 	}
 	for i, c := range cs {
 		var d tValueDiffer
