@@ -36,6 +36,24 @@ import (
 //EqualValue/NotEqualValue
 //EqualError
 
+// Nil asserts that a is nil.
+//
+// It is DIFFERENT from assert.Equal against nil.
+// For example:
+//		var a chan int
+//		assert.Equal(t, nil, a) // Fail!
+//		assert.Nil(t, a)        // Success
+func Nil(t *testing.T, a interface{}, m ...interface{}) {
+	CallerT{1, 1}.Nil(t, a, m...)
+}
+
+func (c CallerT) Nil(t *testing.T, a interface{}, m ...interface{}) {
+	if isNil(a) {
+		return
+	}
+	fail(c, t, nil, a, kNil, m...)
+}
+
 // True asserts that a is true.
 func True(t *testing.T, a bool, m ...interface{}) {
 	CallerT{1, 1}.True(t, a, m...)
@@ -46,7 +64,7 @@ func (c CallerT) True(t *testing.T, a bool, m ...interface{}) {
 	if a {
 		return
 	}
-	fail(c, t, true, a, true, m...)
+	fail(c, t, true, a, kEq, m...)
 }
 
 // False asserts that a is false.
@@ -59,7 +77,7 @@ func (c CallerT) False(t *testing.T, a bool, m ...interface{}) {
 	if !a {
 		return
 	}
-	fail(c, t, false, a, true, m...)
+	fail(c, t, false, a, kEq, m...)
 }
 
 // Equal asserts that e and a are exactly the same, both type and value.
@@ -72,7 +90,7 @@ func (c CallerT) Equal(t *testing.T, e, a interface{}, m ...interface{}) {
 	if reflect.DeepEqual(e, a) {
 		return
 	}
-	fail(c, t, e, a, true, m...)
+	fail(c, t, e, a, kEq, m...)
 }
 
 // NotEqual asserts that e and a are not the same, either type or value.
@@ -85,7 +103,7 @@ func (c CallerT) NotEqual(t *testing.T, e, a interface{}, m ...interface{}) {
 	if !reflect.DeepEqual(e, a) {
 		return
 	}
-	fail(c, t, e, a, false, m...)
+	fail(c, t, e, a, kNe, m...)
 }
 
 // CallerT is useful for customizing calling information shown for assertions.
@@ -98,15 +116,26 @@ func Caller(lv int) CallerT {
 	return CallerT{0, lv}
 }
 
-func fail(c CallerT, t *testing.T, expected, actual interface{}, eq bool, msg ...interface{}) {
+type tRes int
+
+const (
+	kEq tRes = iota
+	kNe
+	kNil
+)
+
+func fail(c CallerT, t *testing.T, expected, actual interface{}, res tRes, msg ...interface{}) {
 	var buf bytes.Buffer
 	b := tFeatureBuf{w: &buf, Tab: 0}
 	writeCodeInfo(c, &b)
 	b.Tab++
-	if eq {
+	switch res {
+	case kEq:
 		writeFailEq(&b, expected, actual)
-	} else {
+	case kNe:
 		writeFailNe(&b, actual)
+	case kNil:
+		writeFailNil(&b, actual)
 	}
 	writeMessages(&b, msg...)
 	b.Tab--
@@ -126,7 +155,15 @@ func writeFailEq(buf *tFeatureBuf, expected, actual interface{}) {
 func writeFailNe(buf *tFeatureBuf, actual interface{}) {
 	var v tValueDiffer
 	v.WriteTypeValue(0, reflect.ValueOf(actual), buf.Tab+1)
-	buf.NL().Normal("Expect:\t").Highlight("SAME as Actual").Finish()
+	buf.NL().Normal("Expect:\t").Highlight("SAME as Actual")
+	buf.NL().Normalf("Actual:\t%v", v.String(0))
+	writeAttrs(buf, v)
+}
+
+func writeFailNil(buf *tFeatureBuf, actual interface{}) {
+	var v tValueDiffer
+	v.WriteTypeValue(0, reflect.ValueOf(actual), buf.Tab+1)
+	buf.NL().Normal("Expect:\t").Highlight(nil)
 	buf.NL().Normalf("Actual:\t%v", v.String(0))
 	writeAttrs(buf, v)
 }
@@ -221,4 +258,16 @@ func format(h, s string) string {
 		buf.WriteString(l)
 	}
 	return buf.String()
+}
+
+func isNil(a interface{}) bool {
+	if a == nil {
+		return true
+	}
+	if v := reflect.ValueOf(a); isPointer(v.Type()) {
+		return v.Pointer() == 0
+	} else if k := v.Kind(); k != reflect.Array && k != reflect.Struct && isNonTrivial(v.Type()) {
+		return v.IsNil()
+	}
+	return false
 }
