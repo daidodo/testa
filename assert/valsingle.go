@@ -35,33 +35,17 @@ func (vd *tValueDiffer) writeTypeValue(idx int, v reflect.Value) {
 
 func (vd *tValueDiffer) writeTypeBeforeValue(idx int, v reflect.Value, hl bool) reflect.Value {
 	b := vd.bufi(idx)
-	if v.IsValid() && v.Kind() == reflect.Interface {
-		if !v.IsNil() {
-			v = vd.writeTypeBeforeValue(idx, v.Elem(), hl)
-		} else if t := v.Type(); t.Name() == "" {
-			b.Write(hl, nil)
-		} else {
-			vd.writeType(idx, t, hl)
-		}
-	} else {
-		vd.writeTypeBeforeValueNoInterface(idx, v, hl)
-	}
-	return v
-}
-
-func (vd *tValueDiffer) writeTypeBeforeValueNoInterface(idx int, v reflect.Value, hl bool) {
-	b := vd.bufi(idx)
 	if !v.IsValid() {
 		b.Write(hl, nil)
+		return v
+	} else if v, df := derefInterface(v); df {
+		return vd.writeTypeBeforeValue(idx, v, hl)
 	} else if isPointer(v.Type()) {
 		b.Normal("(")
-		vd.writeType(idx, v.Type(), hl)
-		b.Normal(")")
-	} else if v.Kind() == reflect.Interface {
-		panic("Should not come here!")
-	} else {
-		vd.writeType(idx, v.Type(), hl)
+		defer b.Normal(")")
 	}
+	vd.writeType(idx, v.Type(), hl)
+	return v
 }
 
 func (vd *tValueDiffer) writeType(idx int, t reflect.Type, hl bool) {
@@ -145,12 +129,10 @@ func (vd *tValueDiffer) writeValueAfterType(idx int, v reflect.Value) {
 	case reflect.Complex64, reflect.Complex128:
 		vd.writeElem(idx, v, false)
 	case reflect.Interface:
-		if v.IsNil() {
-			if v.Type().Name() != "" {
-				b.Normal("(nil)")
-			}
-		} else {
-			vd.writeValueAfterType(idx, v.Elem())
+		if v, df := derefInterface(v); !df {
+			b.Normal("(nil)")
+		} else if v.IsValid() {
+			vd.writeValueAfterType(idx, v)
 		}
 	case reflect.Array:
 		vd.writeValueAfterTypeArray(idx, v)
