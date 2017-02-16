@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"reflect"
 	"runtime"
@@ -39,10 +40,6 @@ type I interface {
 type I2 interface {
 	Fun3(int) string
 	Fun4(int) string
-}
-
-func (I2) String() string {
-	return "I2 String"
 }
 
 func main() {
@@ -97,6 +94,9 @@ func fn() {
 	desc(reflect.DeepEqual(b, nil))
 	var c I2
 	desc(c)
+	desc(errors.New("abc"))
+	desc(struct{ a error }{}.a)
+	desc(fmt.Errorf("abc"))
 }
 
 func fm() {
@@ -118,7 +118,6 @@ func fm() {
 	desc(t4.String())
 	desc(t5.PkgPath())
 	desc(t5.String())
-
 	dest(int(0))
 	dest(map[int]bool{})
 	dest(struct{}{})
