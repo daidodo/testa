@@ -328,7 +328,7 @@ func TestWriteTypeDiffValues(t *testing.T) {
 		{v1: reflect.ValueOf(struct{ a reflect.Kind }{reflect.Array}).Field(0), v2: reflect.ValueOf(struct{ a reflect.Kind }{reflect.Bool}).Field(0)},
 		{v1: reflect.ValueOf(PInt(100)), v2: reflect.ValueOf(PInt(101)), s1: H("String of PInt"), s2: H("String of PInt")},
 		{v1: reflect.ValueOf(struct{ a PInt }{100}).Field(0), v2: reflect.ValueOf(struct{ a PInt }{101}).Field(0), s1: H("0x64"), s2: H("0x65")},
-		{v1: reflect.ValueOf(PStr(100)), v2: reflect.ValueOf(PStr(101)), s1: H("Go String of PStr"), s2: H("Go String of PStr")},
+		{v1: reflect.ValueOf(PStr(100)), v2: reflect.ValueOf(PStr(101)), s1: H("String of PStr"), s2: H("String of PStr")},
 		{v1: reflect.ValueOf(struct{ a PStr }{100}).Field(0), v2: reflect.ValueOf(struct{ a PStr }{101}).Field(0), s1: H("0x64"), s2: H("0x65")},
 	}
 	for i, c := range cs {
