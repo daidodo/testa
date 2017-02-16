@@ -598,3 +598,24 @@ func TestWriteDiffPkgTypes(t *testing.T) {
 		Equal(t, c.s2, d.String(1), "i=%v, s2\n%v\n%v", i, d.String(0), d.String(1))
 	}
 }
+
+func TestWriteDiffTypeValues(t *testing.T) {
+	cs := func(v1, v2 reflect.Value, e1, e2 string) {
+		var d1, d2 tValueDiffer
+		d1.writeDiffTypeValues(v1, v2)
+		Caller(1).Equal(t, e1, d1.String(0), "%v\n%v", d1.String(0), d1.String(1))
+		Caller(1).Equal(t, e2, d1.String(1), "%v\n%v", d1.String(0), d1.String(1))
+		d2.writeDiffTypeValues(v2, v1)
+		Caller(1).Equal(t, e1, d2.String(1), "%v\n%v", d2.String(1), d2.String(0))
+		Caller(1).Equal(t, e2, d2.String(0), "%v\n%v", d2.String(1), d2.String(0))
+	}
+	cs(reflect.ValueOf(nil), reflect.ValueOf(100), H("<nil>"), H("int")+"(100)")
+	cs(reflect.ValueOf(nil), reflect.ValueOf(A{}).Field(1), H("<nil>"), H("assert.I")+"(nil)")
+	cs(reflect.ValueOf(A{}).Field(0), reflect.ValueOf(101), H("<nil>"), H("int")+"(101)")
+	cs(reflect.ValueOf(A{}).Field(1), reflect.ValueOf(101), H("assert.I")+"(nil)", H("int")+"(101)")
+	cs(reflect.ValueOf(A{a: 100}).Field(0), reflect.ValueOf(101), H("100"), H("101"))
+	cs(reflect.ValueOf(A{b: A{}}).Field(1), reflect.ValueOf(101), H("assert.A")+"{a:<nil>, b:<nil>}", H("int")+"(101)")
+	cs(reflect.ValueOf(A{b: A{}}).Field(1), reflect.ValueOf(A{a: 100}).Field(0), H("assert.A")+"{a:<nil>, b:<nil>}", H("int")+"(100)")
+	cs(reflect.ValueOf(A{}).Field(0), reflect.ValueOf(A{}).Field(1), H("<nil>"), H("assert.I")+"(nil)")
+	cs(reflect.ValueOf(1.2+2.4i), reflect.ValueOf(100), H("complex128")+"(1.2+2.4i)", H("int")+"(100)")
+}
