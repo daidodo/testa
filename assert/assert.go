@@ -28,19 +28,13 @@ import (
 	"unsafe"
 )
 
-/* TODO:
-Nil/NotNil
-Error/NoError
-Contain/NotContain
-Empty/NotEmpty
-EqualValue/NotEqualValue
-EqualError
-*/
-
-// Caller changes calling information shown for assertions.
-func Caller(lv int) CallerT {
-	return CallerT{0, lv}
-}
+//TODO:
+//Nil/NotNil
+//Error/NoError
+//Contain/NotContain
+//Empty/NotEmpty
+//EqualValue/NotEqualValue
+//EqualError
 
 // True asserts that a is true.
 func True(t *testing.T, a bool, m ...interface{}) {
@@ -97,6 +91,11 @@ func (c CallerT) NotEqual(t *testing.T, e, a interface{}, m ...interface{}) {
 // CallerT is useful for customizing calling information shown for assertions.
 type CallerT struct {
 	from, to int
+}
+
+// Caller changes calling information shown for assertions.
+func Caller(lv int) CallerT {
+	return CallerT{0, lv}
 }
 
 func fail(c CallerT, t *testing.T, expected, actual interface{}, eq bool, msg ...interface{}) {
