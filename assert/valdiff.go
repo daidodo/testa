@@ -779,3 +779,12 @@ func derefInterface(v reflect.Value) (r reflect.Value, d bool) {
 	}
 	return v, d
 }
+
+func derefPtr(v reflect.Value) (r reflect.Value, d bool) {
+	if v.IsValid() && v.Kind() == reflect.Ptr && !v.IsNil() {
+		if e := v.Elem(); isComposite(e.Type()) {
+			return e, true
+		}
+	}
+	return v, false
+}
