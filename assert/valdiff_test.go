@@ -40,7 +40,7 @@ func TestValueEqual(t *testing.T) {
 	cs := []struct {
 		v1, v2 reflect.Value
 		e, ci  bool
-		k      reflect.Kind
+		k, k2  reflect.Kind
 	}{
 		{v1: reflect.ValueOf(nil), v2: reflect.ValueOf(nil), e: true},
 		{v1: reflect.ValueOf(nil), v2: reflect.ValueOf(100)},
@@ -103,6 +103,10 @@ func TestValueEqual(t *testing.T) {
 		{v1: reflect.ValueOf(struct{ a interface{} }{100}).Field(0), v2: reflect.ValueOf(struct{ a interface{} }{}).Field(0), k: reflect.Interface},
 		{v1: reflect.ValueOf(struct{ a interface{} }{100}).Field(0), v2: reflect.ValueOf(struct{ a interface{} }{101}).Field(0), k: reflect.Interface},
 		{v1: reflect.ValueOf(struct{ a interface{} }{101}).Field(0), v2: reflect.ValueOf(struct{ a interface{} }{101}).Field(0), k: reflect.Interface, e: true},
+		{v1: reflect.ValueOf(struct{ a interface{} }{100}).Field(0), v2: reflect.ValueOf(100), e: true, k: reflect.Interface, k2: reflect.Int},
+		{v1: reflect.ValueOf(struct{ a interface{} }{A{}}).Field(0), v2: reflect.ValueOf(A{}), e: true, k: reflect.Interface, k2: reflect.Struct},
+		{v1: reflect.ValueOf(struct{ a I }{Int(100)}).Field(0), v2: reflect.ValueOf(Int(100)), e: true, k: reflect.Interface, k2: reflect.Int},
+		{v1: reflect.ValueOf(struct{ a I }{A{}}).Field(0), v2: reflect.ValueOf(A{}), e: true, k: reflect.Interface, k2: reflect.Struct},
 		{v1: reflect.ValueOf(struct{ a I }{}).Field(0), v2: reflect.ValueOf(struct{ a I }{}).Field(0), k: reflect.Interface, e: true},
 		{v1: reflect.ValueOf(struct{ a I }{A{}}).Field(0), v2: reflect.ValueOf(struct{ a I }{}).Field(0), k: reflect.Interface},
 		{v1: reflect.ValueOf(struct{ a I }{A{a: 100}}).Field(0), v2: reflect.ValueOf(struct{ a I }{A{a: 101}}).Field(0), k: reflect.Interface},
@@ -135,15 +139,17 @@ func TestValueEqual(t *testing.T) {
 		{v1: reflect.ValueOf(struct{ a struct{ a int } }{struct{ a int }{100}}).Field(0), v2: reflect.ValueOf(struct{ a struct{ a int } }{}).Field(0), k: reflect.Struct},
 		{v1: reflect.ValueOf(struct{ a A }{}).Field(0), v2: reflect.ValueOf(struct{ a A }{}).Field(0), k: reflect.Struct, e: true},
 		{v1: reflect.ValueOf(struct{ a A }{A{a: 100}}).Field(0), v2: reflect.ValueOf(struct{ a A }{}).Field(0), k: reflect.Struct},
-		//TODO
-		//{v1: reflect.ValueOf(struct{ a interface{} }{100}).Field(0), v2: reflect.ValueOf(100), k: reflect.Int},
 	}
 	for i, c := range cs {
 		ci := c.v1.IsValid() && c.v1.CanInterface() && c.v2.IsValid() && c.v2.CanInterface()
 		Equal(t, c.ci, ci, "i=%v", i)
 		if c.k != reflect.Invalid {
 			Equal(t, c.k, c.v1.Kind(), "i=%v", i)
-			Equal(t, c.k, c.v2.Kind(), "i=%v", i)
+			if c.k2 == reflect.Invalid {
+				Equal(t, c.k, c.v2.Kind(), "i=%v", i)
+			} else {
+				Equal(t, c.k2, c.v2.Kind(), "i=%v", i)
+			}
 		}
 		a1 := valueEqual(c.v1, c.v2)
 		a2 := valueEqual(c.v2, c.v1)
@@ -158,6 +164,7 @@ func TestValueEqual(t *testing.T) {
 
 func TestWriteTypeDiffValues(t *testing.T) {
 	a := func() int { return 1 }
+	b := &A{}
 	cs := []struct {
 		v1, v2         reflect.Value
 		s1, s2         string
@@ -332,6 +339,7 @@ func TestWriteTypeDiffValues(t *testing.T) {
 		{v1: reflect.ValueOf(PStr(100)), v2: reflect.ValueOf(PStr(101)), s1: H("String of PStr"), s2: H("String of PStr")},
 		{v1: reflect.ValueOf(struct{ a PStr }{100}).Field(0), v2: reflect.ValueOf(struct{ a PStr }{101}).Field(0), s1: H("0x64"), s2: H("0x65")},
 		{v1: reflect.ValueOf(errors.New("abc")), v2: reflect.ValueOf(errors.New("abd")), s1: `&{s:"ab` + H("c") + `"}`, s2: `&{s:"ab` + H("d") + `"}`},
+		{v1: reflect.ValueOf(b), v2: reflect.ValueOf((*A)(nil)), s1: H(fmt.Sprintf("%p", b)), s2: H("<nil>")},
 	}
 	for i, c := range cs {
 		f := func(v1, v2 reflect.Value, s1, s2, ss1, ss2 string, n1, n2 bool) {
@@ -602,6 +610,8 @@ func TestWriteDiffPkgTypes(t *testing.T) {
 }
 
 func TestWriteDiffTypeValues(t *testing.T) {
+	a := &A{}
+	b := new(int)
 	cs := func(v1, v2 reflect.Value, e1, e2 string) {
 		var d1, d2 tValueDiffer
 		d1.writeDiffTypeValues(v1, v2)
@@ -621,4 +631,9 @@ func TestWriteDiffTypeValues(t *testing.T) {
 	cs(reflect.ValueOf(A{}).Field(0), reflect.ValueOf(A{}).Field(1), H("<nil>"), H("assert.I")+"(nil)")
 	cs(reflect.ValueOf(1.2+2.4i), reflect.ValueOf(100), H("complex128")+"(1.2+2.4i)", H("int")+"(100)")
 	cs(reflect.ValueOf(&A{}), reflect.ValueOf(&[]int{1, 2, 3}), "&"+H("assert.A")+"{a:<nil>, b:<nil>}", "&"+H("[]int")+"{1, 2, 3}")
+	cs(reflect.ValueOf(a), reflect.ValueOf((*[]int)(nil)), "(*"+H("assert.A")+fmt.Sprintf(")(%p)", a), "(*"+H("[]int")+")(nil)")
+	cs(reflect.ValueOf(a), reflect.ValueOf(b), "(*"+H("assert.A")+fmt.Sprintf(")(%p)", a), "(*"+H("int")+fmt.Sprintf(")(%p)", b))
+	cs(reflect.ValueOf(Int(100)), reflect.ValueOf(100), H("assert.Int")+"(String of Int)", H("int")+"(100)")
+	cs(reflect.ValueOf(Complex(1.2+2.4i)), reflect.ValueOf(1.2+2.4i), H("assert.Complex")+"(1.2+2.4i)", H("complex128")+"(1.2+2.4i)")
+	cs(reflect.ValueOf(Struct{a: 100}), reflect.ValueOf(A{a: 100}), "assert."+H("Struct")+"{a:100, b:<nil>}", "assert."+H("A")+"{a:100, b:<nil>}")
 }
