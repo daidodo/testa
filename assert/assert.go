@@ -29,14 +29,38 @@ import (
 )
 
 //TODO:
-//Nil/NotNil
 //Error/NoError
 //Contain/NotContain
 //Empty/NotEmpty
 //EqualValue/NotEqualValue
 //EqualError
 
-// Nil asserts that a is nil.
+// NotNil asserts whether a is not nil.
+//
+// It is DIFFERENT from assert.NotEqual against nil.
+// For example:
+//		var a chan int
+//		assert.NotEqual(t, nil, a) // Success! But a IS nil
+//		assert.NotNil(t, a)        // Fail
+func NotNil(t *testing.T, a interface{}, m ...interface{}) {
+	CallerT{1, 1}.NotNil(t, a, m...)
+}
+
+// NotNil asserts whether a is not nil.
+//
+// It is DIFFERENT from assert.NotEqual against nil.
+// For example:
+//		var a chan int
+//		assert.Caller(1).NotEqual(t, nil, a) // Success! But a IS nil
+//		assert.Caller(1).NotNil(t, a)        // Fail
+func (c CallerT) NotNil(t *testing.T, a interface{}, m ...interface{}) {
+	if !isNil(a) {
+		return
+	}
+	fail(c, t, nil, a, kNNil, m...)
+}
+
+// Nil asserts whether a is nil.
 //
 // It is DIFFERENT from assert.Equal against nil.
 // For example:
@@ -47,6 +71,13 @@ func Nil(t *testing.T, a interface{}, m ...interface{}) {
 	CallerT{1, 1}.Nil(t, a, m...)
 }
 
+// Nil asserts whether a is nil.
+//
+// It is DIFFERENT from assert.Equal against nil.
+// For example:
+//		var a chan int
+//		assert.Caller(1).Equal(t, nil, a) // Fail!
+//		assert.Caller(1).Nil(t, a)        // Success
 func (c CallerT) Nil(t *testing.T, a interface{}, m ...interface{}) {
 	if isNil(a) {
 		return
@@ -122,6 +153,7 @@ const (
 	kEq tRes = iota
 	kNe
 	kNil
+	kNNil
 )
 
 func fail(c CallerT, t *testing.T, expected, actual interface{}, res tRes, msg ...interface{}) {
@@ -136,6 +168,8 @@ func fail(c CallerT, t *testing.T, expected, actual interface{}, res tRes, msg .
 		writeFailNe(&b, actual)
 	case kNil:
 		writeFailNil(&b, actual)
+	case kNNil:
+		writeFailNNil(&b, actual)
 	}
 	writeMessages(&b, msg...)
 	b.Tab--
@@ -164,6 +198,14 @@ func writeFailNil(buf *tFeatureBuf, actual interface{}) {
 	var v tValueDiffer
 	v.WriteTypeValue(0, reflect.ValueOf(actual), buf.Tab+1)
 	buf.NL().Normal("Expect:\t").Highlight(nil)
+	buf.NL().Normalf("Actual:\t%v", v.String(0))
+	writeAttrs(buf, v)
+}
+
+func writeFailNNil(buf *tFeatureBuf, actual interface{}) {
+	var v tValueDiffer
+	v.WriteTypeValue(0, reflect.ValueOf(actual), buf.Tab+1)
+	buf.NL().Normal("Expect:\t").Highlight("NOT ", nil)
 	buf.NL().Normalf("Actual:\t%v", v.String(0))
 	writeAttrs(buf, v)
 }
