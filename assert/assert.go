@@ -29,11 +29,10 @@ import (
 )
 
 //TODO:
-//Error/NoError
 //Contain/NotContain
-//Empty/NotEmpty
 //EqualValue/NotEqualValue
-//EqualError
+//Empty/NotEmpty
+//Error/NoError/EqualError
 
 // NotNil asserts whether a is not nil.
 //
