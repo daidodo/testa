@@ -20,6 +20,13 @@ func TestErrorPrint(t *testing.T) {
 	assert.Equal(t, 100, e1)
 }
 
+func TestNotNil(t *testing.T) {
+	assert.NotNil(t, make(chan int))
+	var a chan int
+	assert.NotEqual(t, nil, a)
+	assert.NotNil(t, a)
+}
+
 func TestNil(t *testing.T) {
 	var a chan int
 	assert.Nil(t, a)
