@@ -19,6 +19,7 @@
 package assert
 
 import (
+	"errors"
 	"fmt"
 	"reflect"
 	"testing"
@@ -330,6 +331,7 @@ func TestWriteTypeDiffValues(t *testing.T) {
 		{v1: reflect.ValueOf(struct{ a PInt }{100}).Field(0), v2: reflect.ValueOf(struct{ a PInt }{101}).Field(0), s1: H("0x64"), s2: H("0x65")},
 		{v1: reflect.ValueOf(PStr(100)), v2: reflect.ValueOf(PStr(101)), s1: H("String of PStr"), s2: H("String of PStr")},
 		{v1: reflect.ValueOf(struct{ a PStr }{100}).Field(0), v2: reflect.ValueOf(struct{ a PStr }{101}).Field(0), s1: H("0x64"), s2: H("0x65")},
+		{v1: reflect.ValueOf(errors.New("abc")), v2: reflect.ValueOf(errors.New("abd")), s1: `&{s:"ab` + H("c") + `"}`, s2: `&{s:"ab` + H("d") + `"}`},
 	}
 	for i, c := range cs {
 		f := func(v1, v2 reflect.Value, s1, s2, ss1, ss2 string, n1, n2 bool) {
@@ -618,4 +620,5 @@ func TestWriteDiffTypeValues(t *testing.T) {
 	cs(reflect.ValueOf(A{b: A{}}).Field(1), reflect.ValueOf(A{a: 100}).Field(0), H("assert.A")+"{a:<nil>, b:<nil>}", H("int")+"(100)")
 	cs(reflect.ValueOf(A{}).Field(0), reflect.ValueOf(A{}).Field(1), H("<nil>"), H("assert.I")+"(nil)")
 	cs(reflect.ValueOf(1.2+2.4i), reflect.ValueOf(100), H("complex128")+"(1.2+2.4i)", H("int")+"(100)")
+	cs(reflect.ValueOf(&A{}), reflect.ValueOf(&[]int{1, 2, 3}), "&"+H("assert.A")+"{a:<nil>, b:<nil>}", "&"+H("[]int")+"{1, 2, 3}")
 }
