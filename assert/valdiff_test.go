@@ -536,7 +536,7 @@ func TestWriteDiffKinds(t *testing.T) {
 		{t1: reflect.TypeOf(map[*string]int{}), t2: reflect.TypeOf(make(map[*bool]int)), s1: "map[*" + H("string") + "]int", s2: "map[*" + H("bool") + "]int"},
 		{t1: reflect.TypeOf(map[string]uint{}), t2: reflect.TypeOf(make(map[bool]int)), s1: "map[" + H("string") + "]" + H("uint"), s2: "map[" + H("bool") + "]" + H("int")},
 		{t1: reflect.TypeOf(map[*string]*uint{}), t2: reflect.TypeOf(make(map[*bool]*int)), s1: "map[*" + H("string") + "]*" + H("uint"), s2: "map[*" + H("bool") + "]*" + H("int")},
-		{t1: reflect.TypeOf(map[String]If{}), t2: reflect.TypeOf(make(map[bool]int)), s1: "map[" + H("assert.String") + "]" + H("assert.If"), s2: "map[" + H("bool") + "]" + H("int")},
+		{t1: reflect.TypeOf(map[Str]If{}), t2: reflect.TypeOf(make(map[bool]int)), s1: "map[" + H("assert.Str") + "]" + H("assert.If"), s2: "map[" + H("bool") + "]" + H("int")},
 		{t1: reflect.TypeOf(Map{}), t2: reflect.TypeOf(make(map[bool]int)), s1: H("assert.Map"), s2: H("map[bool]int")},
 		{t1: reflect.TypeOf(struct{}{}), t2: reflect.TypeOf(struct{}{}), s1: "struct", s2: "struct"},
 		{t1: reflect.TypeOf(struct{ a int }{}), t2: reflect.TypeOf(struct{ a int }{}), s1: "struct", s2: "struct"},
