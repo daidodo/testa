@@ -51,19 +51,28 @@ func (vd *tValueDiffer) writeDiff(v1, v2 reflect.Value) {
 }
 
 func (vd *tValueDiffer) writeDiffTypeValues(v1, v2 reflect.Value) {
+	b1, b2 := vd.bufs()
 	v1, r1 := derefInterface(v1)
 	v2, r2 := derefInterface(v2)
 	if r1 || r2 {
 		vd.writeDiff(v1, v2)
-	} else if !v1.IsValid() || !v2.IsValid() {
-		v1 = vd.writeTypeBeforeValue(0, v1, true)
-		v2 = vd.writeTypeBeforeValue(1, v2, true)
-		vd.writeValueAfterType(0, v1)
-		vd.writeValueAfterType(1, v2)
 	} else {
-		vd.writeDiffKindsBeforeValue(v1, v2)
-		vd.writeValueAfterType(0, v1)
-		vd.writeValueAfterType(1, v2)
+		e1, r1 := derefPtr(v1)
+		e2, r2 := derefPtr(v2)
+		if r1 && r2 {
+			b1.Normal("&")
+			b2.Normal("&")
+			vd.writeDiff(e1, e2)
+		} else if !v1.IsValid() || !v2.IsValid() {
+			v1 = vd.writeTypeBeforeValue(0, v1, true)
+			v2 = vd.writeTypeBeforeValue(1, v2, true)
+			vd.writeValueAfterType(0, v1)
+			vd.writeValueAfterType(1, v2)
+		} else {
+			vd.writeDiffKindsBeforeValue(v1, v2)
+			vd.writeValueAfterType(0, v1)
+			vd.writeValueAfterType(1, v2)
+		}
 	}
 }
 
@@ -241,26 +250,26 @@ func (vd *tValueDiffer) writeDiffTypesFunc(t1, t2 reflect.Type) {
 
 func (vd *tValueDiffer) writeTypeDiffValues(v1, v2 reflect.Value) {
 	b1, b2 := vd.bufs()
+	// TODO: Ptr of composite types
 	switch v1.Kind() {
-	case reflect.Complex64, reflect.Complex128:
+	case reflect.Complex64:
+		c1, c2 := complex64(v1.Complex()), complex64(v2.Complex())
+		hr, hi := real(c1) != real(c2), imag(c1) != imag(c2)
+		b1.Normal("(").Write(hr, real(c1)).Normal("+").Write(hi, imag(c1)).Normal(")")
+		b2.Normal("(").Write(hr, real(c2)).Normal("+").Write(hi, imag(c2)).Normal(")")
+	case reflect.Complex128:
 		c1, c2 := v1.Complex(), v2.Complex()
 		hr, hi := real(c1) != real(c2), imag(c1) != imag(c2)
 		b1.Normal("(").Write(hr, real(c1)).Normal("+").Write(hi, imag(c1)).Normal(")")
 		b2.Normal("(").Write(hr, real(c2)).Normal("+").Write(hi, imag(c2)).Normal(")")
+	case reflect.String:
+		vd.writeDiffValuesString(v1, v2)
 	case reflect.Func:
 		vd.writeDiffValuesFunc(v1, v2)
 	case reflect.Interface:
-		if v1.IsNil() {
-			b1.Highlight(nil)
-			vd.writeTypeValue(1, v2.Elem())
-		} else if v2.IsNil() {
-			vd.writeTypeValue(0, v1.Elem())
-			b2.Highlight(nil)
-		} else {
-			vd.writeDiff(v1.Elem(), v2.Elem())
-		}
-	case reflect.String:
-		vd.writeDiffValuesString(v1, v2)
+		vd.writeDiffValuesInterface(v1, v2)
+	case reflect.Ptr:
+		vd.writeDiffValuesPtr(v1, v2)
 	case reflect.Array:
 		vd.writeTypeDiffValuesArray(v1, v2, false)
 	case reflect.Slice:
@@ -286,6 +295,33 @@ func (vd *tValueDiffer) writeTypeDiffValues(v1, v2 reflect.Value) {
 	case reflect.Struct:
 		vd.writeTypeDiffValuesStruct(v1, v2)
 	default:
+		vd.writeElem(0, v1, true)
+		vd.writeElem(1, v2, true)
+	}
+}
+
+func (vd *tValueDiffer) writeDiffValuesInterface(v1, v2 reflect.Value) {
+	b1, b2 := vd.bufs()
+	if v1.IsNil() {
+		b1.Highlight(nil)
+		vd.writeTypeValue(1, v2.Elem())
+	} else if v2.IsNil() {
+		vd.writeTypeValue(0, v1.Elem())
+		b2.Highlight(nil)
+	} else {
+		vd.writeDiff(v1.Elem(), v2.Elem())
+	}
+}
+
+func (vd *tValueDiffer) writeDiffValuesPtr(v1, v2 reflect.Value) {
+	b1, b2 := vd.bufs()
+	v1, d1 := derefPtr(v1)
+	v2, d2 := derefPtr(v2)
+	if d1 && d2 {
+		b1.Normal("&")
+		b2.Normal("&")
+		vd.writeTypeDiffValues(v1, v2)
+	} else {
 		vd.writeElem(0, v1, true)
 		vd.writeElem(1, v2, true)
 	}
