@@ -28,6 +28,10 @@ func (vd *tValueDiffer) WriteTypeValue(idx int, v reflect.Value, tab int) {
 	vd.writeTypeValue(idx, v)
 }
 
+// writeTypeValue show full description of value v.
+// It show both type and value/contents of v. If v is a non-nil pointer of composite type (array,
+// slice, map or struct), it show "&" and the results of *v instead, which imitates the action of
+// Package fmt.
 func (vd *tValueDiffer) writeTypeValue(idx int, v reflect.Value) {
 	v = vd.writeTypeBeforeValue(idx, v, false)
 	vd.writeValueAfterType(idx, v)
@@ -51,6 +55,10 @@ func (vd *tValueDiffer) writeTypeBeforeValue(idx int, v reflect.Value, hl bool) 
 	return v
 }
 
+// writeType shows type string of t.
+// Basically it gives the same result as Package fmt dose with "%T", if not considering the
+// highlight part.
+// One exception is for unnamed struct, it shows "struct" only, rather than the full definition.
 func (vd *tValueDiffer) writeType(idx int, t reflect.Type, hl bool) {
 	b := vd.bufi(idx)
 	if t.PkgPath() == "" {
@@ -213,6 +221,10 @@ func (vd *tValueDiffer) writeValueAfterTypeStruct(idx int, v reflect.Value) {
 	}
 }
 
+// writeElem formats value v to a well readable string.
+// It differs from writeKey() in representation for composite types (array, slice, map or struct),
+// which may produce multi line strings if their contents (keys or elements) are also of composite
+// types.
 func (vd *tValueDiffer) writeElem(idx int, v reflect.Value, hl bool) {
 	b := vd.bufi(idx)
 	if !v.IsValid() {
@@ -361,6 +373,11 @@ func (vd *tValueDiffer) writeElemStructML(idx int, v reflect.Value, hl bool) {
 	b.NL().Write(hl, "}")
 }
 
+// writeKey formats value v to a concise string.
+// Generally, it shows the real representation of v, not its Error(), GoString() or String() as
+// Package fmt does.
+// The only exception is for POD types (boolean and integers), it tries to show String() first,
+// because that's what we expect for enumerations.
 func (vd *tValueDiffer) writeKey(idx int, v reflect.Value, hl bool) {
 	b := vd.bufi(idx)
 	if !v.IsValid() {
@@ -368,8 +385,6 @@ func (vd *tValueDiffer) writeKey(idx int, v reflect.Value, hl bool) {
 		return
 	}
 	switch v.Kind() {
-	case reflect.Bool:
-		b.Writef(hl, "%t", v.Bool())
 	case reflect.String:
 		b.Writef(hl, "%q", v.String())
 	case reflect.Float32:
@@ -401,11 +416,11 @@ func (vd *tValueDiffer) writeKey(idx int, v reflect.Value, hl bool) {
 	case reflect.Struct:
 		vd.writeKeyStruct(idx, v, hl)
 	default:
-		vd.writeKeyInteger(idx, v, hl)
+		vd.writeKeyPOD(idx, v, hl)
 	}
 }
 
-func (vd *tValueDiffer) writeKeyInteger(idx int, v reflect.Value, hl bool) {
+func (vd *tValueDiffer) writeKeyPOD(idx int, v reflect.Value, hl bool) {
 	b := vd.bufi(idx)
 	if v.CanInterface() {
 		if s, ok := v.Interface().(fmt.Stringer); ok {
@@ -416,6 +431,8 @@ func (vd *tValueDiffer) writeKeyInteger(idx int, v reflect.Value, hl bool) {
 	switch v.Kind() {
 	case reflect.Uintptr:
 		b.Writef(hl, "%#x", v.Uint())
+	case reflect.Bool:
+		b.Writef(hl, "%t", v.Bool())
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
 		b.Writef(hl, "%d", v.Int())
 	default: // reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
