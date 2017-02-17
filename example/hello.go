@@ -32,6 +32,18 @@ type A struct {
 func (A) Fun(int) string  { return "3" }
 func (A) Fun2(int) string { return "3" }
 
+func (A) String() string {
+	return "String of A"
+}
+
+func (A) GoString() string {
+	return "Go String of A"
+}
+
+func (A) Error() string {
+	return "Error of A"
+}
+
 type I interface {
 	Fun(int) string
 	Fun2(int) string
@@ -97,6 +109,9 @@ func fn() {
 	desc(errors.New("abc"))
 	desc(struct{ a error }{}.a)
 	desc(fmt.Errorf("abc"))
+	e1, e2 := errors.New("abc"), errors.New("abc")
+	desc(reflect.DeepEqual(e1, e2))
+	desc(a)
 }
 
 func fm() {
