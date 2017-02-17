@@ -112,6 +112,9 @@ func fn() {
 	e1, e2 := errors.New("abc"), errors.New("abc")
 	desc(reflect.DeepEqual(e1, e2))
 	desc(a)
+	d1 := struct{ a interface{} }{100}
+	d2 := 100
+	desc(reflect.DeepEqual(d1.a, d2))
 }
 
 func fm() {
