@@ -1,10 +1,24 @@
 package main
 
 import (
+	"errors"
 	"testing"
 
 	"github.com/daidodo/testa/assert"
 )
+
+func TestErrorPrintDiff(t *testing.T) {
+	e1 := errors.New("abc")
+	e2 := errors.New("abc")
+	e3 := errors.New("abd")
+	assert.Equal(t, e1, e2)
+	assert.Equal(t, e1, e3)
+}
+
+func TestErrorPrint(t *testing.T) {
+	e1 := errors.New("abc")
+	assert.Equal(t, 100, e1)
+}
 
 func TestNil(t *testing.T) {
 	var a chan int
