@@ -250,7 +250,6 @@ func (vd *tValueDiffer) writeDiffTypesFunc(t1, t2 reflect.Type) {
 
 func (vd *tValueDiffer) writeTypeDiffValues(v1, v2 reflect.Value) {
 	b1, b2 := vd.bufs()
-	// TODO: Ptr of composite types
 	switch v1.Kind() {
 	case reflect.Complex64:
 		c1, c2 := complex64(v1.Complex()), complex64(v2.Complex())
@@ -315,12 +314,12 @@ func (vd *tValueDiffer) writeDiffValuesInterface(v1, v2 reflect.Value) {
 
 func (vd *tValueDiffer) writeDiffValuesPtr(v1, v2 reflect.Value) {
 	b1, b2 := vd.bufs()
-	v1, d1 := derefPtr(v1)
-	v2, d2 := derefPtr(v2)
+	e1, d1 := derefPtr(v1)
+	e2, d2 := derefPtr(v2)
 	if d1 && d2 {
 		b1.Normal("&")
 		b2.Normal("&")
-		vd.writeTypeDiffValues(v1, v2)
+		vd.writeTypeDiffValues(e1, e2)
 	} else {
 		vd.writeElem(0, v1, true)
 		vd.writeElem(1, v2, true)
@@ -723,11 +722,16 @@ func valueEqual(v1, v2 reflect.Value) bool {
 	if !v1.IsValid() || !v2.IsValid() {
 		return v1.IsValid() == v2.IsValid()
 	}
-	if v1.Type() != v2.Type() {
-		return false
-	}
 	if v1.CanInterface() && v2.CanInterface() {
 		return reflect.DeepEqual(v1.Interface(), v2.Interface())
+	}
+	v1, d1 := derefInterface(v1)
+	v2, d2 := derefInterface(v2)
+	if d1 || d2 {
+		return valueEqual(v1, v2)
+	}
+	if v1.Type() != v2.Type() {
+		return false
 	}
 	switch v1.Kind() {
 	case reflect.Bool:
