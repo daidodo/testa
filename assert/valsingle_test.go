@@ -19,6 +19,7 @@
 package assert
 
 import (
+	"errors"
 	"fmt"
 	"reflect"
 	"testing"
@@ -39,12 +40,13 @@ func (A) Fun() {}
 type B struct {
 }
 
+type Bool bool
 type Int int
 type Uint uint
 type Uintptr uintptr
 type Float float64
 type Complex complex128
-type String string
+type Str string
 type Chan chan int
 type Func func(int) bool
 type Ptr *int
@@ -56,6 +58,57 @@ type Map map[interface{}]interface{}
 type Struct A
 
 func (Int) Fun() {}
+
+//func (Ptr) String() string     { return "String of Ptr" }
+//func (UPtr) String() string   { return "String of UPtr" }
+//func (If) String() string      { return "String of If" }
+func (Bool) String() string    { return "String of Bool" }
+func (Int) String() string     { return "String of Int" }
+func (Uint) String() string    { return "String of Uint" }
+func (Uintptr) String() string { return "String of Uintptr" }
+func (Float) String() string   { return "String of Float" }
+func (Complex) String() string { return "String of Complex" }
+func (Str) String() string     { return "String of Str" }
+func (Chan) String() string    { return "String of Chan" }
+func (Func) String() string    { return "String of Func" }
+func (Array) String() string   { return "String of Array" }
+func (Slice) String() string   { return "String of Slice" }
+func (Map) String() string     { return "String of Map" }
+func (Struct) String() string  { return "String of Struct" }
+
+//func (Ptr) GoString() string     { return "GoString of Ptr" }
+//func (UPtr) GoString() string   { return "GoString of UPtr" }
+//func (If) GoString() string      { return "GoString of If" }
+func (Bool) GoString() string    { return "GoString of Bool" }
+func (Int) GoString() string     { return "GoString of Int" }
+func (Uint) GoString() string    { return "GoString of Uint" }
+func (Uintptr) GoString() string { return "GoString of Uintptr" }
+func (Float) GoString() string   { return "GoString of Float" }
+func (Complex) GoString() string { return "GoString of Complex" }
+func (Str) GoString() string     { return "GoString of Str" }
+func (Chan) GoString() string    { return "GoString of Chan" }
+func (Func) GoString() string    { return "GoString of Func" }
+func (Array) GoString() string   { return "GoString of Array" }
+func (Slice) GoString() string   { return "GoString of Slice" }
+func (Map) GoString() string     { return "GoString of Map" }
+func (Struct) GoString() string  { return "GoString of Struct" }
+
+//func (Ptr) Error() string     { return "Error of Ptr" }
+//func (UPtr) Error() string   { return "Error of UPtr" }
+//func (If) Error() string      { return "Error of If" }
+func (Bool) Error() string    { return "Error of Bool" }
+func (Int) Error() string     { return "Error of Int" }
+func (Uint) Error() string    { return "Error of Uint" }
+func (Uintptr) Error() string { return "Error of Uintptr" }
+func (Float) Error() string   { return "Error of Float" }
+func (Complex) Error() string { return "Error of Complex" }
+func (Str) Error() string     { return "Error of Str" }
+func (Chan) Error() string    { return "Error of Chan" }
+func (Func) Error() string    { return "Error of Func" }
+func (Array) Error() string   { return "Error of Array" }
+func (Slice) Error() string   { return "Error of Slice" }
+func (Map) Error() string     { return "Error of Map" }
+func (Struct) Error() string  { return "Error of Struct" }
 
 func H(s string) string {
 	if len(s) < 1 {
@@ -293,6 +346,13 @@ func TestWriteKey(t *testing.T) {
 		{e: "0x64", v: reflect.ValueOf(struct{ a PInt }{100}).Field(0)},
 		{e: "String of PStr", v: reflect.ValueOf(PStr(100))},
 		{e: "0x64", v: reflect.ValueOf(struct{ a PStr }{100}).Field(0)},
+		{e: "String of Bool", v: reflect.ValueOf(Bool(true))},
+		{e: "String of Int", v: reflect.ValueOf(Int(100))},
+		{e: "String of Uint", v: reflect.ValueOf(Uint(100))},
+		{e: "String of Uintptr", v: reflect.ValueOf(Uintptr(100))},
+		{e: "100", v: reflect.ValueOf(Float(100))},
+		{e: "(100+0i)", v: reflect.ValueOf(Complex(100))},
+		{e: `"100"`, v: reflect.ValueOf(Str("100"))},
 	}
 	for i, c := range cs {
 		var d tValueDiffer
@@ -409,6 +469,13 @@ func TestWriteElem(t *testing.T) {
 		{e: "0x64", v: reflect.ValueOf(struct{ a PInt }{100}).Field(0)},
 		{e: "String of PStr", v: reflect.ValueOf(PStr(100))},
 		{e: "0x64", v: reflect.ValueOf(struct{ a PStr }{100}).Field(0)},
+		{e: "String of Bool", v: reflect.ValueOf(Bool(true))},
+		{e: "String of Int", v: reflect.ValueOf(Int(100))},
+		{e: "String of Uint", v: reflect.ValueOf(Uint(100))},
+		{e: "String of Uintptr", v: reflect.ValueOf(Uintptr(100))},
+		{e: "100", v: reflect.ValueOf(Float(100))},
+		{e: "(100+0i)", v: reflect.ValueOf(Complex(100))},
+		{e: `"100"`, v: reflect.ValueOf(Str("100"))},
 	}
 	for i, c := range cs {
 		var d tValueDiffer
@@ -559,6 +626,13 @@ func TestWriteValueAfterType(t *testing.T) {
 			c []uint
 			a int
 		}{c: []uint{1, 2, 3}})},
+		{e: "(String of Bool)", v: reflect.ValueOf(Bool(true))},
+		{e: "(String of Int)", v: reflect.ValueOf(Int(100))},
+		{e: "(String of Uint)", v: reflect.ValueOf(Uint(100))},
+		{e: "(String of Uintptr)", v: reflect.ValueOf(Uintptr(100))},
+		{e: "(100)", v: reflect.ValueOf(Float(100))},
+		{e: "(100+0i)", v: reflect.ValueOf(Complex(100))},
+		{e: `("100")`, v: reflect.ValueOf(Str("100"))},
 	}
 	for i, c := range cs {
 		var d tValueDiffer
@@ -651,7 +725,7 @@ func TestWriteType(t *testing.T) {
 		{v: reflect.TypeOf(func(int, string) {})},
 		{v: reflect.TypeOf(func(int, string) float32 { return 0 })},
 		{v: reflect.TypeOf(func(int, string) (bool, float32, string) { return true, 0, "a" })},
-		{v: reflect.TypeOf(func(Map, Slice) (Uintptr, Float, String) { return 1, 0, "a" })},
+		{v: reflect.TypeOf(func(Map, Slice) (Uintptr, Float, Str) { return 1, 0, "a" })},
 		{v: reflect.TypeOf(new(int))},
 		{v: reflect.TypeOf(new(chan int))},
 		{v: reflect.TypeOf(new(UPtr))},
@@ -662,7 +736,7 @@ func TestWriteType(t *testing.T) {
 		{v: reflect.ValueOf(struct{ a interface{} }{}).Field(0).Type()},
 		{v: reflect.ValueOf(struct{ a I }{}).Field(0).Type()},
 		{v: reflect.ValueOf(struct {
-			a func(Map, Slice) (Uintptr, Float, String)
+			a func(Map, Slice) (Uintptr, Float, Str)
 		}{}).Field(0).Type()},
 		{v: reflect.TypeOf([...]int{})},
 		{v: reflect.TypeOf([...]int{1, 2, 3})},
@@ -678,7 +752,7 @@ func TestWriteType(t *testing.T) {
 		{v: reflect.TypeOf(Uintptr(100))},
 		{v: reflect.TypeOf(Float(100))},
 		{v: reflect.TypeOf(Complex(100))},
-		{v: reflect.TypeOf(String("100"))},
+		{v: reflect.TypeOf(Str("100"))},
 		{v: reflect.TypeOf(Chan(make(Chan)))},
 		{v: reflect.TypeOf(Func(func(int) bool { return false }))},
 		{v: reflect.TypeOf(Ptr(new(int)))},
@@ -771,7 +845,7 @@ func TestWriteTypeBeforeValue(t *testing.T) {
 		{v: reflect.ValueOf(Uintptr(100))},
 		{v: reflect.ValueOf(Float(100))},
 		{v: reflect.ValueOf(Complex(100))},
-		{v: reflect.ValueOf(String("100"))},
+		{v: reflect.ValueOf(Str("100"))},
 		{v: reflect.ValueOf(Chan(make(Chan))), e: "(assert.Chan)", h: "(" + H("assert.Chan") + ")"},
 		{v: reflect.ValueOf(Func(func(int) bool { return false })), e: "(assert.Func)", h: "(" + H("assert.Func") + ")"},
 		{v: reflect.ValueOf(Ptr(new(int))), e: "(assert.Ptr)", h: "(" + H("assert.Ptr") + ")"},
@@ -901,12 +975,12 @@ func TestWriteTypeValue(t *testing.T) {
 			a int
 		}{c: []uint{1, 2, 3}})},
 		{e: "assert.A{a:<nil>, b:<nil>}", v: reflect.ValueOf(A{})},
-		{v: reflect.ValueOf(Int(100))},
-		{v: reflect.ValueOf(Uint(100))},
-		{v: reflect.ValueOf(Uintptr(100)), e: "assert.Uintptr(0x64)"},
+		{v: reflect.ValueOf(Int(100)), e: "assert.Int(String of Int)"},
+		{v: reflect.ValueOf(Uint(100)), e: "assert.Uint(String of Uint)"},
+		{v: reflect.ValueOf(Uintptr(100)), e: "assert.Uintptr(String of Uintptr)"},
 		{v: reflect.ValueOf(Float(100))},
 		{v: reflect.ValueOf(Complex(100.1 + 200.2i)), e: "assert.Complex(100.1+200.2i)"},
-		{v: reflect.ValueOf(String("100")), e: `assert.String("100")`},
+		{v: reflect.ValueOf(Str("100")), e: `assert.Str("100")`},
 		{v: reflect.ValueOf(Chan(nil)), e: "(assert.Chan)(nil)"},
 		{v: reflect.ValueOf(Chan(make(Chan))), e: "(assert.Chan)(%v)", p: true},
 		{v: reflect.ValueOf(Func(nil)), e: "(assert.Func)(nil)"},
@@ -935,6 +1009,8 @@ func TestWriteTypeValue(t *testing.T) {
 		{v: reflect.ValueOf(Struct{}), e: "assert.Struct{a:<nil>, b:<nil>}"},
 		{v: reflect.ValueOf(&Struct{}), e: "&assert.Struct{a:<nil>, b:<nil>}"},
 		{v: reflect.ValueOf((*Struct)(nil)), e: "(*assert.Struct)(nil)"},
+		{v: reflect.ValueOf(reflect.Array), e: "reflect.Kind(array)"},
+		{v: reflect.ValueOf(errors.New("abc")), e: `&errors.errorString{s:"abc"}`},
 	}
 	for i, c := range cs {
 		var d tValueDiffer
