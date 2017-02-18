@@ -29,10 +29,23 @@ import (
 )
 
 //TODO:
-//Contain/NotContain
 //EqualValue/NotEqualValue
+//Contain/NotContain
+//GreaterThan/LessThan
+//GreaterEqual/LessEqual
 //Empty/NotEmpty
 //Error/NoError/EqualError
+
+func EqualValue(t *testing.T, e, a interface{}, m ...interface{}) {
+	CallerT{1, 1}.EqualValue(t, e, a, m...)
+}
+
+func (c CallerT) EqualValue(t *testing.T, e, a interface{}, m ...interface{}) {
+	if isSameInValue(e, a) {
+		return
+	}
+	fail(c, t, e, a, kEqV, m...)
+}
 
 // NotNil asserts whether a is not nil.
 //
@@ -153,6 +166,7 @@ const (
 	kNe
 	kNil
 	kNNil
+	kEqV
 )
 
 func fail(c CallerT, t *testing.T, expected, actual interface{}, res tRes, msg ...interface{}) {
@@ -169,6 +183,8 @@ func fail(c CallerT, t *testing.T, expected, actual interface{}, res tRes, msg .
 		writeFailNil(&b, actual)
 	case kNNil:
 		writeFailNNil(&b, actual)
+	case kEqV:
+		writeFailEqV(&b, expected, actual)
 	}
 	writeMessages(&b, msg...)
 	b.Tab--
@@ -202,6 +218,14 @@ func writeFailNil(buf *tFeatureBuf, actual interface{}) {
 }
 
 func writeFailNNil(buf *tFeatureBuf, actual interface{}) {
+	var v tValueDiffer
+	v.WriteTypeValue(0, reflect.ValueOf(actual), buf.Tab+1)
+	buf.NL().Normal("Expect:\t").Highlight("NOT ", nil)
+	buf.NL().Normalf("Actual:\t%v", v.String(0))
+	writeAttrs(buf, v)
+}
+
+func writeFailEqV(buf *tFeatureBuf, expected, actual interface{}) {
 	var v tValueDiffer
 	v.WriteTypeValue(0, reflect.ValueOf(actual), buf.Tab+1)
 	buf.NL().Normal("Expect:\t").Highlight("NOT ", nil)
@@ -311,4 +335,23 @@ func isNil(a interface{}) bool {
 		return v.IsNil()
 	}
 	return false
+}
+
+func isSameInValue(e, a interface{}) bool {
+	if reflect.DeepEqual(e, a) {
+		return true
+	}
+	if e == nil || a == nil {
+		return isNil(e) && isNil(a)
+	}
+	v1, v2 := reflect.ValueOf(e), reflect.ValueOf(a)
+	eq := func(a1, a2 reflect.Value) bool {
+		t1, t2 := a1.Type(), a2.Type()
+		if t1.Size() > t2.Size() || !t1.ConvertibleTo(t2) {
+			return false
+		}
+		a1 = a1.Convert(t2)
+		return valueEqual(a1, a2)
+	}
+	return eq(v1, v2) || eq(v2, v1)
 }
