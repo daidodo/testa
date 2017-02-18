@@ -344,14 +344,114 @@ func isSameInValue(e, a interface{}) bool {
 	if e == nil || a == nil {
 		return isNil(e) && isNil(a)
 	}
-	v1, v2 := reflect.ValueOf(e), reflect.ValueOf(a)
-	eq := func(a1, a2 reflect.Value) bool {
-		t1, t2 := a1.Type(), a2.Type()
-		if t1.Size() > t2.Size() || !t1.ConvertibleTo(t2) {
+	return convertCompare(reflect.ValueOf(e), reflect.ValueOf(a))
+}
+
+func convertCompare(v1, v2 reflect.Value) bool {
+	return convertCompareB(v1, v2) || convertCompareB(v2, v1)
+}
+
+func convertCompareB(f, t reflect.Value) bool {
+	tt := t.Type()
+	if f.Type() == tt {
+		return false
+	}
+	switch tt.Kind() {
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+		return convertCompareInt(f, t)
+	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr:
+		return convertCompareUint(f, t)
+	case reflect.Float32, reflect.Float64:
+		return convertCompareFloat(f, t)
+	case reflect.Complex64, reflect.Complex128:
+		return convertCompareComplex(f, t)
+	case reflect.Array:
+		return convertCompareArray(f, t)
+
+	}
+	return convertCompareC(f, t)
+}
+
+func convertCompareInt(f, t reflect.Value) bool {
+	v := t.Int()
+	switch f.Kind() {
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+		return f.Int() == v
+	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr:
+		return convertCompareUint(t, f)
+	case reflect.Float32, reflect.Float64:
+		return convertCompareFloat(t, f)
+	case reflect.Complex64, reflect.Complex128:
+		return convertCompareComplex(t, f)
+	}
+	return convertCompareC(f, t)
+}
+
+func convertCompareUint(f, t reflect.Value) bool {
+	v := t.Uint()
+	switch f.Kind() {
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+		return f.Int() >= 0 && uint64(f.Int()) == v
+	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr:
+		return f.Uint() == v
+	case reflect.Float32, reflect.Float64:
+		return convertCompareFloat(t, f)
+	case reflect.Complex64, reflect.Complex128:
+		return convertCompareComplex(t, f)
+	}
+	return convertCompareC(f, t)
+}
+
+func convertCompareFloat(f, t reflect.Value) bool {
+	v := t.Float()
+	switch f.Kind() {
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+		return float64(f.Int()) == v
+	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr:
+		return float64(f.Uint()) == v
+	case reflect.Float32, reflect.Float64:
+		return f.Float() == v
+	case reflect.Complex64, reflect.Complex128:
+		return convertCompareComplex(t, f)
+	}
+	return convertCompareC(f, t)
+}
+
+func convertCompareComplex(f, t reflect.Value) bool {
+	v := t.Complex()
+	switch f.Kind() {
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+		return imag(v) == 0 && float64(f.Int()) == real(v)
+	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr:
+		return imag(v) == 0 && float64(f.Uint()) == real(v)
+	case reflect.Float32, reflect.Float64:
+		return imag(v) == 0 && f.Float() == real(v)
+	case reflect.Complex64, reflect.Complex128:
+		return f.Complex() == v
+	}
+	return convertCompareC(f, t)
+}
+
+func convertCompareArray(f, t reflect.Value) bool {
+	switch f.Kind() {
+	case reflect.Array:
+		if f.Len() != t.Len() {
 			return false
 		}
-		a1 = a1.Convert(t2)
-		return valueEqual(a1, a2)
+		for i := 0; i < f.Len(); i++ {
+			if !convertCompare(f.Index(i), t.Index(i)) {
+				return false
+			}
+		}
+		return true
 	}
-	return eq(v1, v2) || eq(v2, v1)
+	return convertCompareC(f, t)
+}
+
+func convertCompareC(f, t reflect.Value) bool {
+	if !f.Type().ConvertibleTo(t.Type()) {
+		return false
+	}
+	a := f.Convert(t.Type())
+	return valueEqual(a, t)
 }
