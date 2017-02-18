@@ -115,6 +115,8 @@ func fn() {
 	d1 := struct{ a interface{} }{100}
 	d2 := 100
 	desc(reflect.DeepEqual(d1.a, d2))
+	fmt.Printf("%b\n", int8(-0x80))
+	desc(int(100) == uint(100))
 }
 
 func fm() {
