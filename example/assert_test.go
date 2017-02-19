@@ -9,11 +9,11 @@ import (
 	assert2 "github.com/stretchr/testify/assert"
 )
 
-func TestEqualVal(t *testing.T) {
+func TestEqualValBug(t *testing.T) {
 	a := int8(0)
 	b := int32(-1000000000)
-	assert2.EqualValues(t, b, a)
-	//	assert2.EqualValues(t, a, b)
+	assert2.EqualValues(t, b, a) //This is a BUG!
+	assert.EqualValue(t, b, a)
 }
 
 func TestEqualValue(t *testing.T) {
