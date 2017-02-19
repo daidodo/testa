@@ -116,7 +116,13 @@ func fn() {
 	d2 := 100
 	desc(reflect.DeepEqual(d1.a, d2))
 	fmt.Printf("%b\n", int8(-0x80))
-	desc(int(100) == uint(100))
+	//desc(int(100) == uint(100))
+	t1 := reflect.TypeOf(string("abc"))
+	t2 := reflect.TypeOf(int(100))
+	desc(t1.ConvertibleTo(t2))
+	desc(t2.ConvertibleTo(t1))
+	vs := reflect.ValueOf(100).Convert(reflect.TypeOf("abc"))
+	desc(vs)
 }
 
 func fm() {
