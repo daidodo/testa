@@ -235,7 +235,7 @@ func writeFailNNil(buf *tFeatureBuf, actual interface{}) {
 
 func writeFailEqV(buf *tFeatureBuf, expected, actual interface{}) {
 	var v tValueDiffer
-	v.WriteDiff(reflect.ValueOf(expected), reflect.ValueOf(actual), buf.Tab+1)
+	v.WriteValDiff(reflect.ValueOf(expected), reflect.ValueOf(actual), buf.Tab+1)
 	buf.NL().Normalf("Expect:\t%v", v.String(0))
 	buf.NL().Normalf("Actual:\t%v", v.String(1))
 	writeAttrs(buf, v)
