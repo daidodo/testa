@@ -223,7 +223,7 @@ func (vd *tValueDiffer) writeValueAfterTypeStruct(idx int, v reflect.Value) {
 
 // writeElem formats value v to a well readable string.
 // It differs from writeKey() in representation for composite types (array, slice, map or struct),
-// which may produce multi line strings if their contents (keys or elements) are also of composite
+// that writeElem may produce multi line strings if their contents (keys or elements) are also of composite
 // types.
 func (vd *tValueDiffer) writeElem(idx int, v reflect.Value, hl bool) {
 	b := vd.bufi(idx)
