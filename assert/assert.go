@@ -36,10 +36,18 @@ import (
 //Empty/NotEmpty
 //Error/NoError/EqualError
 
+// EqualValue assert whether e and a have identical value, regardless of their types.
+// For example, int(100) and uint(100) have the same value, but different types, so:
+//		assert.NotEqual(t, int(100), uint(100))
+//		assert.EqualValue(t, int(100), uint(100))
 func EqualValue(t *testing.T, e, a interface{}, m ...interface{}) {
 	CallerT{1, 1}.EqualValue(t, e, a, m...)
 }
 
+// EqualValue assert whether e and a have identical value, regardless of their types.
+// For example, int(100) and uint(100) have the same value, but different types, so:
+//		assert.NotEqual(t, int(100), uint(100))
+//		assert.EqualValue(t, int(100), uint(100))
 func (c CallerT) EqualValue(t *testing.T, e, a interface{}, m ...interface{}) {
 	if isSameInValue(e, a) {
 		return
@@ -227,9 +235,9 @@ func writeFailNNil(buf *tFeatureBuf, actual interface{}) {
 
 func writeFailEqV(buf *tFeatureBuf, expected, actual interface{}) {
 	var v tValueDiffer
-	v.WriteTypeValue(0, reflect.ValueOf(actual), buf.Tab+1)
-	buf.NL().Normal("Expect:\t").Highlight("NOT ", nil)
-	buf.NL().Normalf("Actual:\t%v", v.String(0))
+	v.WriteDiff(reflect.ValueOf(expected), reflect.ValueOf(actual), buf.Tab+1)
+	buf.NL().Normalf("Expect:\t%v", v.String(0))
+	buf.NL().Normalf("Actual:\t%v", v.String(1))
 	writeAttrs(buf, v)
 }
 
@@ -329,7 +337,14 @@ func isNil(a interface{}) bool {
 	if a == nil {
 		return true
 	}
-	if v := reflect.ValueOf(a); isPointer(v.Type()) {
+	return isNilForValue(reflect.ValueOf(a))
+}
+
+func isNilForValue(v reflect.Value) bool {
+	if !v.IsValid() {
+		return true
+	}
+	if isPointer(v.Type()) {
 		return v.Pointer() == 0
 	} else if k := v.Kind(); k != reflect.Array && k != reflect.Struct && isNonTrivial(v.Type()) {
 		return v.IsNil()
@@ -348,15 +363,16 @@ func isSameInValue(e, a interface{}) bool {
 }
 
 func convertCompare(v1, v2 reflect.Value) bool {
+	v1, _ = derefInterface(v1)
+	v2, _ = derefInterface(v2)
+	if !v1.IsValid() || !v2.IsValid() {
+		return isNilForValue(v1) && isNilForValue(v2)
+	}
 	return convertCompareB(v1, v2) || convertCompareB(v2, v1)
 }
 
 func convertCompareB(f, t reflect.Value) bool {
-	tt := t.Type()
-	if f.Type() == tt {
-		return false
-	}
-	switch tt.Kind() {
+	switch t.Kind() {
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
 		return convertCompareInt(f, t)
 	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr:
@@ -365,9 +381,14 @@ func convertCompareB(f, t reflect.Value) bool {
 		return convertCompareFloat(f, t)
 	case reflect.Complex64, reflect.Complex128:
 		return convertCompareComplex(f, t)
-	case reflect.Array:
+	case reflect.Ptr, reflect.UnsafePointer:
+		return convertComparePtr(f, t)
+	case reflect.Array, reflect.Slice:
 		return convertCompareArray(f, t)
-
+	case reflect.Map:
+		return convertCompareMap(f, t)
+	case reflect.Struct:
+		return convertCompareStruct(f, t)
 	}
 	return convertCompareC(f, t)
 }
@@ -432,14 +453,79 @@ func convertCompareComplex(f, t reflect.Value) bool {
 	return convertCompareC(f, t)
 }
 
-func convertCompareArray(f, t reflect.Value) bool {
+func convertComparePtr(f, t reflect.Value) bool {
+	v := t.Pointer()
 	switch f.Kind() {
-	case reflect.Array:
+	case reflect.UnsafePointer:
+		return f.Pointer() == v
+	case reflect.Ptr:
+		return t.Kind() == reflect.UnsafePointer && f.Pointer() == v // diff type pointers are NOT equal
+	}
+	return convertCompareC(f, t)
+}
+
+func convertCompareArray(f, t reflect.Value) bool {
+	if t.Kind() != reflect.Slice || !t.IsNil() {
+		switch f.Kind() {
+		case reflect.Slice:
+			if f.IsNil() {
+				break
+			}
+			fallthrough
+		case reflect.Array:
+			if f.Len() != t.Len() {
+				return false
+			}
+			if f.Len() == 0 {
+				return f.Type().Elem().ConvertibleTo(t.Type().Elem())
+			}
+			for i := 0; i < f.Len(); i++ {
+				if !convertCompare(f.Index(i), t.Index(i)) {
+					return false
+				}
+			}
+			return true
+		}
+	}
+	return convertCompareC(f, t)
+}
+
+func convertCompareMap(f, t reflect.Value) bool {
+	if !t.IsNil() && f.Kind() == reflect.Map && !f.IsNil() {
 		if f.Len() != t.Len() {
 			return false
 		}
-		for i := 0; i < f.Len(); i++ {
-			if !convertCompare(f.Index(i), t.Index(i)) {
+		if f.Len() == 0 {
+			k1, k2, e1, e2 := f.Type().Key(), t.Type().Key(), f.Type().Elem(), t.Type().Elem()
+			return (k1.ConvertibleTo(k2) || k2.ConvertibleTo(k1)) && (e1.ConvertibleTo(e2) || e2.ConvertibleTo(e1))
+		}
+		ks := t.MapKeys()
+		find := func(v reflect.Value) (reflect.Value, bool) {
+			for _, k := range ks {
+				if convertCompare(v, k) {
+					return k, true
+				}
+			}
+			return reflect.Value{}, false
+		}
+		for _, k := range f.MapKeys() {
+			kk, ok := find(k)
+			if !ok {
+				return false
+			}
+			if !convertCompare(f.MapIndex(k), t.MapIndex(kk)) {
+				return false
+			}
+		}
+		return true
+	}
+	return convertCompareC(f, t)
+}
+
+func convertCompareStruct(f, t reflect.Value) bool {
+	if f.Type() == t.Type() {
+		for i := 0; i < f.NumField(); i++ {
+			if !convertCompare(f.Field(i), t.Field(i)) {
 				return false
 			}
 		}
