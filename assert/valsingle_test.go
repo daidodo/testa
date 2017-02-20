@@ -632,7 +632,7 @@ func TestWriteValueAfterType(t *testing.T) {
 	[1 2 3]:true
 }`, v: reflect.ValueOf(map[[3]int]bool{[3]int{1, 2, 3}: true, [3]int{100, 200, 300}: false}),
 			h:  "\x1b[41m{\x1b[0m\n\t\x1b[41m[1 2 3]:true,\x1b[0m\n\t\x1b[41m[100 200 300]:false\x1b[0m\n\x1b[41m}\x1b[0m",
-			h2: "\x1b[41m{\x1b[0m\n\t\x1b[41m[1 2 3]:true,\x1b[0m\n\t\x1b[41m[100 200 300]:false\x1b[0m\n\x1b[41m}\x1b[0m"},
+			h2: "\x1b[41m{\x1b[0m\n\t\x1b[41m[100 200 300]:false,\x1b[0m\n\t\x1b[41m[1 2 3]:true\x1b[0m\n\x1b[41m}\x1b[0m"},
 		{e: "{}", v: reflect.ValueOf(struct{}{})},
 		{e: `{a:0, b:"", c:<nil>}`, v: reflect.ValueOf(struct {
 			a int
@@ -1053,7 +1053,7 @@ func TestWriteTypeValue(t *testing.T) {
 	}
 	for i, c := range cs {
 		var d tValueDiffer
-		d.writeTypeValue(0, c.v)
+		d.writeTypeValue(0, c.v, false, false)
 		e := c.e
 		if c.p {
 			e = fmt.Sprintf(e, c.v)
