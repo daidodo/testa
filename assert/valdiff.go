@@ -66,12 +66,12 @@ func (vd *tValueDiffer) writeDiffTypeValues(v1, v2 reflect.Value) {
 		} else if !v1.IsValid() || !v2.IsValid() {
 			v1 = vd.writeTypeBeforeValue(0, v1, true)
 			v2 = vd.writeTypeBeforeValue(1, v2, true)
-			vd.writeValueAfterType(0, v1)
-			vd.writeValueAfterType(1, v2)
+			vd.writeValueAfterType(0, v1, false)
+			vd.writeValueAfterType(1, v2, false)
 		} else {
 			vd.writeDiffKindsBeforeValue(v1, v2)
-			vd.writeValueAfterType(0, v1)
-			vd.writeValueAfterType(1, v2)
+			vd.writeValueAfterType(0, v1, false)
+			vd.writeValueAfterType(1, v2, false)
 		}
 	}
 }
