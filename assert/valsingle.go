@@ -181,7 +181,7 @@ func (vd *tValueDiffer) writeValueAfterTypeArray(idx int, v reflect.Value, hl bo
 func (vd *tValueDiffer) writeValueAfterTypeSlice(idx int, v reflect.Value, hl bool) {
 	b := vd.bufi(idx)
 	if v.IsNil() {
-		b.Normal("(").Write(hl, "nil").Write(hl, ")")
+		b.Normal("(").Write(hl, "nil").Normal(")")
 		return
 	}
 	vd.writeValueAfterTypeArray(idx, v, hl)
@@ -190,7 +190,7 @@ func (vd *tValueDiffer) writeValueAfterTypeSlice(idx int, v reflect.Value, hl bo
 func (vd *tValueDiffer) writeValueAfterTypeMap(idx int, v reflect.Value, hl bool) {
 	b := vd.bufi(idx)
 	if v.IsNil() {
-		b.Normal("(").Write(hl, "nil").Write(hl, ")")
+		b.Normal("(").Write(hl, "nil").Normal(")")
 		return
 	}
 	_, ml := attrElemMap(v)
