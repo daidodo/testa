@@ -297,6 +297,7 @@ func TestWriteKey(t *testing.T) {
 	a := &A{}
 	cs := []struct {
 		e, e2 string
+		h, h2 string
 		v     reflect.Value
 		p     bool
 	}{
@@ -315,8 +316,10 @@ func TestWriteKey(t *testing.T) {
 		{e: "0x64", v: reflect.ValueOf(uintptr(100))},
 		{e: "100", v: reflect.ValueOf(float32(100))},
 		{e: "100", v: reflect.ValueOf(float64(100))},
-		{e: "(100.1+200.2i)", v: reflect.ValueOf(complex64(100.1 + 200.2i))},
-		{e: "(100.1+200.2i)", v: reflect.ValueOf(complex128(100.1 + 200.2i))},
+		{e: "(0+200.2i)", v: reflect.ValueOf(complex64(200.2i)), h: "(" + H("0+200.2i") + ")"},
+		{e: "(100.1+0i)", v: reflect.ValueOf(complex64(100.1)), h: "(" + H("100.1+0i") + ")"},
+		{e: "(100.1+200.2i)", v: reflect.ValueOf(complex64(100.1 + 200.2i)), h: "(" + H("100.1+200.2i") + ")"},
+		{e: "(100.1+200.2i)", v: reflect.ValueOf(complex128(100.1 + 200.2i)), h: "(" + H("100.1+200.2i") + ")"},
 		{e: `"abc"`, v: reflect.ValueOf(string("abc"))},
 		{e: "<nil>", v: reflect.ValueOf(chan int(nil))},
 		{e: "%v", v: reflect.ValueOf(make(chan int)), p: true},
@@ -351,30 +354,36 @@ func TestWriteKey(t *testing.T) {
 		{e: "String of Uint", v: reflect.ValueOf(Uint(100))},
 		{e: "String of Uintptr", v: reflect.ValueOf(Uintptr(100))},
 		{e: "100", v: reflect.ValueOf(Float(100))},
-		{e: "(100+0i)", v: reflect.ValueOf(Complex(100))},
+		{e: "(100+0i)", v: reflect.ValueOf(Complex(100)), h: "(" + H("100+0i") + ")"},
 		{e: `"100"`, v: reflect.ValueOf(Str("100"))},
 	}
 	for i, c := range cs {
 		var d tValueDiffer
 		d.writeKey(0, c.v, false)
 		d.writeKey(1, c.v, true)
-		r1 := c.e
+		r1, r2 := c.e, c.e2
 		if c.p {
 			r1 = fmt.Sprintf(r1, c.v)
 		}
-		r2 := c.e2
 		if r2 != "" && c.p {
 			r2 = fmt.Sprintf(r2, c.v)
 		}
-		if r2 != "" && r2 == d.String(0) {
-			Equal(t, r2, d.String(0), "i=%v", i)
-		} else {
-			Equal(t, r1, d.String(0), "i=%v", i)
+		h1, h2 := c.h, c.h2
+		if h1 == "" {
+			h1 = H(r1)
 		}
-		if r2 != "" && H(r2) == d.String(1) {
-			Equal(t, H(r2), d.String(1), "i=%v", i)
+		if h2 == "" {
+			h2 = H(r2)
+		}
+		if r2 != "" && r2 == d.String(0) {
+			Equal(t, r2, d.String(0), "i=%v\n%v", i, d.String(0))
 		} else {
-			Equal(t, H(r1), d.String(1), "i=%v", i)
+			Equal(t, r1, d.String(0), "i=%v\n%v", i, d.String(0))
+		}
+		if h2 != "" && h2 == d.String(1) {
+			Equal(t, h2, d.String(1), "i=%v\n%v", i, d.String(1))
+		} else {
+			Equal(t, h1, d.String(1), "i=%v\n%v", i, d.String(1))
 		}
 	}
 }
@@ -402,8 +411,10 @@ func TestWriteElem(t *testing.T) {
 		{e: "0x64", v: reflect.ValueOf(uintptr(100))},
 		{e: "100", v: reflect.ValueOf(float32(100))},
 		{e: "100", v: reflect.ValueOf(float64(100))},
-		{e: "(100.1+200.2i)", v: reflect.ValueOf(complex64(100.1 + 200.2i))},
-		{e: "(100.1+200.2i)", v: reflect.ValueOf(complex128(100.1 + 200.2i))},
+		{e: "(0+200.2i)", v: reflect.ValueOf(complex64(200.2i)), h: "(" + H("0+200.2i") + ")"},
+		{e: "(100.1+0i)", v: reflect.ValueOf(complex64(100.1)), h: "(" + H("100.1+0i") + ")"},
+		{e: "(100.1+200.2i)", v: reflect.ValueOf(complex64(100.1 + 200.2i)), h: "(" + H("100.1+200.2i") + ")"},
+		{e: "(100.1+200.2i)", v: reflect.ValueOf(complex128(100.1 + 200.2i)), h: "(" + H("100.1+200.2i") + ")"},
 		{e: `"abc"`, v: reflect.ValueOf(string("abc"))},
 		{e: "<nil>", v: reflect.ValueOf(chan int(nil))},
 		{e: "%v", v: reflect.ValueOf(make(chan int)), p: true},
@@ -474,7 +485,7 @@ func TestWriteElem(t *testing.T) {
 		{e: "String of Uint", v: reflect.ValueOf(Uint(100))},
 		{e: "String of Uintptr", v: reflect.ValueOf(Uintptr(100))},
 		{e: "100", v: reflect.ValueOf(Float(100))},
-		{e: "(100+0i)", v: reflect.ValueOf(Complex(100))},
+		{e: "(100+0i)", v: reflect.ValueOf(Complex(100)), h: "(" + H("100+0i") + ")"},
 		{e: `"100"`, v: reflect.ValueOf(Str("100"))},
 	}
 	for i, c := range cs {
@@ -514,39 +525,42 @@ func TestWriteValueAfterType(t *testing.T) {
 	pa := new(int)
 	cs := []struct {
 		e, e2 string
+		h, h2 string
 		v     reflect.Value
 		p     bool
 	}{
 		{e: "", v: reflect.ValueOf(nil)},
-		{e: "(true)", v: reflect.ValueOf(true)},
-		{e: "(100)", v: reflect.ValueOf(int(100))},
-		{e: "(100)", v: reflect.ValueOf(int8(100))},
-		{e: "(100)", v: reflect.ValueOf(int16(100))},
-		{e: "(100)", v: reflect.ValueOf(int32(100))},
-		{e: "(100)", v: reflect.ValueOf(int64(100))},
-		{e: "(100)", v: reflect.ValueOf(uint(100))},
-		{e: "(100)", v: reflect.ValueOf(uint8(100))},
-		{e: "(100)", v: reflect.ValueOf(uint16(100))},
-		{e: "(100)", v: reflect.ValueOf(uint32(100))},
-		{e: "(100)", v: reflect.ValueOf(uint64(100))},
-		{e: "(0x64)", v: reflect.ValueOf(uintptr(100))},
-		{e: "(100)", v: reflect.ValueOf(float32(100))},
-		{e: "(100)", v: reflect.ValueOf(float64(100))},
-		{e: "(100.1+200.2i)", v: reflect.ValueOf(complex64(100.1 + 200.2i))},
-		{e: "(100.1+200.2i)", v: reflect.ValueOf(complex128(100.1 + 200.2i))},
-		{e: `("abc")`, v: reflect.ValueOf(string("abc"))},
-		{e: "(nil)", v: reflect.ValueOf(chan int(nil))},
-		{e: "(%v)", v: reflect.ValueOf(make(chan int)), p: true},
-		{e: "(nil)", v: reflect.ValueOf((func() int)(nil))},
-		{e: "(%v)", v: reflect.ValueOf(func() {}), p: true},
-		{e: "(nil)", v: reflect.ValueOf((*int)(nil))},
-		{e: "(%v)", v: reflect.ValueOf(new(int)), p: true},
-		{e: fmt.Sprintf("(%p)", a), v: reflect.ValueOf(a)},
-		{e: "(nil)", v: reflect.ValueOf(unsafe.Pointer(nil))},
-		{e: "(%v)", v: reflect.ValueOf(unsafe.Pointer(new(int))), p: true},
-		{e: "", v: reflect.ValueOf(struct{ a interface{} }{}).Field(0)},
-		{e: "(nil)", v: reflect.ValueOf(struct{ a I }{}).Field(0)},
-		{e: "(100)", v: reflect.ValueOf(struct{ a interface{} }{100}).Field(0)},
+		{e: "(true)", v: reflect.ValueOf(true), h: "(" + H("true") + ")"},
+		{e: "(100)", v: reflect.ValueOf(int(100)), h: "(" + H("100") + ")"},
+		{e: "(100)", v: reflect.ValueOf(int8(100)), h: "(" + H("100") + ")"},
+		{e: "(100)", v: reflect.ValueOf(int16(100)), h: "(" + H("100") + ")"},
+		{e: "(100)", v: reflect.ValueOf(int32(100)), h: "(" + H("100") + ")"},
+		{e: "(100)", v: reflect.ValueOf(int64(100)), h: "(" + H("100") + ")"},
+		{e: "(100)", v: reflect.ValueOf(uint(100)), h: "(" + H("100") + ")"},
+		{e: "(100)", v: reflect.ValueOf(uint8(100)), h: "(" + H("100") + ")"},
+		{e: "(100)", v: reflect.ValueOf(uint16(100)), h: "(" + H("100") + ")"},
+		{e: "(100)", v: reflect.ValueOf(uint32(100)), h: "(" + H("100") + ")"},
+		{e: "(100)", v: reflect.ValueOf(uint64(100)), h: "(" + H("100") + ")"},
+		{e: "(0x64)", v: reflect.ValueOf(uintptr(100)), h: "(" + H("0x64") + ")"},
+		{e: "(100)", v: reflect.ValueOf(float32(100)), h: "(" + H("100") + ")"},
+		{e: "(100)", v: reflect.ValueOf(float64(100)), h: "(" + H("100") + ")"},
+		{e: "(0+200.2i)", v: reflect.ValueOf(complex64(200.2i)), h: "(" + H("0+200.2i") + ")"},
+		{e: "(100.1+0i)", v: reflect.ValueOf(complex64(100.1)), h: "(" + H("100.1+0i") + ")"},
+		{e: "(100.1+200.2i)", v: reflect.ValueOf(complex64(100.1 + 200.2i)), h: "(" + H("100.1+200.2i") + ")"},
+		{e: "(100.1+200.2i)", v: reflect.ValueOf(complex128(100.1 + 200.2i)), h: "(" + H("100.1+200.2i") + ")"},
+		{e: `("abc")`, v: reflect.ValueOf(string("abc")), h: "(" + H(`"abc"`) + ")"},
+		{e: "(nil)", v: reflect.ValueOf(chan int(nil)), h: "(" + H("nil") + ")"},
+		{e: "(%v)", v: reflect.ValueOf(make(chan int)), p: true, h: "(" + H("%v") + ")"},
+		{e: "(nil)", v: reflect.ValueOf((func() int)(nil)), h: "(" + H("nil") + ")"},
+		{e: "(%v)", v: reflect.ValueOf(func() {}), p: true, h: "(" + H("%v") + ")"},
+		{e: "(nil)", v: reflect.ValueOf((*int)(nil)), h: "(" + H("nil") + ")"},
+		{e: "(%v)", v: reflect.ValueOf(new(int)), p: true, h: "(" + H("%v") + ")"},
+		{e: fmt.Sprintf("(%p)", a), v: reflect.ValueOf(a), h: fmt.Sprintf("("+H("%p")+")", a)},
+		{e: "(nil)", v: reflect.ValueOf(unsafe.Pointer(nil)), h: "(" + H("nil") + ")"},
+		{e: "(%v)", v: reflect.ValueOf(unsafe.Pointer(new(int))), p: true, h: "(" + H("%v") + ")"},
+		{v: reflect.ValueOf(struct{ a interface{} }{}).Field(0)},
+		{e: "(nil)", v: reflect.ValueOf(struct{ a I }{}).Field(0), h: "(" + H("nil") + ")"},
+		{e: "(100)", v: reflect.ValueOf(struct{ a interface{} }{100}).Field(0), h: "(" + H("100") + ")"},
 		{e: "{}", v: reflect.ValueOf([...]chan int{})},
 		{e: fmt.Sprintf("{<nil>, %v, <nil>}", pa), v: reflect.ValueOf([3]*int{1: pa})},
 		{e: "{0:0, 1:0, 2:0, 3:0, 4:0, 5:0, 6:0, 7:0, 8:0, 9:0, 10:0}", v: reflect.ValueOf([11]uint{})},
@@ -555,7 +569,8 @@ func TestWriteValueAfterType(t *testing.T) {
 	[100],
 	[1 2 3],
 	<nil>
-}`, v: reflect.ValueOf([5][]int{1: []int{}, 2: []int{100}, 3: []int{1, 2, 3}})},
+}`, v: reflect.ValueOf([5][]int{1: []int{}, 2: []int{100}, 3: []int{1, 2, 3}}),
+			h: "\x1b[41m{\x1b[0m\n\t\x1b[41m<nil>, [],\x1b[0m\n\t\x1b[41m[100],\x1b[0m\n\t\x1b[41m[1 2 3],\x1b[0m\n\t\x1b[41m<nil>\x1b[0m\n\x1b[41m}\x1b[0m"},
 		{e: `{
 	0:<nil>,
 	1:[],
@@ -568,8 +583,9 @@ func TestWriteValueAfterType(t *testing.T) {
 	8:<nil>,
 	9:<nil>,
 	10:<nil>
-}`, v: reflect.ValueOf([11][]int{1: []int{}, 2: []int{100}, 3: []int{1, 2, 3}})},
-		{e: "(nil)", v: reflect.ValueOf([]int(nil))},
+}`, v: reflect.ValueOf([11][]int{1: []int{}, 2: []int{100}, 3: []int{1, 2, 3}}),
+			h: "\x1b[41m{\x1b[0m\n\t\x1b[41m0:<nil>,\x1b[0m\n\t\x1b[41m1:[],\x1b[0m\n\t\x1b[41m2:[100],\x1b[0m\n\t\x1b[41m3:[1 2 3],\x1b[0m\n\t\x1b[41m4:<nil>,\x1b[0m\n\t\x1b[41m5:<nil>,\x1b[0m\n\t\x1b[41m6:<nil>,\x1b[0m\n\t\x1b[41m7:<nil>,\x1b[0m\n\t\x1b[41m8:<nil>,\x1b[0m\n\t\x1b[41m9:<nil>,\x1b[0m\n\t\x1b[41m10:<nil>\x1b[0m\n\x1b[41m}\x1b[0m"},
+		{e: "(nil)", v: reflect.ValueOf([]int(nil)), h: "(" + H("nil") + ")"},
 		{e: "{}", v: reflect.ValueOf([]chan int{})},
 		{e: fmt.Sprintf("{<nil>, %v, <nil>}", pa), v: reflect.ValueOf([]*int{1: pa, 2: nil})},
 		{e: "{0:0, 1:0, 2:0, 3:0, 4:0, 5:0, 6:0, 7:0, 8:0, 9:0, 10:0}", v: reflect.ValueOf(make([]uint, 11))},
@@ -578,7 +594,8 @@ func TestWriteValueAfterType(t *testing.T) {
 	[100],
 	[1 2 3],
 	<nil>
-}`, v: reflect.ValueOf([][]int{1: []int{}, 2: []int{100}, 3: []int{1, 2, 3}, 4: nil})},
+}`, v: reflect.ValueOf([][]int{1: []int{}, 2: []int{100}, 3: []int{1, 2, 3}, 4: nil}),
+			h: "\x1b[41m{\x1b[0m\n\t\x1b[41m<nil>, [],\x1b[0m\n\t\x1b[41m[100],\x1b[0m\n\t\x1b[41m[1 2 3],\x1b[0m\n\t\x1b[41m<nil>\x1b[0m\n\x1b[41m}\x1b[0m"},
 		{e: `{
 	0:<nil>,
 	1:[],
@@ -591,8 +608,9 @@ func TestWriteValueAfterType(t *testing.T) {
 	8:<nil>,
 	9:<nil>,
 	10:<nil>
-}`, v: reflect.ValueOf([][]int{1: []int{}, 2: []int{100}, 3: []int{1, 2, 3}, 10: nil})},
-		{e: "(nil)", v: reflect.ValueOf(map[bool]int(nil))},
+}`, v: reflect.ValueOf([][]int{1: []int{}, 2: []int{100}, 3: []int{1, 2, 3}, 10: nil}),
+			h: "\x1b[41m{\x1b[0m\n\t\x1b[41m0:<nil>,\x1b[0m\n\t\x1b[41m1:[],\x1b[0m\n\t\x1b[41m2:[100],\x1b[0m\n\t\x1b[41m3:[1 2 3],\x1b[0m\n\t\x1b[41m4:<nil>,\x1b[0m\n\t\x1b[41m5:<nil>,\x1b[0m\n\t\x1b[41m6:<nil>,\x1b[0m\n\t\x1b[41m7:<nil>,\x1b[0m\n\t\x1b[41m8:<nil>,\x1b[0m\n\t\x1b[41m9:<nil>,\x1b[0m\n\t\x1b[41m10:<nil>\x1b[0m\n\x1b[41m}\x1b[0m"},
+		{e: "(nil)", v: reflect.ValueOf(map[bool]int(nil)), h: "(" + H("nil") + ")"},
 		{e: "{}", v: reflect.ValueOf(map[bool]int{})},
 		{e: "{true:100, false:200}", e2: "{false:200, true:100}", v: reflect.ValueOf(map[bool]int{true: 100, false: 200})},
 		{e: "{true:<nil>}", v: reflect.ValueOf(map[bool]chan int{true: nil})},
@@ -603,14 +621,18 @@ func TestWriteValueAfterType(t *testing.T) {
 }`, e2: `{
 	false:[100 200],
 	true:[1 2 3]
-}`, v: reflect.ValueOf(map[bool][]int{true: []int{1, 2, 3}, false: []int{100, 200}})},
+}`, v: reflect.ValueOf(map[bool][]int{true: []int{1, 2, 3}, false: []int{100, 200}}),
+			h:  "\x1b[41m{\x1b[0m\n\t\x1b[41mtrue:[1 2 3],\x1b[0m\n\t\x1b[41mfalse:[100 200]\x1b[0m\n\x1b[41m}\x1b[0m",
+			h2: "\x1b[41m{\x1b[0m\n\t\x1b[41mfalse:[100 200],\x1b[0m\n\t\x1b[41mtrue:[1 2 3]\x1b[0m\n\x1b[41m}\x1b[0m"},
 		{e: `{
 	[1 2 3]:true,
 	[100 200 300]:false
 }`, e2: `{
 	[100 200 300]:false,
 	[1 2 3]:true
-}`, v: reflect.ValueOf(map[[3]int]bool{[3]int{1, 2, 3}: true, [3]int{100, 200, 300}: false})},
+}`, v: reflect.ValueOf(map[[3]int]bool{[3]int{1, 2, 3}: true, [3]int{100, 200, 300}: false}),
+			h:  "\x1b[41m{\x1b[0m\n\t\x1b[41m[1 2 3]:true,\x1b[0m\n\t\x1b[41m[100 200 300]:false\x1b[0m\n\x1b[41m}\x1b[0m",
+			h2: "\x1b[41m{\x1b[0m\n\t\x1b[41m[1 2 3]:true,\x1b[0m\n\t\x1b[41m[100 200 300]:false\x1b[0m\n\x1b[41m}\x1b[0m"},
 		{e: "{}", v: reflect.ValueOf(struct{}{})},
 		{e: `{a:0, b:"", c:<nil>}`, v: reflect.ValueOf(struct {
 			a int
@@ -625,30 +647,47 @@ func TestWriteValueAfterType(t *testing.T) {
 			b string
 			c []uint
 			a int
-		}{c: []uint{1, 2, 3}})},
-		{e: "(String of Bool)", v: reflect.ValueOf(Bool(true))},
-		{e: "(String of Int)", v: reflect.ValueOf(Int(100))},
-		{e: "(String of Uint)", v: reflect.ValueOf(Uint(100))},
-		{e: "(String of Uintptr)", v: reflect.ValueOf(Uintptr(100))},
-		{e: "(100)", v: reflect.ValueOf(Float(100))},
-		{e: "(100+0i)", v: reflect.ValueOf(Complex(100))},
-		{e: `("100")`, v: reflect.ValueOf(Str("100"))},
+		}{c: []uint{1, 2, 3}}),
+			h: "\x1b[41m{\x1b[0m\n\t\x1b[41mb:\"\",\x1b[0m\n\t\x1b[41mc:[1 2 3],\x1b[0m\n\t\x1b[41ma:0\x1b[0m\n\x1b[41m}\x1b[0m"},
+		{e: "(String of Bool)", v: reflect.ValueOf(Bool(true)), h: "(" + H("String of Bool") + ")"},
+		{e: "(String of Int)", v: reflect.ValueOf(Int(100)), h: "(" + H("String of Int") + ")"},
+		{e: "(String of Uint)", v: reflect.ValueOf(Uint(100)), h: "(" + H("String of Uint") + ")"},
+		{e: "(String of Uintptr)", v: reflect.ValueOf(Uintptr(100)), h: "(" + H("String of Uintptr") + ")"},
+		{e: "(100)", v: reflect.ValueOf(Float(100)), h: "(" + H("100") + ")"},
+		{e: "(100+0i)", v: reflect.ValueOf(Complex(100)), h: "(" + H("100+0i") + ")"},
+		{e: `("100")`, v: reflect.ValueOf(Str("100")), h: "(" + H(`"100"`) + ")"},
 	}
 	for i, c := range cs {
 		var d tValueDiffer
-		d.writeValueAfterType(0, c.v)
-		r1 := c.e
+		d.writeValueAfterType(0, c.v, false)
+		d.writeValueAfterType(1, c.v, true)
+		r1, r2 := c.e, c.e2
 		if c.p {
 			r1 = fmt.Sprintf(r1, c.v)
 		}
-		r2 := c.e2
 		if r2 != "" && c.p {
 			r2 = fmt.Sprintf(r2, c.v)
+		}
+		h1, h2 := c.h, c.h2
+		if h1 == "" {
+			h1 = H(r1)
+		} else if c.p {
+			h1 = fmt.Sprintf(h1, c.v)
+		}
+		if h2 == "" {
+			h2 = H(r2)
+		} else if c.p {
+			h2 = fmt.Sprintf(h2, c.v)
 		}
 		if r2 != "" && r2 == d.String(0) {
 			Equal(t, r2, d.String(0), "i=%v, r=\n%v", i, d.String(0))
 		} else {
 			Equal(t, r1, d.String(0), "i=%v, r=\n%v", i, d.String(0))
+		}
+		if h2 != "" && h2 == d.String(1) {
+			Equal(t, h2, d.String(1), "i=%v, hr=\n%v", i, d.String(1))
+		} else {
+			Equal(t, h1, d.String(1), "i=%v, hr=\n%v", i, d.String(1))
 		}
 	}
 }
