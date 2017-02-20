@@ -373,7 +373,7 @@ func (vd *tValueDiffer) writeElemStructML(idx int, v reflect.Value, hl bool) {
 	b.NL().Write(hl, "}")
 }
 
-// writeKey formats value v to a concise string.
+// writeKey formats value v to a concise string, without type.
 // Generally, it shows the real representation of v, not its Error(), GoString() or String() as
 // Package fmt does.
 // The only exception is for POD types (boolean and integers), it tries to show String() first,
