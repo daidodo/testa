@@ -340,6 +340,10 @@ func TestWriteTypeDiffValues(t *testing.T) {
 		{v1: reflect.ValueOf(struct{ a PStr }{100}).Field(0), v2: reflect.ValueOf(struct{ a PStr }{101}).Field(0), s1: H("0x64"), s2: H("0x65")},
 		{v1: reflect.ValueOf(errors.New("abc")), v2: reflect.ValueOf(errors.New("abd")), s1: `&{s:"ab` + H("c") + `"}`, s2: `&{s:"ab` + H("d") + `"}`},
 		{v1: reflect.ValueOf(b), v2: reflect.ValueOf((*A)(nil)), s1: H(fmt.Sprintf("%p", b)), s2: H("<nil>")},
+		{v1: reflect.ValueOf([...]interface{}{nil, 100, 1.25}),
+			v2: reflect.ValueOf([...]interface{}{nil, nil, nil}),
+			s1: "[3]interface {}{<nil>, int(100), float64(1.25)}",
+			s2: "[3]interface {}{<nil>, " + H("<nil>, <nil>") + "}"},
 	}
 	for i, c := range cs {
 		f := func(v1, v2 reflect.Value, s1, s2, ss1, ss2 string, n1, n2 bool) {
