@@ -34,7 +34,7 @@ func (vd *tValueDiffer) WriteTypeValue(idx int, v reflect.Value, tab int) {
 // Package fmt.
 func (vd *tValueDiffer) writeTypeValue(idx int, v reflect.Value) {
 	v = vd.writeTypeBeforeValue(idx, v, false)
-	vd.writeValueAfterType(idx, v)
+	vd.writeValueAfterType(idx, v, false)
 }
 
 func (vd *tValueDiffer) writeTypeBeforeValue(idx int, v reflect.Value, hl bool) reflect.Value {
@@ -131,93 +131,93 @@ func (vd *tValueDiffer) writeTypeHeadChan(idx int, t reflect.Type, hl, hldir boo
 	b.Plain(" ")
 }
 
-func (vd *tValueDiffer) writeValueAfterType(idx int, v reflect.Value) {
+func (vd *tValueDiffer) writeValueAfterType(idx int, v reflect.Value, hl bool) {
 	b := vd.bufi(idx)
 	if !v.IsValid() {
 		return
 	}
 	switch v.Kind() {
 	case reflect.Complex64, reflect.Complex128:
-		vd.writeElem(idx, v, false)
+		vd.writeElem(idx, v, hl)
 	case reflect.Interface:
 		if v, df := derefInterface(v); !df {
-			b.Normal("(nil)")
+			b.Normal("(").Write(hl, "nil").Normal(")")
 		} else if v.IsValid() {
-			vd.writeValueAfterType(idx, v)
+			vd.writeValueAfterType(idx, v, hl)
 		}
 	case reflect.Array:
-		vd.writeValueAfterTypeArray(idx, v)
+		vd.writeValueAfterTypeArray(idx, v, hl)
 	case reflect.Slice:
-		vd.writeValueAfterTypeSlice(idx, v)
+		vd.writeValueAfterTypeSlice(idx, v, hl)
 	case reflect.Map:
-		vd.writeValueAfterTypeMap(idx, v)
+		vd.writeValueAfterTypeMap(idx, v, hl)
 	case reflect.Struct:
-		vd.writeValueAfterTypeStruct(idx, v)
+		vd.writeValueAfterTypeStruct(idx, v, hl)
 	case reflect.Chan, reflect.Func, reflect.UnsafePointer, reflect.Ptr:
 		if v.Pointer() == 0 {
-			b.Normal("(nil)")
+			b.Normal("(").Write(hl, "nil").Normal(")")
 			break
 		}
 		fallthrough
 	default:
 		b.Normal("(")
-		vd.writeElem(idx, v, false)
+		vd.writeElem(idx, v, hl)
 		b.Normal(")")
 	}
 }
 
-func (vd *tValueDiffer) writeValueAfterTypeArray(idx int, v reflect.Value) {
+func (vd *tValueDiffer) writeValueAfterTypeArray(idx int, v reflect.Value, hl bool) {
 	b := vd.bufi(idx)
 	_, id, ml := attrElemArray(v)
-	b.Normal("{")
-	defer b.Normal("}")
+	b.Write(hl, "{")
+	defer b.Write(hl, "}")
 	if ml {
 		b.Tab++
 		defer func() { b.Tab--; b.NL() }()
 	}
-	vd.writeElemArrayC(idx, v, true, id, ml, false)
+	vd.writeElemArrayC(idx, v, true, id, ml, hl)
 }
 
-func (vd *tValueDiffer) writeValueAfterTypeSlice(idx int, v reflect.Value) {
+func (vd *tValueDiffer) writeValueAfterTypeSlice(idx int, v reflect.Value, hl bool) {
 	b := vd.bufi(idx)
 	if v.IsNil() {
-		b.Normal("(nil)")
+		b.Normal("(").Write(hl, "nil").Write(hl, ")")
 		return
 	}
-	vd.writeValueAfterTypeArray(idx, v)
+	vd.writeValueAfterTypeArray(idx, v, hl)
 }
 
-func (vd *tValueDiffer) writeValueAfterTypeMap(idx int, v reflect.Value) {
+func (vd *tValueDiffer) writeValueAfterTypeMap(idx int, v reflect.Value, hl bool) {
 	b := vd.bufi(idx)
 	if v.IsNil() {
-		b.Normal("(nil)")
+		b.Normal("(").Write(hl, "nil").Write(hl, ")")
 		return
 	}
 	_, ml := attrElemMap(v)
-	b.Normal("{")
-	defer b.Normal("}")
+	b.Write(hl, "{")
+	defer b.Write(hl, "}")
 	if ml {
 		b.Tab++
 		defer func() { b.Tab--; b.NL() }()
 	}
-	vd.writeElemMapC(idx, v, true, ml, false)
+	vd.writeElemMapC(idx, v, true, ml, hl)
 }
 
-func (vd *tValueDiffer) writeValueAfterTypeStruct(idx int, v reflect.Value) {
+func (vd *tValueDiffer) writeValueAfterTypeStruct(idx int, v reflect.Value, hl bool) {
 	b := vd.bufi(idx)
 	if ml := attrElemStruct(v); ml {
-		vd.writeElemStructML(idx, v, false)
+		vd.writeElemStructML(idx, v, hl)
 	} else {
-		b.Normal("{")
+		b.Write(hl, "{")
+		defer b.Write(hl, "}")
 		t := v.Type()
 		for i := 0; i < v.NumField(); i++ {
 			if i > 0 {
-				b.Normal(", ")
+				b.Write(hl, ", ")
 			}
-			b.Normal(t.Field(i).Name, ":")
-			vd.writeKey(idx, v.Field(i), false)
+			b.Write(hl, t.Field(i).Name, ":")
+			vd.writeKey(idx, v.Field(i), hl)
 		}
-		b.Normal("}")
 	}
 }
 
@@ -392,9 +392,11 @@ func (vd *tValueDiffer) writeKey(idx int, v reflect.Value, hl bool) {
 	case reflect.Float64:
 		b.Writef(hl, "%g", v.Float())
 	case reflect.Complex64:
-		b.Writef(hl, "%g", complex64(v.Complex()))
+		c := complex64(v.Complex())
+		b.Normal("(").Writef(hl, "%g+%gi", real(c), imag(c)).Normal(")")
 	case reflect.Complex128:
-		b.Writef(hl, "%g", v.Complex())
+		c := v.Complex()
+		b.Normal("(").Writef(hl, "%g+%gi", real(c), imag(c)).Normal(")")
 	case reflect.Func, reflect.Chan, reflect.Ptr, reflect.UnsafePointer:
 		if v.Pointer() == 0 {
 			b.Write(hl, nil)
