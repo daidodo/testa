@@ -705,10 +705,6 @@ func (vd *tValueDiffer) writeDiffValuesString(v1, v2 reflect.Value) {
 	b2.Normal(`"`)
 }
 
-func (vd *tValueDiffer) bufs() (b1, b2 *tFeatureBuf) {
-	return vd.bufi(0), vd.bufi(1)
-}
-
 const (
 	kNewLine = iota
 	_
@@ -827,4 +823,8 @@ func derefPtr(v reflect.Value) (r reflect.Value, d bool) {
 		}
 	}
 	return v, false
+}
+
+func (vd *tValueDiffer) bufs() (b1, b2 *tFeatureBuf) {
+	return vd.bufi(0), vd.bufi(1)
 }
