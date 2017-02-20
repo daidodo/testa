@@ -394,10 +394,9 @@ func convertCompareB(f, t reflect.Value) bool {
 }
 
 func convertCompareInt(f, t reflect.Value) bool {
-	v := t.Int()
 	switch f.Kind() {
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
-		return f.Int() == v
+		return f.Int() == t.Int()
 	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr:
 		return convertCompareUint(t, f)
 	case reflect.Float32, reflect.Float64:
