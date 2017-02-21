@@ -127,6 +127,9 @@ func fn() {
 	t4 := reflect.TypeOf(unsafe.Pointer(nil))
 	desc(t3.ConvertibleTo(t4))
 	desc(t4.ConvertibleTo(t3))
+	type By byte
+	desc([]By("abc"))
+	desc([]byte("中文"))
 }
 
 func fm() {
