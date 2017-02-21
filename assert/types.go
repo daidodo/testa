@@ -108,6 +108,19 @@ func isArray(t reflect.Type) bool {
 	return t.Kind() == reflect.Array || t.Kind() == reflect.Slice
 }
 
+func isCharacter(t reflect.Type) bool {
+	if t == nil {
+		return false
+	}
+	return t.Kind() == reflect.Uint8 || t.Kind() == reflect.Int32
+}
+
+func isString(t reflect.Type) bool {
+	if t == nil {
+		return false
+	}
+	return t.Kind() == reflect.String || (isArray(t) && isCharacter(t.Elem()))
+}
 func isComposite(t reflect.Type) bool {
 	if t == nil {
 		return false
@@ -128,12 +141,19 @@ func isReference(t reflect.Type) bool {
 }
 
 func convertible(t1, t2 reflect.Type) bool {
+	if t1 == nil || t2 == nil {
+		return t1 == t2
+	}
 	if isMath(t1) && isMath(t2) {
 		return true
 	} else if isArray(t1) && isArray(t2) {
 		return convertible(t1.Elem(), t2.Elem())
 	} else if isSimplePointer(t1) && isSimplePointer(t2) {
-		return t1.Kind() == reflect.UnsafePointer || t2.Kind() == reflect.UnsafePointer
+		return t1 == t2 || t1.Kind() == reflect.UnsafePointer || t2.Kind() == reflect.UnsafePointer
+	} else if isString(t1) && isString(t2) {
+		return true
+	} else if t1.Kind() == reflect.Map && t2.Kind() == reflect.Map {
+		return convertible(t1.Key(), t2.Key()) && convertible(t1.Elem(), t2.Elem())
 	}
 	return t1.ConvertibleTo(t2) || t2.ConvertibleTo(t1)
 }
