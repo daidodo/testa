@@ -64,10 +64,8 @@ func (vd *tValueDiffer) writeDiffTypeValues(v1, v2 reflect.Value) {
 			b2.Normal("&")
 			vd.writeDiff(e1, e2)
 		} else if !v1.IsValid() || !v2.IsValid() {
-			v1 = vd.writeTypeBeforeValue(0, v1, true)
-			v2 = vd.writeTypeBeforeValue(1, v2, true)
-			vd.writeValueAfterType(0, v1, false)
-			vd.writeValueAfterType(1, v2, false)
+			vd.writeTypeValue(0, v1, true, false)
+			vd.writeTypeValue(1, v2, true, false)
 		} else {
 			vd.writeDiffKindsBeforeValue(v1, v2)
 			vd.writeValueAfterType(0, v1, false)
@@ -303,9 +301,9 @@ func (vd *tValueDiffer) writeDiffValuesInterface(v1, v2 reflect.Value) {
 	b1, b2 := vd.bufs()
 	if v1.IsNil() {
 		b1.Highlight(nil)
-		vd.writeTypeValue(1, v2.Elem())
+		vd.writeTypeValue(1, v2.Elem(), false, false)
 	} else if v2.IsNil() {
-		vd.writeTypeValue(0, v1.Elem())
+		vd.writeTypeValue(0, v1.Elem(), false, false)
 		b2.Highlight(nil)
 	} else {
 		vd.writeDiff(v1.Elem(), v2.Elem())
