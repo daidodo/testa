@@ -25,16 +25,16 @@ import (
 
 func (vd *tValueDiffer) WriteTypeValue(idx int, v reflect.Value, tab int) {
 	vd.bufi(idx).Tab = tab
-	vd.writeTypeValue(idx, v)
+	vd.writeTypeValue(idx, v, false, false)
 }
 
 // writeTypeValue show full description of value v.
 // It show both type and value/contents of v. If v is a non-nil pointer of composite type (array,
 // slice, map or struct), it show "&" and the results of *v instead, which imitates the action of
 // Package fmt.
-func (vd *tValueDiffer) writeTypeValue(idx int, v reflect.Value) {
-	v = vd.writeTypeBeforeValue(idx, v, false)
-	vd.writeValueAfterType(idx, v, false)
+func (vd *tValueDiffer) writeTypeValue(idx int, v reflect.Value, ht, hv bool) {
+	v = vd.writeTypeBeforeValue(idx, v, ht)
+	vd.writeValueAfterType(idx, v, hv)
 }
 
 func (vd *tValueDiffer) writeTypeBeforeValue(idx int, v reflect.Value, hl bool) reflect.Value {
