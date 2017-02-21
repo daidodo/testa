@@ -476,7 +476,7 @@ func convertCompareArray(f, t reflect.Value) bool {
 				return false
 			}
 			if f.Len() == 0 {
-				return f.Type().Elem().ConvertibleTo(t.Type().Elem())
+				return convertible(f.Type().Elem(), t.Type().Elem())
 			}
 			for i := 0; i < f.Len(); i++ {
 				if !convertCompare(f.Index(i), t.Index(i)) {
@@ -495,8 +495,8 @@ func convertCompareMap(f, t reflect.Value) bool {
 			return false
 		}
 		if f.Len() == 0 {
-			k1, k2, e1, e2 := f.Type().Key(), t.Type().Key(), f.Type().Elem(), t.Type().Elem()
-			return (k1.ConvertibleTo(k2) || k2.ConvertibleTo(k1)) && (e1.ConvertibleTo(e2) || e2.ConvertibleTo(e1))
+			return convertible(f.Type().Key(), t.Type().Key()) &&
+				convertible(f.Type().Elem(), t.Type().Elem())
 		}
 		ks := t.MapKeys()
 		find := func(v reflect.Value) (reflect.Value, bool) {
