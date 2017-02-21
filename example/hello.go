@@ -123,6 +123,10 @@ func fn() {
 	desc(t2.ConvertibleTo(t1))
 	vs := reflect.ValueOf(100).Convert(reflect.TypeOf("abc"))
 	desc(vs)
+	t3 := reflect.TypeOf(new(int))
+	t4 := reflect.TypeOf(unsafe.Pointer(nil))
+	desc(t3.ConvertibleTo(t4))
+	desc(t4.ConvertibleTo(t3))
 }
 
 func fm() {
