@@ -54,12 +54,65 @@ func isNonTrivialElem(v reflect.Value) bool {
 	panic("Should not come here!")
 }
 
+func isInteger(t reflect.Type) bool {
+	if t == nil {
+		return false
+	}
+	switch t.Kind() {
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+		return true
+	}
+	return false
+}
+
+func isUInteger(t reflect.Type) bool {
+	if t == nil {
+		return false
+	}
+	switch t.Kind() {
+	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr:
+		return true
+	}
+	return false
+}
+
+func isSimpleNumber(t reflect.Type) bool {
+	if t == nil {
+		return false
+	}
+	return isInteger(t) || isUInteger(t) || t.Kind() == reflect.Float32 || t.Kind() == reflect.Float64
+}
+
+func isMath(t reflect.Type) bool {
+	if t == nil {
+		return false
+	}
+	return isSimpleNumber(t) || t.Kind() == reflect.Complex64 || t.Kind() == reflect.Complex128
+}
+
+func isSimplePointer(t reflect.Type) bool {
+	return t.Kind() == reflect.Ptr || t.Kind() == reflect.UnsafePointer
+}
+
+func isPointer(t reflect.Type) bool {
+	if t == nil {
+		return false
+	}
+	return isSimplePointer(t) || t.Kind() == reflect.Chan || t.Kind() == reflect.Func
+}
+
+func isArray(t reflect.Type) bool {
+	if t == nil {
+		return false
+	}
+	return t.Kind() == reflect.Array || t.Kind() == reflect.Slice
+}
+
 func isComposite(t reflect.Type) bool {
 	if t == nil {
 		return false
 	}
-	k := t.Kind()
-	return k == reflect.Array || k == reflect.Map || k == reflect.Slice || k == reflect.Struct
+	return isArray(t) || t.Kind() == reflect.Map || t.Kind() == reflect.Struct
 }
 
 func isNonTrivial(t reflect.Type) bool {
@@ -74,10 +127,13 @@ func isReference(t reflect.Type) bool {
 	return isPointer(t) || isNonTrivial(t)
 }
 
-func isPointer(t reflect.Type) bool {
-	if t == nil {
-		return false
+func convertible(t1, t2 reflect.Type) bool {
+	if isMath(t1) && isMath(t2) {
+		return true
+	} else if isArray(t1) && isArray(t2) {
+		return convertible(t1.Elem(), t2.Elem())
+	} else if isSimplePointer(t1) && isSimplePointer(t2) {
+		return t1.Kind() == reflect.UnsafePointer || t2.Kind() == reflect.UnsafePointer
 	}
-	k := t.Kind()
-	return k == reflect.Chan || k == reflect.Func || k == reflect.Ptr || k == reflect.UnsafePointer
+	return t1.ConvertibleTo(t2) || t2.ConvertibleTo(t1)
 }
