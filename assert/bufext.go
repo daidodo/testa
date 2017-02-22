@@ -29,6 +29,7 @@ type tFeatureBuf struct {
 	pl   bytes.Buffer
 	code string
 	Tab  int
+	PH   bool // last plain highlight flag
 }
 
 func (b *tFeatureBuf) Writef(hl bool, format string, a ...interface{}) *tFeatureBuf {
@@ -92,6 +93,7 @@ func (b *tFeatureBuf) writeString(s string) *tFeatureBuf {
 }
 
 func (b *tFeatureBuf) flushPlain() {
+	b.PH = b.code != ""
 	b.writeString(b.pl.String())
 	b.pl.Reset()
 }
