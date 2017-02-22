@@ -393,10 +393,10 @@ func (vd *tValueDiffer) writeKey(idx int, v reflect.Value, hl bool) {
 		b.Writef(hl, "%g", v.Float())
 	case reflect.Complex64:
 		c := complex64(v.Complex())
-		b.Normal("(").Writef(hl, "%g+%gi", real(c), imag(c)).Normal(")")
+		b.Plain("(").Writef(hl, "%g+%gi", real(c), imag(c)).Write(b.PH, ")")
 	case reflect.Complex128:
 		c := v.Complex()
-		b.Normal("(").Writef(hl, "%g+%gi", real(c), imag(c)).Normal(")")
+		b.Plain("(").Writef(hl, "%g+%gi", real(c), imag(c)).Write(b.PH, ")")
 	case reflect.Func, reflect.Chan, reflect.Ptr, reflect.UnsafePointer:
 		if v.Pointer() == 0 {
 			b.Write(hl, nil)
@@ -418,11 +418,11 @@ func (vd *tValueDiffer) writeKey(idx int, v reflect.Value, hl bool) {
 	case reflect.Struct:
 		vd.writeKeyStruct(idx, v, hl)
 	default:
-		vd.writeKeyPOD(idx, v, hl)
+		vd.writeKeyPOD(idx, v, hl, false)
 	}
 }
 
-func (vd *tValueDiffer) writeKeyPOD(idx int, v reflect.Value, hl bool) {
+func (vd *tValueDiffer) writeKeyPOD(idx int, v reflect.Value, hl, up bool) {
 	b := vd.bufi(idx)
 	if v.CanInterface() {
 		if s, ok := v.Interface().(fmt.Stringer); ok {
@@ -433,6 +433,9 @@ func (vd *tValueDiffer) writeKeyPOD(idx int, v reflect.Value, hl bool) {
 	switch v.Kind() {
 	case reflect.Uintptr:
 		b.Writef(hl, "%#x", v.Uint())
+		if up {
+			b.Normalf("(%d)", v.Uint())
+		}
 	case reflect.Bool:
 		b.Writef(hl, "%t", v.Bool())
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
