@@ -125,6 +125,7 @@ func TestIsSameInValue(t *testing.T) {
 		100, "d", []byte("abc"), []byte("中文"), []rune("abc"), []rune("中文"), // custom 1
 		[...]byte{'a', 'b', 'c'}, [...]rune{'a', 'b', 'c'}, [...]int{'a', 'b', 'c'}, // custom 2
 		[...]byte{0xe4, 0xb8, 0xad, 0xe6, 0x96, 0x87}, [...]rune{'中', '文'}, [...]int{'中', '文'}, []int{'中', '文'}, // custom 3
+		Bool(true),
 	}
 	rs := []string{
 		"", "", "",
@@ -291,6 +292,8 @@ func TestIsSameInValue(t *testing.T) {
 		Z1 + "001 000000 0000000 00000000 00000 000001 000",
 		Z1 + "000 000000 0000000 00000000 00000 000001 000 01",
 		Z1 + "000 000000 0000000 00000000 00000 000001 000 011",
+		// typedef
+		"010",
 	}
 	for i := 0; i < len(cs); i++ {
 		e, ri, id := cs[i], rs[i], -1
