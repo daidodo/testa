@@ -144,9 +144,13 @@ func convertible(t1, t2 reflect.Type) bool {
 	if t1 == nil || t2 == nil {
 		return t1 == t2
 	}
+	k1, k2 := t1.Kind(), t2.Kind()
 	if isMath(t1) && isMath(t2) {
 		return true
 	} else if isArray(t1) && isArray(t2) {
+		if k1 == reflect.Array && k2 == reflect.Array && t1.Len() != t2.Len() {
+			return false
+		}
 		return convertible(t1.Elem(), t2.Elem())
 	} else if isSimplePointer(t1) && isSimplePointer(t2) {
 		return t1 == t2 || t1.Kind() == reflect.UnsafePointer || t2.Kind() == reflect.UnsafePointer
