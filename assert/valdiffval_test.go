@@ -183,7 +183,7 @@ func TestWriteValDiff(t *testing.T) {
 		{{H("<nil>"), "[3]interface {}{1, 2, (3+0i)}"}, {H("int8") + "(-1)", H("[3]interface {}") + "{1, 2, (3+0i)}"}, {s1: "skip"}, {s1: "skip"}, {s1: "skip"},
 			{s1: "skip"}, {s1: "skip"}, {s1: "skip"}, {s1: "skip"}, {s1: "skip"}, {s1: "skip"}, {s1: "skip"}, {s1: "skip"}, {s1: "skip"}, {s1: "skip"}, {s1: "skip"},
 			{s1: "skip"}, {s1: "skip"}, {s1: "skip"}, {s1: "skip"}, {s1: "skip"}, {s1: "skip"}, {s1: "skip"}, {s1: "skip"}, {s1: "skip"}, {s1: "skip"}, {s1: "skip"},
-			{s1: "skip"}, {"[0]int{}", "[3]interface {}{" + H("1, 2, (3+0i)") + "}"}, {s1: "skip"}},
+			{s1: "skip"}, {"[" + H("0") + "]int{}", "[" + H("3") + "]interface {}{1, 2, (3+0i)}"}, {s1: "skip"}},
 		{{s1: "skip"}, {H("int8") + "(-1)", H("[]int") + "(nil)"}, {s1: "skip"}, {s1: "skip"}, {s1: "skip"}, {s1: "skip"},
 			{H("uint8") + "(1)", H("[]int") + "(nil)"}, {s1: "skip"}, {s1: "skip"}, {s1: "skip"}, {s1: "skip"}, {H("uintptr") + "(0x186a0)", H("[]int") + "(nil)"},
 			{H("float32") + "(1.25)", H("[]int") + "(nil)"}, {s1: "skip"}, {H("complex64") + "(2+0i)", H("[]int") + "(nil)"}, {s1: "skip"}, {s1: "skip"}, {s1: "skip"},
@@ -391,4 +391,6 @@ func TestWriteValDiff2(t *testing.T) {
 	te((*[]map[[12]bool]float32)(nil), (*[]map[[3]A]Bool)(nil),
 		"(*[]map[[\x1b[41m12\x1b[0m]\x1b[41mbool\x1b[0m]\x1b[41mfloat32\x1b[0m)(nil)",
 		"(*[]map[[\x1b[41m3\x1b[0m]\x1b[41massert.A\x1b[0m]\x1b[41massert.Bool\x1b[0m)(nil)")
+	//te("中a文b", []byte("中a文b"), "", "")
+	//te("中a文b", []byte("a中文bc"), "", "")
 }
