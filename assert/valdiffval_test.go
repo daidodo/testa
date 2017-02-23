@@ -25,7 +25,9 @@ func TestWriteValDiff(t *testing.T) {
 		string("中a文b"), string("a中文bc"),
 		[0]int{}, [...]interface{}{uint(1), float32(2), complex128(3)},
 		[]int(nil), []int{}, []interface{}{int8(1), float64(2), complex128(3i), P(100)},
-		map[bool]int(nil), map[bool]uint{}, map[interface{}]float32{int(100): 1.25}, map[uint8]interface{}{100: 1i},
+		map[bool]int(nil), map[bool]uint{}, map[interface{}]float32{uint8(100): 1.25}, map[uint8]interface{}{100: 1i},
+		map[interface{}]interface{}{uint8(100): 1i, "abc": false},
+		A{}, A{a: 100}, A{a: "中a文b", b: A{}}, A{a: "a中文bc", b: A{b: A{}}},
 	}
 	rs := [][]struct {
 		s1, s2 string
@@ -105,7 +107,7 @@ func TestWriteValDiff(t *testing.T) {
 			{H("float64") + "(10.25)", "(" + H("*uint") + ")(" + sa + ")"}, {H("complex64") + "(2+0i)", "(" + H("*uint") + ")(" + sa + ")"},
 			{H("complex64") + "(-1+1i)", "(" + H("*uint") + ")(" + sa + ")"}, {H("complex64") + "(0+1i)", "(" + H("*uint") + ")(" + sa + ")"},
 			{H("complex128") + "(3+0i)", "(" + H("*uint") + ")(" + sa + ")"}, {H("complex128") + "(-2+2i)", "(" + H("*uint") + ")(" + sa + ")"},
-			{H("complex128") + "(0+2i)", "(" + H("*uint") + ")(" + sa + ")"}, {"(" + H("*int") + ")(" + sa + ")", "(" + H("*uint") + ")(" + sa + ")"},
+			{H("complex128") + "(0+2i)", "(" + H("*uint") + ")(" + sa + ")"}, {"(*" + H("int") + ")(" + sa + ")", "(*" + H("uint") + ")(" + sa + ")"},
 			{"(*uint)(" + H(sa) + ")", "(*uint)(" + H(sa) + ")"}},
 		{{H("<nil>"), H("0xc8")}, {H("int8") + "(-1)", "(" + H("unsafe.Pointer") + ")(0xc8)"},
 			{H("int16") + "(-10)", "(" + H("unsafe.Pointer") + ")(0xc8)"}, {H("int32") + "(-100)", "(" + H("unsafe.Pointer") + ")(0xc8)"},
@@ -141,7 +143,7 @@ func TestWriteValDiff(t *testing.T) {
 			{H("complex128") + "(3+0i)", "(" + H("chan uint") + ")(nil)"}, {H("complex128") + "(-2+2i)", "(" + H("chan uint") + ")(nil)"},
 			{H("complex128") + "(0+2i)", "(" + H("chan uint") + ")(nil)"}, {"(" + H("*int") + ")(" + sa + ")", "(" + H("chan uint") + ")(nil)"},
 			{"(" + H("*uint") + ")(" + sa + ")", "(" + H("chan uint") + ")(nil)"}, {"(" + H("unsafe.Pointer") + ")(0xc8)", "(" + H("chan uint") + ")(nil)"},
-			{"(" + H("chan int") + ")(" + sb + ")", "(" + H("chan uint") + ")(nil)"}, {"(chan uint)(" + H("nil") + ")", "(chan uint)(" + H("nil") + ")"}},
+			{"(chan " + H("int") + ")(" + sb + ")", "(chan " + H("uint") + ")(nil)"}, {"(chan uint)(" + H("nil") + ")", "(chan uint)(" + H("nil") + ")"}},
 		{{H("<nil>"), H(sc)}, {H("int8") + "(-1)", "(" + H("func(int) bool") + ")(" + sc + ")"},
 			{H("int16") + "(-10)", "(" + H("func(int) bool") + ")(" + sc + ")"}, {H("int32") + "(-100)", "(" + H("func(int) bool") + ")(" + sc + ")"},
 			{H("int64") + "(-1000)", "(" + H("func(int) bool") + ")(" + sc + ")"}, {H("int") + "(-10000)", "(" + H("func(int) bool") + ")(" + sc + ")"},
@@ -198,50 +200,94 @@ func TestWriteValDiff(t *testing.T) {
 			{"(" + H("chan uint") + ")(nil)", H("[]int") + "{}"}, {"(" + H("func(int) bool") + ")(" + sc + ")", H("[]int") + "{}"},
 			{H("string") + `("中a文b")`, H("[]int") + "{}"}, {s1: "skip"}, {s1: "skip"}, {"[3]interface {}{" + H("1, 2, (3+0i)") + "}", "[]int{}"},
 			{"[]int(" + H("nil") + ")", "[]int" + H("{}")}, {s1: "skip"}},
-		{{H("<nil>"), "[]interface {}{1, 2, (0+3i), 0x64}"}, {H("int8") + "(-1)", H("[]interface {}") + "{1, 2, (0+3i), 0x64}"}, {s1: "skip"}, {s1: "skip"}, {s1: "skip"},
+		{{H("<nil>"), "[]interface {}{1, 2, (0+3i), 0x64}"}, {H("int8") + "(-1)", H("[]interface {}") + "{1, 2, (0+3i), 0x64}"}, {s1: "skip"}, {s1: "skip"},
 			{s1: "skip"}, {s1: "skip"}, {s1: "skip"}, {s1: "skip"}, {s1: "skip"}, {s1: "skip"}, {s1: "skip"}, {s1: "skip"}, {s1: "skip"}, {s1: "skip"}, {s1: "skip"},
 			{s1: "skip"}, {s1: "skip"}, {s1: "skip"}, {s1: "skip"}, {s1: "skip"}, {s1: "skip"}, {s1: "skip"}, {s1: "skip"}, {s1: "skip"}, {s1: "skip"}, {s1: "skip"},
-			{s1: "skip"}, {"[0]int{}", "[]interface {}{" + H("1, 2, (0+3i), 0x64") + "}"},
+			{s1: "skip"}, {s1: "skip"}, {"[0]int{}", "[]interface {}{" + H("1, 2, (0+3i), 0x64") + "}"},
 			{"[3]interface {}{1, 2, (" + H("3+0i") + ")}", "[]interface {}{1, 2, (" + H("0+3i") + "), " + H("0x64") + "}"},
 			{"[]int(" + H("nil") + ")", "[]interface {}" + H("{1, 2, (0+3i), 0x64}")}, {"[]int{}", "[]interface {}{" + H("1, 2, (0+3i), 0x64") + "}"}, {s1: "skip"}},
-		{{s1: "skip"}, {H("int8") + "(-1)", H("map[bool]int") + "(nil)"}, {s1: "skip"}, {s1: "skip"}, {s1: "skip"}, {s1: "skip"}, {H("uint8") + "(1)", H("map[bool]int") + "(nil)"},
-			{s1: "skip"}, {s1: "skip"}, {s1: "skip"}, {s1: "skip"}, {H("uintptr") + "(0x186a0)", H("map[bool]int") + "(nil)"}, {H("float32") + "(1.25)", H("map[bool]int") + "(nil)"},
-			{s1: "skip"}, {H("complex64") + "(2+0i)", H("map[bool]int") + "(nil)"}, {s1: "skip"}, {s1: "skip"}, {s1: "skip"},
-			{s1: "skip"}, {s1: "skip"}, {"(" + H("*int") + ")(" + sa + ")", H("map[bool]int") + "(nil)"}, {s1: "skip"},
-			{"(" + H("unsafe.Pointer") + ")(0xc8)", H("map[bool]int") + "(nil)"}, {"(" + H("chan int") + ")(" + sb + ")", H("map[bool]int") + "(nil)"},
-			{"(" + H("chan uint") + ")(nil)", H("map[bool]int") + "(nil)"}, {"(" + H("func(int) bool") + ")(" + sc + ")", H("map[bool]int") + "(nil)"},
-			{H("string") + `("中a文b")`, H("map[bool]int") + "(nil)"}, {s1: "skip"}, {H("[0]int") + "{}", H("map[bool]int") + "(nil)"},
-			{H("[3]interface {}") + "{1, 2, (3+0i)}", H("map[bool]int") + "(nil)"}, {H("[]int") + "(nil)", H("map[bool]int") + "(nil)"},
-			{H("[]int") + "{}", H("map[bool]int") + "(nil)"}, {H("[]interface {}") + "{1, 2, (0+3i), 0x64}", H("map[bool]int") + "(nil)"}, {s1: "skip"}},
+		{{s1: "skip"}, {H("int8") + "(-1)", H("map[bool]int") + "(nil)"}, {s1: "skip"}, {s1: "skip"}, {s1: "skip"}, {s1: "skip"},
+			{H("uint8") + "(1)", H("map[bool]int") + "(nil)"}, {s1: "skip"}, {s1: "skip"}, {s1: "skip"}, {s1: "skip"},
+			{H("uintptr") + "(0x186a0)", H("map[bool]int") + "(nil)"}, {H("float32") + "(1.25)", H("map[bool]int") + "(nil)"}, {s1: "skip"},
+			{H("complex64") + "(2+0i)", H("map[bool]int") + "(nil)"}, {s1: "skip"}, {s1: "skip"}, {s1: "skip"}, {s1: "skip"}, {s1: "skip"},
+			{"(" + H("*int") + ")(" + sa + ")", H("map[bool]int") + "(nil)"}, {s1: "skip"}, {"(" + H("unsafe.Pointer") + ")(0xc8)", H("map[bool]int") + "(nil)"},
+			{"(" + H("chan int") + ")(" + sb + ")", H("map[bool]int") + "(nil)"}, {"(" + H("chan uint") + ")(nil)", H("map[bool]int") + "(nil)"},
+			{"(" + H("func(int) bool") + ")(" + sc + ")", H("map[bool]int") + "(nil)"}, {H("string") + `("中a文b")`, H("map[bool]int") + "(nil)"}, {s1: "skip"},
+			{H("[0]int") + "{}", H("map[bool]int") + "(nil)"}, {H("[3]interface {}") + "{1, 2, (3+0i)}", H("map[bool]int") + "(nil)"},
+			{H("[]int") + "(nil)", H("map[bool]int") + "(nil)"}, {H("[]int") + "{}", H("map[bool]int") + "(nil)"},
+			{H("[]interface {}") + "{1, 2, (0+3i), 0x64}", H("map[bool]int") + "(nil)"}, {s1: "skip"}},
 		{{H("<nil>"), "map[bool]uint{}"}, {H("int8") + "(-1)", H("map[bool]uint") + "{}"}, {s1: "skip"}, {s1: "skip"}, {s1: "skip"}, {s1: "skip"},
-			{H("uint8") + "(1)", H("map[bool]uint") + "{}"}, {s1: "skip"}, {s1: "skip"}, {s1: "skip"}, {s1: "skip"}, {H("uintptr") + "(0x186a0)", H("map[bool]uint") + "{}"},
-			{H("float32") + "(1.25)", H("map[bool]uint") + "{}"}, {s1: "skip"}, {H("complex64") + "(2+0i)", H("map[bool]uint") + "{}"}, {s1: "skip"}, {s1: "skip"}, {s1: "skip"},
-			{s1: "skip"}, {s1: "skip"}, {"(" + H("*int") + ")(" + sa + ")", H("map[bool]uint") + "{}"}, {s1: "skip"},
-			{"(" + H("unsafe.Pointer") + ")(0xc8)", H("map[bool]uint") + "{}"}, {"(" + H("chan int") + ")(" + sb + ")", H("map[bool]uint") + "{}"},
-			{"(" + H("chan uint") + ")(nil)", H("map[bool]uint") + "{}"}, {"(" + H("func(int) bool") + ")(" + sc + ")", H("map[bool]uint") + "{}"},
-			{H("string") + `("中a文b")`, H("map[bool]uint") + "{}"}, {s1: "skip"}, {H("[0]int") + "{}", H("map[bool]uint") + "{}"},
-			{H("[3]interface {}") + "{1, 2, (3+0i)}", H("map[bool]uint") + "{}"}, {H("[]int") + "(nil)", H("map[bool]uint") + "{}"},
-			{H("[]int") + "{}", H("map[bool]uint") + "{}"}, {H("[]interface {}") + "{1, 2, (0+3i), 0x64}", H("map[bool]uint") + "{}"},
-			{"map[bool]int(" + H("nil") + ")", "map[bool]uint" + H("{}")}, {s1: "skip"}},
-		{{H("<nil>"), "map[interface {}]float32{100:1.25}"}, {H("int8") + "(-1)", H("map[interface {}]float32") + "{100:1.25}"}, {s1: "skip"}, {s1: "skip"}, {s1: "skip"},
-			{s1: "skip"}, {H("uint8") + "(1)", H("map[interface {}]float32") + "{100:1.25}"}, {s1: "skip"}, {s1: "skip"}, {s1: "skip"}, {s1: "skip"},
-			{H("uintptr") + "(0x186a0)", H("map[interface {}]float32") + "{100:1.25}"}, {H("float32") + "(1.25)", H("map[interface {}]float32") + "{100:1.25}"}, {s1: "skip"},
-			{H("complex64") + "(2+0i)", H("map[interface {}]float32") + "{100:1.25}"}, {s1: "skip"}, {s1: "skip"}, {s1: "skip"}, {s1: "skip"}, {s1: "skip"},
-			{"(" + H("*int") + ")(" + sa + ")", H("map[interface {}]float32") + "{100:1.25}"}, {s1: "skip"},
+			{H("uint8") + "(1)", H("map[bool]uint") + "{}"}, {s1: "skip"}, {s1: "skip"}, {s1: "skip"}, {s1: "skip"},
+			{H("uintptr") + "(0x186a0)", H("map[bool]uint") + "{}"}, {H("float32") + "(1.25)", H("map[bool]uint") + "{}"}, {s1: "skip"},
+			{H("complex64") + "(2+0i)", H("map[bool]uint") + "{}"}, {s1: "skip"}, {s1: "skip"}, {s1: "skip"}, {s1: "skip"}, {s1: "skip"},
+			{"(" + H("*int") + ")(" + sa + ")", H("map[bool]uint") + "{}"}, {s1: "skip"}, {"(" + H("unsafe.Pointer") + ")(0xc8)", H("map[bool]uint") + "{}"},
+			{"(" + H("chan int") + ")(" + sb + ")", H("map[bool]uint") + "{}"}, {"(" + H("chan uint") + ")(nil)", H("map[bool]uint") + "{}"},
+			{"(" + H("func(int) bool") + ")(" + sc + ")", H("map[bool]uint") + "{}"}, {H("string") + `("中a文b")`, H("map[bool]uint") + "{}"},
+			{s1: "skip"}, {H("[0]int") + "{}", H("map[bool]uint") + "{}"}, {H("[3]interface {}") + "{1, 2, (3+0i)}", H("map[bool]uint") + "{}"},
+			{H("[]int") + "(nil)", H("map[bool]uint") + "{}"}, {H("[]int") + "{}", H("map[bool]uint") + "{}"},
+			{H("[]interface {}") + "{1, 2, (0+3i), 0x64}", H("map[bool]uint") + "{}"}, {"map[bool]int(" + H("nil") + ")", "map[bool]uint" + H("{}")}, {s1: "skip"}},
+		{{H("<nil>"), "map[interface {}]float32{100:1.25}"}, {H("int8") + "(-1)", H("map[interface {}]float32") + "{100:1.25}"}, {s1: "skip"}, {s1: "skip"},
+			{s1: "skip"}, {s1: "skip"}, {H("uint8") + "(1)", H("map[interface {}]float32") + "{100:1.25}"}, {s1: "skip"}, {s1: "skip"}, {s1: "skip"}, {s1: "skip"},
+			{H("uintptr") + "(0x186a0)", H("map[interface {}]float32") + "{100:1.25}"}, {H("float32") + "(1.25)", H("map[interface {}]float32") + "{100:1.25}"},
+			{s1: "skip"}, {H("complex64") + "(2+0i)", H("map[interface {}]float32") + "{100:1.25}"}, {s1: "skip"}, {s1: "skip"}, {s1: "skip"}, {s1: "skip"},
+			{s1: "skip"}, {"(" + H("*int") + ")(" + sa + ")", H("map[interface {}]float32") + "{100:1.25}"}, {s1: "skip"},
 			{"(" + H("unsafe.Pointer") + ")(0xc8)", H("map[interface {}]float32") + "{100:1.25}"},
-			{"(" + H("chan int") + ")(" + sb + ")", H("map[interface {}]float32") + "{100:1.25}"}, {"(" + H("chan uint") + ")(nil)", H("map[interface {}]float32") + "{100:1.25}"},
-			{"(" + H("func(int) bool") + ")(" + sc + ")", H("map[interface {}]float32") + "{100:1.25}"}, {H("string") + `("中a文b")`, H("map[interface {}]float32") + "{100:1.25}"},
-			{s1: "skip"}, {H("[0]int") + "{}", H("map[interface {}]float32") + "{100:1.25}"}, {H("[3]interface {}") + "{1, 2, (3+0i)}", H("map[interface {}]float32") + "{100:1.25}"},
+			{"(" + H("chan int") + ")(" + sb + ")", H("map[interface {}]float32") + "{100:1.25}"},
+			{"(" + H("chan uint") + ")(nil)", H("map[interface {}]float32") + "{100:1.25}"},
+			{"(" + H("func(int) bool") + ")(" + sc + ")", H("map[interface {}]float32") + "{100:1.25}"},
+			{H("string") + `("中a文b")`, H("map[interface {}]float32") + "{100:1.25}"}, {s1: "skip"},
+			{H("[0]int") + "{}", H("map[interface {}]float32") + "{100:1.25}"},
+			{H("[3]interface {}") + "{1, 2, (3+0i)}", H("map[interface {}]float32") + "{100:1.25}"},
 			{H("[]int") + "(nil)", H("map[interface {}]float32") + "{100:1.25}"}, {H("[]int") + "{}", H("map[interface {}]float32") + "{100:1.25}"},
 			{H("[]interface {}") + "{1, 2, (0+3i), 0x64}", H("map[interface {}]float32") + "{100:1.25}"},
-			{"map[bool]int(" + H("nil") + ")", "map[interface {}]float32" + H("{100:1.25}")}, {"map[bool]uint" + H("{}"), "map[interface {}]float32" + H("{100:1.25}")},
+			{"map[bool]int(" + H("nil") + ")", "map[interface {}]float32" + H("{100:1.25}")}, {"map[bool]uint{}", "map[interface {}]float32{" + H("100:1.25") + "}"},
 			{s1: "skip"}},
-		{{s1: "skip"}, {s1: "skip"}, {s1: "skip"}, {s1: "skip"}, {s1: "skip"}, {s1: "skip"}, {s1: "skip"}, {s1: "skip"}, {s1: "skip"}, {s1: "skip"}, {s1: "skip"}, {s1: "skip"},
-			{s1: "skip"}, {s1: "skip"}, {s1: "skip"}, {s1: "skip"}, {s1: "skip"}, {s1: "skip"}, {s1: "skip"}, {s1: "skip"}, {s1: "skip"}, {s1: "skip"}, {s1: "skip"}, {s1: "skip"},
-			{s1: "skip"}, {s1: "skip"}, {s1: "skip"}, {s1: "skip"}, {s1: "skip"}, {s1: "skip"}, {s1: "skip"}, {s1: "skip"}, {s1: "skip"},
+		{{s1: "skip"}, {s1: "skip"}, {s1: "skip"}, {s1: "skip"}, {s1: "skip"}, {s1: "skip"}, {s1: "skip"}, {s1: "skip"}, {s1: "skip"}, {s1: "skip"}, {s1: "skip"},
+			{s1: "skip"}, {s1: "skip"}, {s1: "skip"}, {s1: "skip"}, {s1: "skip"}, {s1: "skip"}, {s1: "skip"}, {s1: "skip"}, {s1: "skip"}, {s1: "skip"}, {s1: "skip"},
+			{s1: "skip"}, {s1: "skip"}, {s1: "skip"}, {s1: "skip"}, {s1: "skip"}, {s1: "skip"}, {s1: "skip"}, {s1: "skip"}, {s1: "skip"}, {s1: "skip"}, {s1: "skip"},
 			{"map[" + H("bool") + "]int(nil)", "map[" + H("uint8") + "]interface {}{100:(0+1i)}"},
-			{"map[" + H("bool") + "]uint{}", "map[" + H("uint8") + "]interface {}{100:(0+1i)}"}},
-		// TODO
+			{"map[" + H("bool") + "]uint{}", "map[" + H("uint8") + "]interface {}{100:(0+1i)}"},
+			{"map[interface {}]float32{100:" + H("1.25") + "}", "map[uint8]interface {}{100:(" + H("0+1i") + ")}"}, {s1: "skip"}},
+		{{s1: "skip"}, {s1: "skip"}, {s1: "skip"}, {s1: "skip"}, {s1: "skip"}, {s1: "skip"}, {s1: "skip"}, {s1: "skip"}, {s1: "skip"}, {s1: "skip"}, {s1: "skip"},
+			{s1: "skip"}, {s1: "skip"}, {s1: "skip"}, {s1: "skip"}, {s1: "skip"}, {s1: "skip"}, {s1: "skip"}, {s1: "skip"}, {s1: "skip"}, {s1: "skip"}, {s1: "skip"},
+			{s1: "skip"}, {s1: "skip"}, {s1: "skip"}, {s1: "skip"}, {s1: "skip"}, {s1: "skip"}, {s1: "skip"}, {s1: "skip"}, {s1: "skip"}, {s1: "skip"}, {s1: "skip"},
+			{s1: "skip"}, {s1: "skip"},
+			{"map[interface {}]float32{100:" + H("1.25") + "}", "map[interface {}]interface {}{100:(" + H("0+1i") + "), " + H(`"abc":false`) + "}"},
+			{"map[uint8]interface {}{100:(0+1i)}", "map[interface {}]interface {}{100:(0+1i), " + H(`"abc":false`) + "}"}, {s1: "skip"}},
+		{{H("<nil>"), "assert.A{a:<nil>, b:<nil>}"}, {H("int8") + "(-1)", H("assert.A") + "{a:<nil>, b:<nil>}"}, {s1: "skip"}, {s1: "skip"}, {s1: "skip"},
+			{s1: "skip"}, {H("uint8") + "(1)", H("assert.A") + "{a:<nil>, b:<nil>}"}, {s1: "skip"}, {s1: "skip"}, {s1: "skip"}, {s1: "skip"},
+			{H("uintptr") + "(0x186a0)", H("assert.A") + "{a:<nil>, b:<nil>}"}, {H("float32") + "(1.25)", H("assert.A") + "{a:<nil>, b:<nil>}"}, {s1: "skip"},
+			{H("complex64") + "(2+0i)", H("assert.A") + "{a:<nil>, b:<nil>}"}, {s1: "skip"}, {s1: "skip"}, {s1: "skip"}, {s1: "skip"}, {s1: "skip"},
+			{"(" + H("*int") + ")(" + sa + ")", H("assert.A") + "{a:<nil>, b:<nil>}"}, {s1: "skip"},
+			{"(" + H("unsafe.Pointer") + ")(0xc8)", H("assert.A") + "{a:<nil>, b:<nil>}"},
+			{"(" + H("chan int") + ")(" + sb + ")", H("assert.A") + "{a:<nil>, b:<nil>}"}, {"(" + H("chan uint") + ")(nil)", H("assert.A") + "{a:<nil>, b:<nil>}"},
+			{"(" + H("func(int) bool") + ")(" + sc + ")", H("assert.A") + "{a:<nil>, b:<nil>}"}, {H("string") + `("中a文b")`, H("assert.A") + "{a:<nil>, b:<nil>}"},
+			{s1: "skip"}, {H("[0]int") + "{}", H("assert.A") + "{a:<nil>, b:<nil>}"}, {H("[3]interface {}") + "{1, 2, (3+0i)}", H("assert.A") + "{a:<nil>, b:<nil>}"},
+			{H("[]int") + "(nil)", H("assert.A") + "{a:<nil>, b:<nil>}"}, {H("[]int") + "{}", H("assert.A") + "{a:<nil>, b:<nil>}"},
+			{H("[]interface {}") + "{1, 2, (0+3i), 0x64}", H("assert.A") + "{a:<nil>, b:<nil>}"}, {H("map[bool]int") + "(nil)", H("assert.A") + "{a:<nil>, b:<nil>}"},
+			{H("map[bool]uint") + "{}", H("assert.A") + "{a:<nil>, b:<nil>}"}, {H("map[interface {}]float32") + "{100:1.25}", H("assert.A") + "{a:<nil>, b:<nil>}"},
+			{H("map[uint8]interface {}") + "{100:(0+1i)}", H("assert.A") + "{a:<nil>, b:<nil>}"}, {s1: "skip"}, {s1: "skip"}},
+		{{s1: "skip"}, {s1: "skip"}, {s1: "skip"}, {s1: "skip"}, {s1: "skip"}, {s1: "skip"}, {s1: "skip"}, {s1: "skip"}, {s1: "skip"}, {s1: "skip"}, {s1: "skip"},
+			{s1: "skip"}, {s1: "skip"}, {s1: "skip"}, {s1: "skip"}, {s1: "skip"}, {s1: "skip"}, {s1: "skip"}, {s1: "skip"}, {s1: "skip"}, {s1: "skip"}, {s1: "skip"},
+			{s1: "skip"}, {s1: "skip"}, {s1: "skip"}, {s1: "skip"}, {s1: "skip"}, {s1: "skip"}, {s1: "skip"}, {s1: "skip"}, {s1: "skip"}, {s1: "skip"}, {s1: "skip"},
+			{s1: "skip"}, {s1: "skip"}, {s1: "skip"}, {s1: "skip"}, {s1: "skip"}, {"{a:" + H("<nil>") + " b:<nil>}", "{a:" + H("int") + "(100) b:<nil>}"},
+			{s1: "skip"}},
+		{{s1: "skip"}, {s1: "skip"}, {s1: "skip"}, {s1: "skip"}, {s1: "skip"}, {s1: "skip"}, {s1: "skip"}, {s1: "skip"}, {s1: "skip"}, {s1: "skip"}, {s1: "skip"},
+			{s1: "skip"}, {s1: "skip"}, {s1: "skip"}, {s1: "skip"}, {s1: "skip"}, {s1: "skip"}, {s1: "skip"}, {s1: "skip"}, {s1: "skip"}, {s1: "skip"}, {s1: "skip"},
+			{s1: "skip"}, {s1: "skip"}, {s1: "skip"}, {s1: "skip"}, {s1: "skip"}, {s1: "skip"}, {s1: "skip"}, {s1: "skip"}, {s1: "skip"}, {s1: "skip"}, {s1: "skip"},
+			{s1: "skip"}, {s1: "skip"}, {s1: "skip"}, {s1: "skip"}, {s1: "skip"},
+			{"assert.A{a:" + H("<nil>") + ", b:assert.I(" + H("nil") + ")}",
+				"assert.A{\n\ta:\x1b[41mstring\x1b[0m(\"中a文b\"),\n\tb:assert.A\x1b[41m{a:<nil>, b:<nil>}\x1b[0m\n}"},
+			{"assert.A{a:" + H("100") + ", b:assert.I(" + H("nil") + ")}",
+				"assert.A{\n\ta:\x1b[41m\"中a文b\"\x1b[0m,\n\tb:assert.A\x1b[41m{a:<nil>, b:<nil>}\x1b[0m\n}"},
+			{s1: "skip"}},
+		{{s1: "skip"}, {s1: "skip"}, {s1: "skip"}, {s1: "skip"}, {s1: "skip"}, {s1: "skip"}, {s1: "skip"}, {s1: "skip"}, {s1: "skip"}, {s1: "skip"}, {s1: "skip"},
+			{s1: "skip"}, {s1: "skip"}, {s1: "skip"}, {s1: "skip"}, {s1: "skip"}, {s1: "skip"}, {s1: "skip"}, {s1: "skip"}, {s1: "skip"}, {s1: "skip"}, {s1: "skip"},
+			{s1: "skip"}, {s1: "skip"}, {s1: "skip"}, {s1: "skip"}, {s1: "skip"}, {s1: "skip"}, {s1: "skip"}, {s1: "skip"}, {s1: "skip"}, {s1: "skip"}, {s1: "skip"},
+			{s1: "skip"}, {s1: "skip"}, {s1: "skip"}, {s1: "skip"}, {s1: "skip"}, {s1: "skip"}, {s1: "skip"},
+			{"assert.A{\n\ta:\"\x1b[41m中a\x1b[0m文b\",\n\tb:assert.A{a:<nil>, b:assert.I(\x1b[41mnil\x1b[0m)}\n}",
+				"assert.A{\n\ta:\"\x1b[41ma中\x1b[0m文b\x1b[41mc\x1b[0m\",\n\tb:assert.A{\n\t\ta:<nil>,\n\t\tb:assert.A\x1b[41m{a:<nil>, b:<nil>}\x1b[0m\n\t}\n}"},
+			{s1: "skip"}},
 	}
 	for i := 1; i < len(cs); i++ {
 		b := cs[i]
@@ -263,4 +309,86 @@ func TestWriteValDiff(t *testing.T) {
 			Equal(t, r.s1, d2.String(1), "i=%v, j=%v, s1\n%v\n%v", i, j, d2.String(1), d2.String(0))
 		}
 	}
+}
+
+func TestWriteValDiffStruct(t *testing.T) {
+	a := A{a: "中a文b", b: A{}}
+	b := A{a: "a中文bc", b: A{a: 100, b: A{}}}
+	var d tValueDiffer
+	d.writeValDiff(reflect.ValueOf(a), reflect.ValueOf(b), false)
+	Equal(t, "assert.A{\n\ta:\"\x1b[41m中a\x1b[0m文b\",\n\tb:assert.A{a:\x1b[41m<nil>\x1b[0m, b:assert.I(\x1b[41mnil\x1b[0m)}\n}", d.String(0), "s1\n%v\n%v", d.String(0), d.String(1))
+	Equal(t, "assert.A{\n\ta:\"\x1b[41ma中\x1b[0m文b\x1b[41mc\x1b[0m\",\n\tb:assert.A{\n\t\ta:\x1b[41mint\x1b[0m(100),\n\t\tb:assert.A\x1b[41m{a:<nil>, b:<nil>}\x1b[0m\n\t}\n}", d.String(1), "s2\n%v\n%v", d.String(0), d.String(1))
+
+}
+
+func TestWriteValDiff2(t *testing.T) {
+	te := func(a, b interface{}, s1, s2 string) {
+		var d tValueDiffer
+		d.writeValDiff(reflect.ValueOf(a), reflect.ValueOf(b), false)
+		Caller(3).Equal(t, s1, d.String(0), "s1\n%v\n%v", d.String(0), d.String(1))
+		Caller(3).Equal(t, s2, d.String(1), "s2\n%v\n%v", d.String(0), d.String(1))
+	}
+	tt := func(a interface{}, rs []struct{ s1, s2 string }) {
+		i := 0
+		eq := func(b interface{}) {
+			var d tValueDiffer
+			d.writeValDiff(reflect.ValueOf(a), reflect.ValueOf(b), false)
+			var r struct{ s1, s2 string }
+			if i < len(rs) {
+				r = rs[i]
+			}
+			i++
+			if r.s1 != "skip" {
+				te(a, b, r.s1, r.s2)
+			}
+		}
+		eq(nil)
+		eq(false)
+		eq(int(-1))
+		eq((*int)(nil))
+		eq((unsafe.Pointer)(nil))
+		eq(chan int(nil))
+		eq((func(bool) int)(nil))
+		eq("abc")
+		eq([...]int{1, 2, 3})
+		eq([]int{1, 2, 3})
+		eq(map[bool]int{true: 1})
+		eq(A{})
+	}
+	tt(true, []struct{ s1, s2 string }{
+		{H("bool") + "(true)", H("<nil>")},
+		{"bool(" + H("true") + ")", "bool(" + H("false") + ")"},
+		{H("bool") + "(true)", H("int") + "(-1)"},
+		{H("bool") + "(true)", "(" + H("*int") + ")(nil)"},
+		{H("bool") + "(true)", "(" + H("unsafe.Pointer") + ")(nil)"},
+		{H("bool") + "(true)", "(" + H("chan int") + ")(nil)"},
+		{H("bool") + "(true)", "(" + H("func(bool) int") + ")(nil)"},
+		{H("bool") + "(true)", H("string") + `("abc")`},
+		{H("bool") + "(true)", H("[3]int") + "{1, 2, 3}"},
+		{H("bool") + "(true)", H("[]int") + "{1, 2, 3}"},
+		{H("bool") + "(true)", H("map[bool]int") + "{true:1}"},
+		{H("bool") + "(true)", H("assert.A") + "{a:<nil>, b:<nil>}"},
+	})
+	tt(Bool(true), []struct{ s1, s2 string }{
+		{H("assert.Bool") + "(String of Bool)", H("<nil>")},
+		{"assert.Bool(" + H("String of Bool") + ")", "bool(" + H("false") + ")"},
+		{H("assert.Bool") + "(String of Bool)", H("int") + "(-1)"},
+		{H("assert.Bool") + "(String of Bool)", "(" + H("*int") + ")(nil)"},
+		{H("assert.Bool") + "(String of Bool)", "(" + H("unsafe.Pointer") + ")(nil)"},
+		{H("assert.Bool") + "(String of Bool)", "(" + H("chan int") + ")(nil)"},
+		{H("assert.Bool") + "(String of Bool)", "(" + H("func(bool) int") + ")(nil)"},
+		{H("assert.Bool") + "(String of Bool)", H("string") + `("abc")`},
+		{H("assert.Bool") + "(String of Bool)", H("[3]int") + "{1, 2, 3}"},
+		{H("assert.Bool") + "(String of Bool)", H("[]int") + "{1, 2, 3}"},
+		{H("assert.Bool") + "(String of Bool)", H("map[bool]int") + "{true:1}"},
+		{"assert." + H("Bool") + "(String of Bool)", "assert." + H("A") + "{a:<nil>, b:<nil>}"},
+	})
+	te((func(Bool, If) (Array, Map))(nil), (func(bool, If) (Slice, Ptr))(nil),
+		"(func(\x1b[41massert.Bool\x1b[0m, assert.If) (assert.\x1b[41mArray\x1b[0m, assert.\x1b[41mMap\x1b[0m))(nil)",
+		"(func(\x1b[41mbool\x1b[0m, assert.If) (assert.\x1b[41mSlice\x1b[0m, assert.\x1b[41mPtr\x1b[0m))(nil)")
+	a1, a2 := &[...]int{1, 2, 3}, &[]int{1, 2, 4}
+	te(a1, a2, fmt.Sprintf("(*"+H("[3]int")+")(%p)", a1), fmt.Sprintf("(*"+H("[]int")+")(%p)", a2))
+	te((*[]map[[12]bool]float32)(nil), (*[]map[[3]A]Bool)(nil),
+		"(*[]map[[\x1b[41m12\x1b[0m]\x1b[41mbool\x1b[0m]\x1b[41mfloat32\x1b[0m)(nil)",
+		"(*[]map[[\x1b[41m3\x1b[0m]\x1b[41massert.A\x1b[0m]\x1b[41massert.Bool\x1b[0m)(nil)")
 }
