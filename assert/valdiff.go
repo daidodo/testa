@@ -281,7 +281,7 @@ func (vd *tValueDiffer) writeTypeDiffValues(v1, v2 reflect.Value) {
 	case reflect.Ptr:
 		vd.writeDiffValuesPtr(v1, v2)
 	case reflect.Array:
-		vd.writeTypeDiffValuesArray(v1, v2, false)
+		vd.writeTypeDiffValuesArray(v1, v2, false, eq, wd)
 	case reflect.Slice:
 		if v1.IsNil() {
 			b1.Highlight(nil)
@@ -290,7 +290,7 @@ func (vd *tValueDiffer) writeTypeDiffValues(v1, v2 reflect.Value) {
 			vd.writeElem(0, v1, true)
 			b2.Highlight(nil)
 		} else {
-			vd.writeTypeDiffValuesArray(v1, v2, true)
+			vd.writeTypeDiffValuesArray(v1, v2, false, eq, wd)
 		}
 	case reflect.Map:
 		if v1.IsNil() {
@@ -351,14 +351,16 @@ func (vd *tValueDiffer) writeDiffValuesFunc(v1, v2 reflect.Value) {
 	}
 }
 
-func (vd *tValueDiffer) writeTypeDiffValuesArray(v1, v2 reflect.Value, slice bool) {
-	b1, b2 := vd.bufs()
+func (vd *tValueDiffer) writeTypeDiffValuesArray(v1, v2 reflect.Value, sw bool,
+	eq func(a, b reflect.Value) bool,
+	wd func(a, b reflect.Value, sw bool)) {
+	b1, b2, i1, i2 := vd.bufr(sw)
 	tp1, id1, ml1 := attrElemArray(v1)
 	tp2, id2, ml2 := attrElemArray(v2)
 	tp, id := tp1 || tp2, id1 || id2
 	if tp {
-		vd.writeType(0, v1.Type(), false)
-		vd.writeType(1, v2.Type(), false)
+		vd.writeType(i1, v1.Type(), false)
+		vd.writeType(i2, v2.Type(), false)
 		b1.Normal("{")
 		b2.Normal("{")
 		defer b1.Normal("}")
@@ -366,12 +368,12 @@ func (vd *tValueDiffer) writeTypeDiffValuesArray(v1, v2 reflect.Value, slice boo
 		if ml1 {
 			b1.Tab++
 			defer func() { b1.Tab--; b1.NL() }()
-			vd.Attrs[kNewLine+0] = true
+			vd.Attrs[kNewLine+i1] = true
 		}
 		if ml2 {
 			b2.Tab++
 			defer func() { b2.Tab--; b2.NL() }()
-			vd.Attrs[kNewLine+1] = true
+			vd.Attrs[kNewLine+i2] = true
 		}
 	} else {
 		b1.Normal("[")
@@ -379,35 +381,51 @@ func (vd *tValueDiffer) writeTypeDiffValuesArray(v1, v2 reflect.Value, slice boo
 		defer b1.Normal("]")
 		defer b2.Normal("]")
 	}
-	if slice {
-		vd.writeDiffValuesSlice(v1, v2, tp, id, ml1, ml2)
-	} else {
-		vd.writeDiffValuesArray(v1, v2, tp, id, ml1, ml2)
-	}
+	vd.writeDiffValuesArrayC(v1, v2, sw, tp, id, ml1, ml2, eq, wd)
 }
 
-func (vd *tValueDiffer) writeDiffValuesArray(v1, v2 reflect.Value, tp, id, ml1, ml2 bool) {
-	b1, b2 := vd.bufs()
+func (vd *tValueDiffer) writeDiffValuesArrayC(v1, v2 reflect.Value, sw, tp, id, ml1, ml2 bool,
+	eq func(a, b reflect.Value) bool,
+	wd func(a, b reflect.Value, s bool)) {
+	b1, b2, i1, i2 := vd.bufr(sw)
 	var p1, p2 bool
-	for i, j := 0, 0; i < v1.Len(); i++ {
-		e1, e2 := v1.Index(i), v2.Index(i)
-		eq := valueEqual(e1, e2)
-		if eq && id {
+	for i, j := 0, 0; i < v1.Len() || i < v2.Len(); i++ {
+		g1, g2 := i < v1.Len(), i < v2.Len()
+		eq := g1 && g2 && eq(v1.Index(i), v2.Index(i))
+		if eq && id { // If equal, skip
 			vd.Attrs[kOmitSame] = true
+			// If all elems are skipped, show last elem's index (if it's NOT empty):
+			// IDX:...
+			if i+1 == v1.Len() && j == 0 {
+				if ml1 {
+					b1.NL()
+				}
+				b1.Normal(v1.Len()-1, ":...")
+			}
+			if i+1 == v2.Len() && j == 0 {
+				if ml2 {
+					b2.NL()
+				}
+				b2.Normal(v2.Len()-1, ":...")
+			}
 			continue
 		}
-		t1, t2 := isNonTrivialElem(e1), isNonTrivialElem(e2)
-		t1, p1 = (t1 || p1 || (ml1 && (id || i == 0))), t1
-		t2, p2 = (t2 || p2 || (ml2 && (id || i == 0))), t2
+		t1, t2 := g1 && isNonTrivialElem(v1.Index(i)), g2 && isNonTrivialElem(v2.Index(i))
+		t1, p1 = g1 && (t1 || p1 || (ml1 && (id || i == 0))), t1
+		t2, p2 = g2 && (t2 || p2 || (ml2 && (id || i == 0))), t2
 		if j > 0 {
 			if tp {
-				b1.Plain(",")
-				b2.Plain(",")
+				if g1 {
+					b1.Plain(",")
+				}
+				if g2 {
+					b2.Plain(",")
+				}
 			}
-			if !tp || !t1 {
+			if g1 && (!tp || !t1) {
 				b1.Plain(" ")
 			}
-			if !tp || !t2 {
+			if g2 && (!tp || !t2) {
 				b2.Plain(" ")
 			}
 		}
@@ -419,29 +437,26 @@ func (vd *tValueDiffer) writeDiffValuesArray(v1, v2 reflect.Value, tp, id, ml1, 
 			b2.NL()
 		}
 		if id {
-			b1.Normal(i, ":")
-			b2.Normal(i, ":")
+			if g1 {
+				b1.Write(!g2, i, ":")
+			}
+			if g2 {
+				b2.Write(!g1, i, ":")
+			}
 		}
-		if eq {
-			vd.writeElem(0, e1, false)
-			vd.writeElem(1, e2, false)
+		if g1 && g2 {
+			if e1, e2 := v1.Index(i), v2.Index(i); eq {
+				vd.writeElem(i1, e1, false)
+				vd.writeElem(i2, e2, false)
+			} else {
+				wd(e1, e2, sw)
+			}
+		} else if g1 {
+			vd.writeElem(i1, v1.Index(i), true)
 		} else {
-			vd.writeDiff(e1, e2)
+			vd.writeElem(i2, v2.Index(i), true)
 		}
 	}
-}
-
-func (vd *tValueDiffer) writeDiffValuesSlice(v1, v2 reflect.Value, tp, id, ml1, ml2 bool) {
-	eq := func(a, b reflect.Value) bool {
-		return valueEqual(a, b)
-	}
-	wd := func(a, b reflect.Value, sw bool) {
-		if sw {
-			a, b = b, a
-		}
-		vd.writeDiff(a, b)
-	}
-	vd.writeDiffValuesArrayC(v1, v2, false, tp, id, ml1, ml2, eq, wd)
 }
 
 func (vd *tValueDiffer) writeTypeDiffValuesMap(v1, v2 reflect.Value, sw bool,
