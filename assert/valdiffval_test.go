@@ -391,6 +391,72 @@ func TestWriteValDiff2(t *testing.T) {
 	te((*[]map[[12]bool]float32)(nil), (*[]map[[3]A]Bool)(nil),
 		"(*[]map[[\x1b[41m12\x1b[0m]\x1b[41mbool\x1b[0m]\x1b[41mfloat32\x1b[0m)(nil)",
 		"(*[]map[[\x1b[41m3\x1b[0m]\x1b[41massert.A\x1b[0m]\x1b[41massert.Bool\x1b[0m)(nil)")
-	//te("中a文b", []byte("中a文b"), "", "")
-	//te("中a文b", []byte("a中文bc"), "", "")
+}
+
+func TestWriteValDiff3(t *testing.T) {
+	te := func(a, b interface{}, s1, s2 string) {
+		var d1, d2 tValueDiffer
+		d1.writeValDiff(reflect.ValueOf(a), reflect.ValueOf(b), false)
+		Caller(3).Equal(t, s1, d1.String(0), "s1\n%v\n%v", d1.String(0), d1.String(1))
+		Caller(3).Equal(t, s2, d1.String(1), "s2\n%v\n%v", d1.String(0), d1.String(1))
+		d2.writeValDiff(reflect.ValueOf(a), reflect.ValueOf(b), true)
+		Caller(3).Equal(t, s2, d2.String(0), "s2\n%v\n%v", d2.String(1), d2.String(0))
+		Caller(3).Equal(t, s1, d2.String(1), "s1\n%v\n%v", d2.String(1), d2.String(0))
+	}
+	tt := func(a, b string, b1, b2, c1, c2 interface{}, rs []struct{ s1, s2 string }) {
+		i := 0
+		eq := func(a, b interface{}) {
+			var d tValueDiffer
+			d.writeValDiff(reflect.ValueOf(a), reflect.ValueOf(b), false)
+			var r struct{ s1, s2 string }
+			if i < len(rs) {
+				r = rs[i]
+			}
+			i++
+			if r.s1 != "skip" {
+				te(a, b, r.s1, r.s2)
+			}
+		}
+		eq(a, b)
+		eq(a, []rune(b))
+		eq(a, b2)
+		eq([]rune(a), b)
+		eq(b1, b)
+		eq(a, []byte(b))
+		eq(a, c2)
+		eq([]byte(a), b)
+		eq(c1, b)
+	}
+	tt("中a文b", "a中文bc",
+		[...]rune{0x4e2d, 0x61, 0x6587, 0x62},
+		[...]rune{0x61, 0x4e2d, 0x6587, 0x62, 0x63},
+		[...]byte{0xe4, 0xb8, 0xad, 0x61, 0xe6, 0x96, 0x87, 0x62},
+		[...]byte{0x61, 0xe4, 0xb8, 0xad, 0xe6, 0x96, 0x87, 0x62, 0x63},
+		[]struct{ s1, s2 string }{
+			{`"` + H("中a") + `文b"`, `"` + H("a中") + "文b" + H("c") + `"`},
+			{`"` + H("中a") + `文b"`, "[" + H("0x61 0x4e2d") + " 0x6587 0x62 " + H("0x63") + "]"},
+			{`"` + H("中a") + `文b"`, "[" + H("0x61 0x4e2d") + " 0x6587 0x62 " + H("0x63") + "]"},
+			{"[" + H("0x4e2d 0x61") + " 0x6587 0x62]", `"` + H("a中") + "文b" + H("c") + `"`},
+			{"[" + H("0x4e2d 0x61") + " 0x6587 0x62]", `"` + H("a中") + "文b" + H("c") + `"`},
+			{`"` + H("中a") + `文b"`, "[" + H("0x61 0xe4 0xb8 0xad") + " 0xe6 0x96 0x87 0x62 " + H("0x63") + "]"},
+			{`"` + H("中a") + `文b"`, "[" + H("0x61 0xe4 0xb8 0xad") + " 0xe6 0x96 0x87 0x62 " + H("0x63") + "]"},
+			{"[" + H("0xe4 0xb8 0xad 0x61") + " 0xe6 0x96 0x87 0x62]", `"` + H("a中") + "文b" + H("c") + `"`},
+			{"[" + H("0xe4 0xb8 0xad 0x61") + " 0xe6 0x96 0x87 0x62]", `"` + H("a中") + "文b" + H("c") + `"`}})
+	tt("", "a中文bc",
+		[...]rune{},
+		[...]rune{0x61, 0x4e2d, 0x6587, 0x62, 0x63},
+		[...]byte{},
+		[...]byte{0x61, 0xe4, 0xb8, 0xad, 0xe6, 0x96, 0x87, 0x62, 0x63},
+		[]struct{ s1, s2 string }{
+			{`""`, `"` + H("a中文bc") + `"`},
+			{`""`, "[" + H("0x61 0x4e2d 0x6587 0x62 0x63") + "]"},
+			{`""`, "[" + H("0x61 0x4e2d 0x6587 0x62 0x63") + "]"},
+			{"[]", `"` + H("a中文bc") + `"`},
+			{"[]", `"` + H("a中文bc") + `"`},
+			{`""`, "[" + H("0x61 0xe4 0xb8 0xad 0xe6 0x96 0x87 0x62 0x63") + "]"},
+			{`""`, "[" + H("0x61 0xe4 0xb8 0xad 0xe6 0x96 0x87 0x62 0x63") + "]"},
+			{"[]", `"` + H("a中文bc") + `"`},
+			{"[]", `"` + H("a中文bc") + `"`}})
+	te("a中文bc", [...]byte{0x61, 0xe4, 0xb7, 0xad, 0xe6, 0x96, 0x87, 0x90, 0x63},
+		`"a`+H("中")+"文"+H("b")+`c"`, "[0x61 0xe4 "+H("0xb7")+" 0xad 0xe6 0x96 0x87 "+H("0x90")+" 0x63]")
 }
