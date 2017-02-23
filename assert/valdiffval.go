@@ -327,10 +327,17 @@ func (vd *tValueDiffer) writeDiffValuesString(v1, v2 reflect.Value, sw bool) {
 
 func (vd *tValueDiffer) writeValDiffC(v1, v2 reflect.Value, sw bool) {
 	_, _, i1, i2 := vd.bufr(sw)
-	t1, t2 := v1.Type(), v2.Type()
-	c := convertible(t1, t2)
-	vd.writeTypeValue(i1, v1, !c, c)
-	vd.writeTypeValue(i2, v2, !c, c)
+	if t1, t2 := v1.Type(), v2.Type(); convertible(t1, t2) {
+		vd.writeTypeValue(i1, v1, false, true)
+		vd.writeTypeValue(i2, v2, false, true)
+	} else if isComposite(t1) && isComposite(t2) {
+		vd.writeDiffKindsBeforeValue(v1, v2, convertible, sw)
+		vd.writeValueAfterType(i1, v1, false)
+		vd.writeValueAfterType(i2, v2, false)
+	} else {
+		vd.writeTypeValue(i1, v1, true, false)
+		vd.writeTypeValue(i2, v2, true, false)
+	}
 }
 
 func (vd *tValueDiffer) bufr(sw bool) (b1, b2 *tFeatureBuf, i1, i2 int) {
