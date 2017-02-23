@@ -293,7 +293,9 @@ func (vd *tValueDiffer) writeTypeDiffValues(v1, v2 reflect.Value) {
 			vd.writeElem(0, v1, true)
 			b2.Highlight(nil)
 		} else {
-			vd.writeTypeDiffValuesMap(v1, v2)
+			eq := func(v1, v2 reflect.Value) bool { return valueEqual(v1, v2) }
+			wd := func(v1, v2 reflect.Value) { vd.writeDiff(v1, v2) }
+			vd.writeTypeDiffValuesMap(v1, v2, false, eq, wd)
 		}
 	case reflect.Struct:
 		vd.writeTypeDiffValuesStruct(v1, v2)
@@ -434,14 +436,16 @@ func (vd *tValueDiffer) writeDiffValuesSlice(v1, v2 reflect.Value, tp, id, ml1, 
 	vd.writeDiffValuesArrayC(v1, v2, false, tp, id, ml1, ml2, eq, wd)
 }
 
-func (vd *tValueDiffer) writeTypeDiffValuesMap(v1, v2 reflect.Value) {
-	b1, b2 := vd.bufs()
+func (vd *tValueDiffer) writeTypeDiffValuesMap(v1, v2 reflect.Value, sw bool,
+	eq func(v1, v2 reflect.Value) bool,
+	wd func(v1, v2 reflect.Value)) {
+	b1, b2, i1, i2 := vd.bufr(sw)
 	tp1, ml1 := attrElemMap(v1)
 	tp2, ml2 := attrElemMap(v2)
 	tp := tp1 || tp2
 	if tp {
-		vd.writeType(0, v1.Type(), false)
-		vd.writeType(1, v2.Type(), false)
+		vd.writeType(i1, v1.Type(), false)
+		vd.writeType(i2, v2.Type(), false)
 		b1.Normal("{")
 		b2.Normal("{")
 		defer b1.Normal("}")
@@ -449,12 +453,12 @@ func (vd *tValueDiffer) writeTypeDiffValuesMap(v1, v2 reflect.Value) {
 		if ml1 {
 			b1.Tab++
 			defer func() { b1.Tab--; b1.NL() }()
-			vd.Attrs[kNewLine+0] = true
+			vd.Attrs[kNewLine+i1] = true
 		}
 		if ml2 {
 			b2.Tab++
 			defer func() { b2.Tab--; b2.NL() }()
-			vd.Attrs[kNewLine+1] = true
+			vd.Attrs[kNewLine+i2] = true
 		}
 	} else {
 		b1.Normal("map[")
@@ -462,29 +466,19 @@ func (vd *tValueDiffer) writeTypeDiffValuesMap(v1, v2 reflect.Value) {
 		defer b1.Normal("]")
 		defer b2.Normal("]")
 	}
-	vd.writeDiffValuesMap(v1, v2, tp, ml1, ml2)
+	vd.writeDiffValuesMap(v1, v2, sw, tp, ml1, ml2, eq, wd)
 }
 
-func (vd *tValueDiffer) writeDiffValuesMap(v1, v2 reflect.Value, tp, ml1, ml2 bool) {
-	b1, b2 := vd.bufs()
-	var ks, ks1, ks2 []reflect.Value
-	for _, k := range v1.MapKeys() {
-		if v2.MapIndex(k).IsValid() {
-			ks = append(ks, k)
-		} else {
-			ks1 = append(ks1, k)
-		}
-	}
-	for _, k := range v2.MapKeys() {
-		if !v1.MapIndex(k).IsValid() {
-			ks2 = append(ks2, k)
-		}
-	}
+func (vd *tValueDiffer) writeDiffValuesMap(v1, v2 reflect.Value, sw, tp, ml1, ml2 bool,
+	eqf func(v1, v2 reflect.Value) bool,
+	wd func(v1, v2 reflect.Value)) {
+	b1, b2, i1, i2 := vd.bufr(sw)
+	ks, ks1, ks2 := mapKeyDiff(v1, v2)
 	id := v1.Len() > 10 || v2.Len() > 10
 	i := 0
 	for _, k := range ks {
 		e1, e2 := v1.MapIndex(k), v2.MapIndex(k)
-		eq := valueEqual(e1, e2)
+		eq := eqf(e1, e2)
 		if eq && id {
 			vd.Attrs[kOmitSame] = true
 			continue
@@ -507,15 +501,15 @@ func (vd *tValueDiffer) writeDiffValuesMap(v1, v2 reflect.Value, tp, ml1, ml2 bo
 		if ml2 {
 			b2.NL()
 		}
-		vd.writeKey(0, k, false)
-		vd.writeKey(1, k, false)
+		vd.writeKey(i1, k, false)
+		vd.writeKey(i2, k, false)
 		b1.Normal(":")
 		b2.Normal(":")
 		if eq {
-			vd.writeElem(0, e1, false)
-			vd.writeElem(1, e2, false)
+			vd.writeElem(i1, e1, false)
+			vd.writeElem(i2, e2, false)
 		} else {
-			vd.writeDiff(e1, e2)
+			wd(e1, e2)
 		}
 		i++
 	}
@@ -553,8 +547,8 @@ func (vd *tValueDiffer) writeDiffValuesMap(v1, v2 reflect.Value, tp, ml1, ml2 bo
 			i++
 		}
 	}
-	f(0, v1, ks1, ml1, i)
-	f(1, v2, ks2, ml2, i)
+	f(i1, v1, ks1, ml1, i)
+	f(i2, v2, ks2, ml2, i)
 }
 
 func (vd *tValueDiffer) writeTypeDiffValuesStruct(v1, v2 reflect.Value) {
@@ -721,6 +715,50 @@ func valueEqual(v1, v2 reflect.Value) bool {
 	default: // reflect.Invalid
 	}
 	return false
+}
+
+func mapKeyDiff(v1, v2 reflect.Value) (ks, ks1, ks2 []reflect.Value) {
+	if t1, t2 := v1.Type().Key(), v2.Type().Key(); t1 == t2 {
+		for _, k := range v1.MapKeys() {
+			if v2.MapIndex(k).IsValid() {
+				ks = append(ks, k)
+			} else {
+				ks1 = append(ks1, k)
+			}
+		}
+		for _, k := range v2.MapKeys() {
+			if !v1.MapIndex(k).IsValid() {
+				ks2 = append(ks2, k)
+			}
+		}
+	} else if convertibleKeyTo(t1, t2) {
+		s1, s2 := v1.MapKeys(), v2.MapKeys()
+		find := func(k1 reflect.Value, s []reflect.Value) bool {
+			for _, k2 := range s {
+				if valueEqual(k1, k2) {
+					return true
+				}
+			}
+			return false
+		}
+		for _, k := range s1 {
+			if find(k, s2) {
+				ks = append(ks, k)
+			} else {
+				ks1 = append(ks1, k)
+			}
+		}
+		for _, k := range s2 {
+			if !find(k, s1) {
+				ks2 = append(ks2, k)
+			}
+		}
+	} else if convertibleKeyTo(t2, t1) {
+		ks, ks2, ks1 = mapKeyDiff(v2, v1)
+	} else {
+		ks1, ks2 = v1.MapKeys(), v2.MapKeys()
+	}
+	return
 }
 
 func derefInterface(v reflect.Value) (r reflect.Value, d bool) {
