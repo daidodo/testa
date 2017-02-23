@@ -174,30 +174,30 @@ func convertCompareArray(f, t reflect.Value) bool {
 	return convertCompareC(f, t)
 }
 
+// NOTE: Map keys must be exactly equal (both type and value), e.g. int(100) and uint(100) are
+// different keys.
 func convertCompareMap(f, t reflect.Value) bool {
 	if !t.IsNil() && f.Kind() == reflect.Map && !f.IsNil() {
-		if f.Len() != t.Len() {
+		if f.Len() != t.Len() || !convertibleKeyTo(f.Type().Key(), t.Type().Key()) {
 			return false
 		}
 		if f.Len() == 0 {
-			return convertible(f.Type().Key(), t.Type().Key()) &&
-				convertible(f.Type().Elem(), t.Type().Elem())
+			return convertible(f.Type().Elem(), t.Type().Elem())
 		}
 		ks := t.MapKeys()
-		find := func(v reflect.Value) (reflect.Value, bool) {
-			for _, k := range ks {
-				if convertCompare(v, k) {
-					return k, true
+		find := func(k1 reflect.Value) bool {
+			for _, k2 := range ks {
+				if valueEqual(k1, k2) {
+					return true
 				}
 			}
-			return reflect.Value{}, false
+			return false
 		}
 		for _, k := range f.MapKeys() {
-			kk, ok := find(k)
-			if !ok {
+			if !find(k) {
 				return false
 			}
-			if !convertCompare(f.MapIndex(k), t.MapIndex(kk)) {
+			if !convertCompare(f.MapIndex(k), t.MapIndex(k)) {
 				return false
 			}
 		}
