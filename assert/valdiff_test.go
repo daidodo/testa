@@ -650,3 +650,15 @@ func TestWriteDiffTypeValues(t *testing.T) {
 	cs(reflect.ValueOf(Complex(1.2+2.4i)), reflect.ValueOf(1.2+2.4i), H("assert.Complex")+"(1.2+2.4i)", H("complex128")+"(1.2+2.4i)")
 	cs(reflect.ValueOf(Struct{a: 100}), reflect.ValueOf(A{a: 100}), "assert."+H("Struct")+"{a:100, b:<nil>}", "assert."+H("A")+"{a:100, b:<nil>}")
 }
+
+func TestMapKeyDiff(t *testing.T) {
+	v1 := reflect.ValueOf(map[uint8]interface{}{100: (0 + 1i)})
+	v2 := reflect.ValueOf(map[interface{}]float32{uint8(100): 1.25})
+	True(t, convertibleKeyTo(v1.Type().Key(), v2.Type().Key()))
+	False(t, convertibleKeyTo(v2.Type().Key(), v1.Type().Key()))
+	s1, s2 := v1.MapKeys(), v2.MapKeys()
+	True(t, reflect.DeepEqual(s1[0].Interface(), s2[0].Interface()))
+	True(t, valueEqual(s1[0], s2[0]))
+	ks, ks1, ks2 := mapKeyDiff(v1, v2)
+	Equal(t, 1, len(ks), "ks=%v\nks1=%v\nks2=%v", ks, ks1, ks2)
+}
