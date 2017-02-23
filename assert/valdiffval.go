@@ -79,7 +79,7 @@ func (vd *tValueDiffer) writeValDiffPointers(v1, v2 reflect.Value, sw bool) bool
 }
 
 func (vd *tValueDiffer) writeValDiffToString(v1, v2 reflect.Value, sw bool) bool {
-	_, _, i1, i2 := vd.bufr(sw)
+	b1, b2, i1, i2 := vd.bufr(sw)
 	if v2.Kind() == reflect.String {
 		if t := v1.Type(); isInteger(t) || isUInteger(t) {
 			vd.writeElem(i1, v1, true)
@@ -88,6 +88,65 @@ func (vd *tValueDiffer) writeValDiffToString(v1, v2 reflect.Value, sw bool) bool
 		} else if t.Kind() == reflect.String {
 			vd.writeDiffValuesString(v1, v2, sw)
 			return true
+		} else if isArray(t) {
+			if k := t.Elem().Kind(); k == reflect.Uint8 {
+				b1.Normal("[")
+				b2.Normal(`"`)
+				s, i, p := []byte(v2.String()), 0, rune(0)
+				d := func(j int) bool {
+					r := false
+					for ; i < j; i++ {
+						g := i < v1.Len()
+						df := !g || byte(v1.Index(i).Uint()) != s[i]
+						if g {
+							if i > 0 {
+								b1.Plain(" ")
+							}
+							b1.Writef(df, "%#x", byte(v1.Index(i).Uint()))
+						}
+						r = r || df
+					}
+					return r
+				}
+				for j, c := range v2.String() {
+					if j > 0 {
+						b2.Writef(d(j), "%c", p)
+					}
+					p = c
+				}
+				if i > 0 {
+					b2.Writef(d(len(s)), "%c", p)
+				}
+				for ; i < v1.Len(); i++ {
+					if i > 0 {
+						b1.Plain(" ")
+					}
+					b1.Highlightf("%#x", byte(v1.Index(i).Uint()))
+				}
+				b1.Normal("]")
+				b2.Normal(`"`)
+				return true
+			} else if k == reflect.Int32 {
+				b1.Normal("[")
+				b2.Normal(`"`)
+				s := []rune(v2.String())
+				for i := 0; i < len(s) || i < v1.Len(); i++ {
+					g1, g2 := i < v1.Len(), i < len(s)
+					if g1 && i > 0 {
+						b1.Plain(" ")
+					}
+					eq := g1 && g2 && rune(v1.Index(i).Int()) == s[i]
+					if g1 {
+						b1.Writef(!eq, "%#x", rune(v1.Index(i).Int()))
+					}
+					if g2 {
+						b2.Writef(!eq, "%c", s[i])
+					}
+				}
+				b1.Normal("]")
+				b2.Normal(`"`)
+				return true
+			}
 		}
 	} else if v1.Kind() == reflect.String {
 		return vd.writeValDiffToString(v2, v1, !sw)
