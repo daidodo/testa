@@ -248,6 +248,13 @@ func (vd *tValueDiffer) writeDiffTypesFunc(t1, t2 reflect.Type, eq func(t1, t2 r
 
 func (vd *tValueDiffer) writeTypeDiffValues(v1, v2 reflect.Value) {
 	b1, b2 := vd.bufs()
+	eq := func(v1, v2 reflect.Value) bool { return valueEqual(v1, v2) }
+	wd := func(v1, v2 reflect.Value, sw bool) {
+		if sw {
+			v1, v2 = v2, v1
+		}
+		vd.writeDiff(v1, v2)
+	}
 	switch v1.Kind() {
 	case reflect.Complex64:
 		c1, c2 := complex64(v1.Complex()), complex64(v2.Complex())
@@ -293,12 +300,10 @@ func (vd *tValueDiffer) writeTypeDiffValues(v1, v2 reflect.Value) {
 			vd.writeElem(0, v1, true)
 			b2.Highlight(nil)
 		} else {
-			eq := func(v1, v2 reflect.Value) bool { return valueEqual(v1, v2) }
-			wd := func(v1, v2 reflect.Value) { vd.writeDiff(v1, v2) }
 			vd.writeTypeDiffValuesMap(v1, v2, false, eq, wd)
 		}
 	case reflect.Struct:
-		vd.writeTypeDiffValuesStruct(v1, v2)
+		vd.writeTypeDiffValuesStruct(v1, v2, false, eq, wd)
 	default:
 		vd.writeElem(0, v1, true)
 		vd.writeElem(1, v2, true)
@@ -430,7 +435,10 @@ func (vd *tValueDiffer) writeDiffValuesSlice(v1, v2 reflect.Value, tp, id, ml1, 
 	eq := func(a, b reflect.Value) bool {
 		return valueEqual(a, b)
 	}
-	wd := func(a, b reflect.Value) {
+	wd := func(a, b reflect.Value, sw bool) {
+		if sw {
+			a, b = b, a
+		}
 		vd.writeDiff(a, b)
 	}
 	vd.writeDiffValuesArrayC(v1, v2, false, tp, id, ml1, ml2, eq, wd)
@@ -438,7 +446,7 @@ func (vd *tValueDiffer) writeDiffValuesSlice(v1, v2 reflect.Value, tp, id, ml1, 
 
 func (vd *tValueDiffer) writeTypeDiffValuesMap(v1, v2 reflect.Value, sw bool,
 	eq func(v1, v2 reflect.Value) bool,
-	wd func(v1, v2 reflect.Value)) {
+	wd func(v1, v2 reflect.Value, sw bool)) {
 	b1, b2, i1, i2 := vd.bufr(sw)
 	tp1, ml1 := attrElemMap(v1)
 	tp2, ml2 := attrElemMap(v2)
@@ -471,7 +479,7 @@ func (vd *tValueDiffer) writeTypeDiffValuesMap(v1, v2 reflect.Value, sw bool,
 
 func (vd *tValueDiffer) writeDiffValuesMap(v1, v2 reflect.Value, sw, tp, ml1, ml2 bool,
 	eqf func(v1, v2 reflect.Value) bool,
-	wd func(v1, v2 reflect.Value)) {
+	wd func(v1, v2 reflect.Value, sw bool)) {
 	b1, b2, i1, i2 := vd.bufr(sw)
 	ks, ks1, ks2 := mapKeyDiff(v1, v2)
 	id := v1.Len() > 10 || v2.Len() > 10
@@ -509,7 +517,7 @@ func (vd *tValueDiffer) writeDiffValuesMap(v1, v2 reflect.Value, sw, tp, ml1, ml
 			vd.writeElem(i1, e1, false)
 			vd.writeElem(i2, e2, false)
 		} else {
-			wd(e1, e2)
+			wd(e1, e2, sw)
 		}
 		i++
 	}
@@ -532,7 +540,7 @@ func (vd *tValueDiffer) writeDiffValuesMap(v1, v2 reflect.Value, sw, tp, ml1, ml
 		for _, k := range ks {
 			if i > 0 {
 				if tp {
-					b.Highlight(",")
+					b.Plain(",")
 				}
 				if !ml {
 					b.Plain(" ")
@@ -551,12 +559,15 @@ func (vd *tValueDiffer) writeDiffValuesMap(v1, v2 reflect.Value, sw, tp, ml1, ml
 	f(i2, v2, ks2, ml2, i)
 }
 
-func (vd *tValueDiffer) writeTypeDiffValuesStruct(v1, v2 reflect.Value) {
-	b1, b2 := vd.bufs()
+func (vd *tValueDiffer) writeTypeDiffValuesStruct(v1, v2 reflect.Value, sw bool,
+	eq func(v1, v2 reflect.Value) bool,
+	wd func(v1, v2 reflect.Value, sw bool)) {
+	b1, b2, i1, i2 := vd.bufr(sw)
 	ml1, ml2 := attrElemStruct(v1), attrElemStruct(v2)
-	if ml1 || ml2 {
-		vd.writeType(0, v1.Type(), false)
-		vd.writeType(1, v2.Type(), false)
+	tp := ml1 || ml2
+	if tp {
+		vd.writeType(i1, v1.Type(), false)
+		vd.writeType(i2, v2.Type(), false)
 	}
 	b1.Normal("{")
 	b2.Normal("{")
@@ -565,36 +576,38 @@ func (vd *tValueDiffer) writeTypeDiffValuesStruct(v1, v2 reflect.Value) {
 	if ml1 {
 		b1.Tab++
 		defer func() { b1.Tab--; b1.NL() }()
-		vd.Attrs[kNewLine+0] = true
+		vd.Attrs[kNewLine+i1] = true
 	}
 	if ml2 {
 		b2.Tab++
 		defer func() { b2.Tab--; b2.NL() }()
-		vd.Attrs[kNewLine+1] = true
+		vd.Attrs[kNewLine+i2] = true
 	}
-	vd.writeDiffValuesStruct(v1, v2, ml1, ml2)
+	vd.writeDiffValuesStruct(v1, v2, sw, tp, ml1, ml2, eq, wd)
 }
 
-func (vd *tValueDiffer) writeDiffValuesStruct(v1, v2 reflect.Value, ml1, ml2 bool) {
-	b1, b2 := vd.bufs()
+func (vd *tValueDiffer) writeDiffValuesStruct(v1, v2 reflect.Value, sw, tp, ml1, ml2 bool,
+	eqf func(v1, v2 reflect.Value) bool,
+	wd func(v1, v2 reflect.Value, sw bool)) {
+	b1, b2, i1, i2 := vd.bufr(sw)
 	id := v1.NumField() > 10
 	t := v1.Type()
 	for i, j := 0, 0; i < v1.NumField(); i++ {
 		e1, e2 := v1.Field(i), v2.Field(i)
-		eq := valueEqual(e1, e2)
+		eq := eqf(e1, e2)
 		if eq && id {
 			vd.Attrs[kOmitSame] = true
 			continue
 		}
 		if j > 0 {
-			if ml1 {
+			if tp {
 				b1.Plain(",")
-			} else {
+				b2.Plain(",")
+			}
+			if !ml1 {
 				b1.Plain(" ")
 			}
-			if ml2 {
-				b2.Plain(",")
-			} else {
+			if !ml2 {
 				b2.Plain(" ")
 			}
 		}
@@ -609,10 +622,10 @@ func (vd *tValueDiffer) writeDiffValuesStruct(v1, v2 reflect.Value, ml1, ml2 boo
 		b1.Normal(n, ":")
 		b2.Normal(n, ":")
 		if eq {
-			vd.writeElem(0, e1, false)
-			vd.writeElem(1, e2, false)
+			vd.writeElem(i1, e1, false)
+			vd.writeElem(i2, e2, false)
 		} else {
-			vd.writeDiff(v1.Field(i), v2.Field(i))
+			wd(v1.Field(i), v2.Field(i), sw)
 		}
 	}
 }
