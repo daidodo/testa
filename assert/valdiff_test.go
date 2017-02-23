@@ -569,7 +569,7 @@ func TestWriteDiffKinds(t *testing.T) {
 	}
 	for i, c := range cs {
 		var d tValueDiffer
-		d.writeDiffKinds(c.t1, c.t2)
+		d.writeDiffKinds(c.t1, c.t2, func(t1, t2 reflect.Type) bool { return t1 == t2 }, false)
 		Equal(t, c.s1, d.String(0), "i=%v, s1\n%v\n%v", i, d.String(0), d.String(1))
 		Equal(t, c.s2, d.String(1), "i=%v, s2\n%v\n%v", i, d.String(0), d.String(1))
 	}
@@ -591,8 +591,8 @@ func TestWriteDiffKindsBeforeValue(t *testing.T) {
 	}
 	for i, c := range cs {
 		var d1, d2 tValueDiffer
-		d1.writeDiffKindsBeforeValue(c.v1, c.v2)
-		d2.writeDiffKindsBeforeValue(c.v2, c.v1)
+		d1.writeDiffKindsBeforeValue(c.v1, c.v2, func(t1, t2 reflect.Type) bool { return t1 == t2 }, false)
+		d2.writeDiffKindsBeforeValue(c.v2, c.v1, func(t1, t2 reflect.Type) bool { return t1 == t2 }, false)
 		Equal(t, c.s1, d1.String(0), "i=%v, s1\n%v\n%v", i, d1.String(0), d1.String(1))
 		Equal(t, c.s2, d1.String(1), "i=%v, s2\n%v\n%v", i, d1.String(0), d1.String(1))
 		Equal(t, c.s1, d2.String(1), "i=%v, rs2\n%v\n%v", i, d2.String(1), d2.String(0))
@@ -616,7 +616,7 @@ func TestWriteDiffPkgTypes(t *testing.T) {
 	}
 	for i, c := range cs {
 		var d tValueDiffer
-		d.writeDiffKinds(c.t1, c.t2)
+		d.writeDiffKinds(c.t1, c.t2, func(t1, t2 reflect.Type) bool { return t1 == t2 }, false)
 		Equal(t, c.s1, d.String(0), "i=%v, s1\n%v\n%v", i, d.String(0), d.String(1))
 		Equal(t, c.s2, d.String(1), "i=%v, s2\n%v\n%v", i, d.String(0), d.String(1))
 	}
