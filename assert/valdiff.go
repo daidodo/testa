@@ -66,15 +66,15 @@ func (vd *tValueDiffer) writeDiffTypeValues(v1, v2 reflect.Value) {
 			vd.writeTypeValue(0, v1, true, false)
 			vd.writeTypeValue(1, v2, true, false)
 		} else {
-			vd.writeDiffKindsBeforeValue(v1, v2)
+			vd.writeDiffKindsBeforeValue(v1, v2, func(t1, t2 reflect.Type) bool { return t1 == t2 }, false)
 			vd.writeValueAfterType(0, v1, false)
 			vd.writeValueAfterType(1, v2, false)
 		}
 	}
 }
 
-func (vd *tValueDiffer) writeDiffKindsBeforeValue(v1, v2 reflect.Value) {
-	b1, b2 := vd.bufs()
+func (vd *tValueDiffer) writeDiffKindsBeforeValue(v1, v2 reflect.Value, eq func(t1, t2 reflect.Type) bool, sw bool) {
+	b1, b2, _, _ := vd.bufr(sw)
 	t1, t2 := v1.Type(), v2.Type()
 	if isPointer(t1) {
 		b1.Normal("(")
@@ -84,28 +84,29 @@ func (vd *tValueDiffer) writeDiffKindsBeforeValue(v1, v2 reflect.Value) {
 		b2.Normal("(")
 		defer b2.Normal(")")
 	}
-	vd.writeDiffKinds(t1, t2)
+	vd.writeDiffKinds(t1, t2, eq, sw)
 }
 
-func (vd *tValueDiffer) writeDiffKinds(t1, t2 reflect.Type) {
+func (vd *tValueDiffer) writeDiffKinds(t1, t2 reflect.Type, eq func(v1, v2 reflect.Type) bool, sw bool) {
+	_, _, i1, i2 := vd.bufr(sw)
 	if t1 == nil || t2 == nil {
 		panic("Should not come here!")
 	}
-	if t1 == t2 {
-		vd.writeType(0, t1, false)
-		vd.writeType(1, t2, false)
+	if eq(t1, t2) {
+		vd.writeType(i1, t1, false)
+		vd.writeType(i2, t2, false)
 	} else if t1.PkgPath() == "" && t2.PkgPath() == "" && t1.Kind() == t2.Kind() {
-		vd.writeDiffTypes(t1, t2)
+		vd.writeDiffTypes(t1, t2, eq, sw)
 	} else if t1.PkgPath() == "" || t2.PkgPath() == "" {
-		vd.writeType(0, t1, true)
-		vd.writeType(1, t2, true)
+		vd.writeType(i1, t1, true)
+		vd.writeType(i2, t2, true)
 	} else {
-		vd.writeDiffPkgTypes(t1, t2)
+		vd.writeDiffPkgTypes(t1, t2, sw)
 	}
 }
 
-func (vd *tValueDiffer) writeDiffPkgTypes(t1, t2 reflect.Type) {
-	b1, b2 := vd.bufs()
+func (vd *tValueDiffer) writeDiffPkgTypes(t1, t2 reflect.Type, sw bool) {
+	b1, b2, _, _ := vd.bufr(sw)
 	if t1.PkgPath() == t2.PkgPath() {
 		p := lastPartOf(t1.PkgPath())
 		b1.Normal(p, ".").Highlight(t1.Name())
@@ -146,36 +147,36 @@ func (vd *tValueDiffer) writeDiffPkgTypes(t1, t2 reflect.Type) {
 	}
 }
 
-func (vd *tValueDiffer) writeDiffTypes(t1, t2 reflect.Type) {
-	b1, b2 := vd.bufs()
+func (vd *tValueDiffer) writeDiffTypes(t1, t2 reflect.Type, eq func(t1, t2 reflect.Type) bool, sw bool) {
+	b1, b2, i1, i2 := vd.bufr(sw)
 	switch t1.Kind() {
 	case reflect.Ptr:
 		b1.Normal("*")
 		b2.Normal("*")
-		vd.writeDiffKinds(t1.Elem(), t2.Elem())
+		vd.writeDiffKinds(t1.Elem(), t2.Elem(), eq, sw)
 	case reflect.Func:
-		vd.writeDiffTypesFunc(t1, t2)
+		vd.writeDiffTypesFunc(t1, t2, eq, sw)
 	case reflect.Chan:
 		hd := t1.ChanDir() != t2.ChanDir()
-		vd.writeTypeHeadChan(0, t1, false, hd)
-		vd.writeTypeHeadChan(1, t2, false, hd)
-		vd.writeDiffKinds(t1.Elem(), t2.Elem())
+		vd.writeTypeHeadChan(i1, t1, false, hd)
+		vd.writeTypeHeadChan(i2, t2, false, hd)
+		vd.writeDiffKinds(t1.Elem(), t2.Elem(), eq, sw)
 	case reflect.Array:
 		h := t1.Len() != t2.Len()
 		b1.Normal("[").Write(h, t1.Len()).Normal("]")
 		b2.Normal("[").Write(h, t2.Len()).Normal("]")
-		vd.writeDiffKinds(t1.Elem(), t2.Elem())
+		vd.writeDiffKinds(t1.Elem(), t2.Elem(), eq, sw)
 	case reflect.Slice:
 		b1.Normal("[]")
 		b2.Normal("[]")
-		vd.writeDiffKinds(t1.Elem(), t2.Elem())
+		vd.writeDiffKinds(t1.Elem(), t2.Elem(), eq, sw)
 	case reflect.Map:
 		b1.Normal("map[")
 		b2.Normal("map[")
-		vd.writeDiffKinds(t1.Key(), t2.Key())
+		vd.writeDiffKinds(t1.Key(), t2.Key(), eq, sw)
 		b1.Normal("]")
 		b2.Normal("]")
-		vd.writeDiffKinds(t1.Elem(), t2.Elem())
+		vd.writeDiffKinds(t1.Elem(), t2.Elem(), eq, sw)
 	case reflect.Struct: // must be unnamed struct
 		b1.Highlight("struct")
 		b2.Highlight("struct")
@@ -185,8 +186,8 @@ func (vd *tValueDiffer) writeDiffTypes(t1, t2 reflect.Type) {
 	}
 }
 
-func (vd *tValueDiffer) writeDiffTypesFunc(t1, t2 reflect.Type) {
-	b1, b2 := vd.bufs()
+func (vd *tValueDiffer) writeDiffTypesFunc(t1, t2 reflect.Type, eq func(t1, t2 reflect.Type) bool, sw bool) {
+	b1, b2, i1, i2 := vd.bufr(sw)
 	b1.Normal("func(")
 	b2.Normal("func(")
 	for i := 0; i < t1.NumIn() || i < t2.NumIn(); i++ {
@@ -200,11 +201,11 @@ func (vd *tValueDiffer) writeDiffTypesFunc(t1, t2 reflect.Type) {
 			}
 		}
 		if g1 && g2 {
-			vd.writeDiffKinds(t1.In(i), t2.In(i))
+			vd.writeDiffKinds(t1.In(i), t2.In(i), eq, sw)
 		} else if g1 {
-			vd.writeType(0, t1.In(i), true)
+			vd.writeType(i1, t1.In(i), true)
 		} else {
-			vd.writeType(1, t2.In(i), true)
+			vd.writeType(i2, t2.In(i), true)
 		}
 	}
 	switch t1.NumOut() {
@@ -236,11 +237,11 @@ func (vd *tValueDiffer) writeDiffTypesFunc(t1, t2 reflect.Type) {
 			}
 		}
 		if g1 && g2 {
-			vd.writeDiffKinds(t1.Out(i), t2.Out(i))
+			vd.writeDiffKinds(t1.Out(i), t2.Out(i), eq, sw)
 		} else if g1 {
-			vd.writeType(0, t1.Out(i), true)
+			vd.writeType(i1, t1.Out(i), true)
 		} else {
-			vd.writeType(1, t2.Out(i), true)
+			vd.writeType(i2, t2.Out(i), true)
 		}
 	}
 }
