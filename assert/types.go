@@ -157,3 +157,13 @@ func convertible(t1, t2 reflect.Type) bool {
 	}
 	return t1.ConvertibleTo(t2) || t2.ConvertibleTo(t1)
 }
+
+func convertibleKeyTo(f, t reflect.Type) bool {
+	if f == t {
+		return true
+	}
+	if f == nil || t == nil || t.Kind() != reflect.Interface {
+		return false
+	}
+	return f.ConvertibleTo(t)
+}
