@@ -88,10 +88,24 @@ func main() {
 	fl()
 	fm()
 	fn()
+	fo()
 }
 
 func pp(p uintptr) unsafe.Pointer {
 	return unsafe.Pointer(p)
+}
+
+func fo() {
+	a := "中a文b"
+	desc(string([]byte{0xe4, 0xb8, 0xad, 0xe6, 0x96, 0x87}))
+	desc(string([]rune{0xe4, 0xb8, 0xad, 0xe6, 0x96, 0x87}))
+	for c, i := range "a中文bc" {
+		fmt.Println(c, i)
+	}
+	desc([]byte(a))
+	desc([]byte("a中文bc"))
+	fmt.Printf("%#x\n", []rune(a))
+	fmt.Printf("%#x\n", []rune("a中文bc"))
 }
 
 func fn() {
