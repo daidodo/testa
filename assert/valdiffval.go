@@ -37,6 +37,8 @@ func (vd *tValueDiffer) writeValDiff(v1, v2 reflect.Value, sw bool) {
 		vd.writeValDiffToPointer(v1, v2, sw)
 	} else if isArray(t) {
 		vd.writeValDiffToArray(v1, v2, sw)
+	} else if k == reflect.Map {
+		vd.writeValDiffToMap(v1, v2, sw)
 	} else {
 		vd.writeValDiffC(v1, v2, sw)
 	}
@@ -88,6 +90,29 @@ func (vd *tValueDiffer) writeValDiffToString(v1, v2 reflect.Value, sw bool) {
 	} else {
 		vd.writeValDiffC(v1, v2, sw)
 	}
+}
+
+func (vd *tValueDiffer) writeDiffValuesString(v1, v2 reflect.Value, sw bool) {
+	b1, b2, _, _ := vd.bufr(sw)
+	s1, s2 := []rune(fmt.Sprintf("%#v", v1)), []rune(fmt.Sprintf("%#v", v2))
+	s1, s2 = s1[1:len(s1)-1], s2[1:len(s2)-1] // skip front and end "
+	b1.Normal(`"`)
+	b2.Normal(`"`)
+	for i := 0; i < len(s1) || i < len(s2); i++ {
+		if i >= len(s1) {
+			b2.Highlightf("%c", s2[i])
+		} else if i >= len(s2) {
+			b1.Highlightf("%c", s1[i])
+		} else if s1[i] == s2[i] {
+			b1.Normalf("%c", s1[i])
+			b2.Normalf("%c", s2[i])
+		} else {
+			b1.Highlightf("%c", s1[i])
+			b2.Highlightf("%c", s2[i])
+		}
+	}
+	b1.Normal(`"`)
+	b2.Normal(`"`)
 }
 
 func (vd *tValueDiffer) writeValDiffToComplex64(v1, v2 reflect.Value, sw bool) {
@@ -302,27 +327,8 @@ func (vd *tValueDiffer) writeDiffValuesArrayC(v1, v2 reflect.Value, sw, tp, id, 
 	}
 }
 
-func (vd *tValueDiffer) writeDiffValuesString(v1, v2 reflect.Value, sw bool) {
-	b1, b2, _, _ := vd.bufr(sw)
-	s1, s2 := []rune(fmt.Sprintf("%#v", v1)), []rune(fmt.Sprintf("%#v", v2))
-	s1, s2 = s1[1:len(s1)-1], s2[1:len(s2)-1] // skip front and end "
-	b1.Normal(`"`)
-	b2.Normal(`"`)
-	for i := 0; i < len(s1) || i < len(s2); i++ {
-		if i >= len(s1) {
-			b2.Highlightf("%c", s2[i])
-		} else if i >= len(s2) {
-			b1.Highlightf("%c", s1[i])
-		} else if s1[i] == s2[i] {
-			b1.Normalf("%c", s1[i])
-			b2.Normalf("%c", s2[i])
-		} else {
-			b1.Highlightf("%c", s1[i])
-			b2.Highlightf("%c", s2[i])
-		}
-	}
-	b1.Normal(`"`)
-	b2.Normal(`"`)
+func (vd *tValueDiffer) writeValDiffToMap(v1, v2 reflect.Value, sw bool) {
+	//b1, b2, i1, i2 := vd.bufr(sw)
 }
 
 func (vd *tValueDiffer) writeValDiffC(v1, v2 reflect.Value, sw bool) {
