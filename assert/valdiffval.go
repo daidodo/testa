@@ -39,6 +39,8 @@ func (vd *tValueDiffer) writeValDiff(v1, v2 reflect.Value, sw bool) {
 		vd.writeValDiffToArray(v1, v2, sw)
 	} else if k == reflect.Map {
 		vd.writeValDiffToMap(v1, v2, sw)
+	} else if k == reflect.Struct {
+		vd.writeValDiffToStruct(v1, v2, sw)
 	} else {
 		vd.writeValDiffC(v1, v2, sw)
 	}
@@ -94,7 +96,7 @@ func (vd *tValueDiffer) writeValDiffToString(v1, v2 reflect.Value, sw bool) {
 
 func (vd *tValueDiffer) writeDiffValuesString(v1, v2 reflect.Value, sw bool) {
 	b1, b2, _, _ := vd.bufr(sw)
-	s1, s2 := []rune(fmt.Sprintf("%#v", v1)), []rune(fmt.Sprintf("%#v", v2))
+	s1, s2 := []rune(fmt.Sprintf("%#v", v1.String())), []rune(fmt.Sprintf("%#v", v2.String()))
 	s1, s2 = s1[1:len(s1)-1], s2[1:len(s2)-1] // skip front and end "
 	b1.Normal(`"`)
 	b2.Normal(`"`)
@@ -240,12 +242,8 @@ func (vd *tValueDiffer) writeValDiffToArray(v1, v2 reflect.Value, sw bool) {
 			defer b1.Normal("]")
 			defer b2.Normal("]")
 		}
-		eq := func(a, b reflect.Value) bool {
-			return convertCompare(a, b)
-		}
-		wd := func(a, b reflect.Value) {
-			vd.writeValDiff(a, b, sw)
-		}
+		eq := func(a, b reflect.Value) bool { return convertCompare(a, b) }
+		wd := func(a, b reflect.Value, sw bool) { vd.writeValDiff(a, b, sw) }
 		vd.writeDiffValuesArrayC(v1, v2, sw, tp, id, ml1, ml2, eq, wd)
 	} else {
 		vd.writeValDiffC(v1, v2, sw)
@@ -254,7 +252,7 @@ func (vd *tValueDiffer) writeValDiffToArray(v1, v2 reflect.Value, sw bool) {
 
 func (vd *tValueDiffer) writeDiffValuesArrayC(v1, v2 reflect.Value, sw, tp, id, ml1, ml2 bool,
 	eq func(a, b reflect.Value) bool,
-	wd func(a, b reflect.Value)) {
+	wd func(a, b reflect.Value, sw bool)) {
 	b1, b2, i1, i2 := vd.bufr(sw)
 	var p1, p2 bool
 	for i, j := 0, 0; i < v1.Len() || i < v2.Len(); i++ {
@@ -317,7 +315,7 @@ func (vd *tValueDiffer) writeDiffValuesArrayC(v1, v2 reflect.Value, sw, tp, id, 
 				vd.writeElem(i1, e1, false)
 				vd.writeElem(i2, e2, false)
 			} else {
-				wd(e1, e2)
+				wd(e1, e2, sw)
 			}
 		} else if g1 {
 			vd.writeElem(i1, v1.Index(i), true)
@@ -328,7 +326,26 @@ func (vd *tValueDiffer) writeDiffValuesArrayC(v1, v2 reflect.Value, sw, tp, id, 
 }
 
 func (vd *tValueDiffer) writeValDiffToMap(v1, v2 reflect.Value, sw bool) {
-	//b1, b2, i1, i2 := vd.bufr(sw)
+	t1, t2 := v1.Type(), v2.Type()
+	if t1.Kind() == reflect.Map && !v1.IsNil() && !v2.IsNil() &&
+		(convertibleKeyTo(t1.Key(), t2.Key()) || convertibleKeyTo(t2.Key(), t1.Key())) &&
+		convertible(t1.Elem(), t2.Elem()) {
+		eq := func(a, b reflect.Value) bool { return convertCompare(a, b) }
+		wd := func(a, b reflect.Value, sw bool) { vd.writeValDiff(a, b, sw) }
+		vd.writeTypeDiffValuesMap(v1, v2, sw, eq, wd)
+	} else {
+		vd.writeValDiffC(v1, v2, sw)
+	}
+}
+
+func (vd *tValueDiffer) writeValDiffToStruct(v1, v2 reflect.Value, sw bool) {
+	if v1.Type() == v2.Type() {
+		eq := func(a, b reflect.Value) bool { return convertCompare(a, b) }
+		wd := func(a, b reflect.Value, sw bool) { vd.writeValDiff(a, b, sw) }
+		vd.writeTypeDiffValuesStruct(v1, v2, sw, eq, wd)
+	} else {
+		vd.writeValDiffC(v1, v2, sw)
+	}
 }
 
 func (vd *tValueDiffer) writeValDiffC(v1, v2 reflect.Value, sw bool) {
@@ -341,8 +358,10 @@ func (vd *tValueDiffer) writeValDiffC(v1, v2 reflect.Value, sw bool) {
 		vd.writeValueAfterType(i1, v1, false)
 		vd.writeValueAfterType(i2, v2, false)
 	} else {
-		vd.writeTypeValue(i1, v1, true, false)
-		vd.writeTypeValue(i2, v2, true, false)
+		eq := func(t1, t2 reflect.Type) bool { return t1 == t2 }
+		vd.writeDiffKindsBeforeValue(v1, v2, eq, sw)
+		vd.writeValueAfterType(i1, v1, false)
+		vd.writeValueAfterType(i2, v2, false)
 	}
 }
 
