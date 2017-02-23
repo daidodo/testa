@@ -18,80 +18,81 @@ func (vd *tValueDiffer) writeValDiff(v1, v2 reflect.Value, sw bool) {
 		vd.writeValDiff(v1, v2, sw)
 		return
 	}
-	if !v1.IsValid() {
-		vd.writeValDiffToNil(v2, !sw)
-		return
-	} else if !v2.IsValid() {
-		vd.writeValDiffToNil(v1, sw)
-		return
-	}
-	if t, k := v2.Type(), v2.Kind(); isSimpleNumber(t) {
-		vd.writeValDiffToNumber(v1, v2, sw)
-	} else if k == reflect.String {
-		vd.writeValDiffToString(v1, v2, sw)
-	} else if k == reflect.Complex64 {
-		vd.writeValDiffToComplex64(v1, v2, sw)
-	} else if k == reflect.Complex128 {
-		vd.writeValDiffToComplex128(v1, v2, sw)
-	} else if isSimplePointer(t) {
-		vd.writeValDiffToPointer(v1, v2, sw)
-	} else if isArray(t) {
-		vd.writeValDiffToArray(v1, v2, sw)
-	} else if k == reflect.Map {
-		vd.writeValDiffToMap(v1, v2, sw)
-	} else if k == reflect.Struct {
-		vd.writeValDiffToStruct(v1, v2, sw)
-	} else {
+	if !vd.writeValDiffToNil(v1, v2, sw) &&
+		!vd.writeValDiffNumbers(v1, v2, sw) &&
+		!vd.writeValDiffPointers(v1, v2, sw) &&
+		!vd.writeValDiffToString(v1, v2, sw) &&
+		!vd.writeValDiffToComplex64(v1, v2, sw) &&
+		!vd.writeValDiffToComplex128(v1, v2, sw) &&
+		!vd.writeValDiffArrays(v1, v2, sw) &&
+		!vd.writeValDiffMaps(v1, v2, sw) &&
+		!vd.writeValDiffStructs(v1, v2, sw) {
 		vd.writeValDiffC(v1, v2, sw)
 	}
 }
 
-func (vd *tValueDiffer) writeValDiffToNil(v reflect.Value, sw bool) {
+func (vd *tValueDiffer) writeValDiffToNil(v1, v2 reflect.Value, sw bool) bool {
 	_, b2, i1, _ := vd.bufr(sw)
-	if t := v.Type(); isComposite(t) {
-		vd.writeTypeValue(i1, v, false, false)
-	} else if isReference(t) {
-		vd.writeElem(i1, v, true)
-	} else {
-		vd.writeTypeValue(i1, v, true, false)
+	if !v2.IsValid() {
+		if t := v1.Type(); isComposite(t) {
+			vd.writeTypeValue(i1, v1, false, false)
+		} else if isReference(t) {
+			vd.writeElem(i1, v1, true)
+		} else {
+			vd.writeTypeValue(i1, v1, true, false)
+		}
+		b2.Highlight(nil)
+		return true
+	} else if !v1.IsValid() {
+		return vd.writeValDiffToNil(v2, v1, !sw)
 	}
-	b2.Highlight(nil)
+	return false
 }
 
-func (vd *tValueDiffer) writeValDiffToNumber(v1, v2 reflect.Value, sw bool) {
+func (vd *tValueDiffer) writeValDiffNumbers(v1, v2 reflect.Value, sw bool) bool {
 	_, _, i1, i2 := vd.bufr(sw)
-	if t, k, k2 := v1.Type(), v1.Kind(), v2.Kind(); isSimpleNumber(t) {
-		if k == reflect.Uintptr && k2 != reflect.Uintptr {
+	if isSimpleNumber(v1.Type()) && isSimpleNumber(v2.Type()) {
+		if k1, k2 := v1.Kind(), v2.Kind(); k1 == reflect.Uintptr && k2 != reflect.Uintptr {
 			vd.writeKeyPOD(i1, v1, true, true)
 			vd.writeElem(i2, v2, true)
-		} else if k != reflect.Uintptr && k2 == reflect.Uintptr {
+		} else if k1 != reflect.Uintptr && k2 == reflect.Uintptr {
 			vd.writeElem(i1, v1, true)
 			vd.writeKeyPOD(i2, v2, true, true)
 		} else {
 			vd.writeElem(i1, v1, true)
 			vd.writeElem(i2, v2, true)
 		}
-	} else if k == reflect.String {
-		vd.writeValDiffToString(v2, v1, !sw)
-	} else if k == reflect.Complex64 {
-		vd.writeValDiffToComplex64(v2, v1, !sw)
-	} else if k == reflect.Complex128 {
-		vd.writeValDiffToComplex128(v2, v1, !sw)
-	} else {
-		vd.writeValDiffC(v1, v2, sw)
+		return true
 	}
+	return false
 }
 
-func (vd *tValueDiffer) writeValDiffToString(v1, v2 reflect.Value, sw bool) {
+func (vd *tValueDiffer) writeValDiffPointers(v1, v2 reflect.Value, sw bool) bool {
 	_, _, i1, i2 := vd.bufr(sw)
-	if t := v1.Type(); isInteger(t) || isUInteger(t) {
+	if (v1.Kind() == reflect.UnsafePointer && isSimplePointer(v2.Type())) ||
+		(v2.Kind() == reflect.UnsafePointer && isSimplePointer(v1.Type())) {
 		vd.writeElem(i1, v1, true)
 		vd.writeElem(i2, v2, true)
-	} else if t.Kind() == reflect.String {
-		vd.writeDiffValuesString(v1, v2, sw)
-	} else {
-		vd.writeValDiffC(v1, v2, sw)
+		return true
 	}
+	return false
+}
+
+func (vd *tValueDiffer) writeValDiffToString(v1, v2 reflect.Value, sw bool) bool {
+	_, _, i1, i2 := vd.bufr(sw)
+	if v2.Kind() == reflect.String {
+		if t := v1.Type(); isInteger(t) || isUInteger(t) {
+			vd.writeElem(i1, v1, true)
+			vd.writeElem(i2, v2, true)
+			return true
+		} else if t.Kind() == reflect.String {
+			vd.writeDiffValuesString(v1, v2, sw)
+			return true
+		}
+	} else if v1.Kind() == reflect.String {
+		return vd.writeValDiffToString(v2, v1, !sw)
+	}
+	return false
 }
 
 func (vd *tValueDiffer) writeDiffValuesString(v1, v2 reflect.Value, sw bool) {
@@ -117,235 +118,143 @@ func (vd *tValueDiffer) writeDiffValuesString(v1, v2 reflect.Value, sw bool) {
 	b2.Normal(`"`)
 }
 
-func (vd *tValueDiffer) writeValDiffToComplex64(v1, v2 reflect.Value, sw bool) {
+func (vd *tValueDiffer) writeValDiffToComplex64(v1, v2 reflect.Value, sw bool) bool {
 	b1, b2, i1, _ := vd.bufr(sw)
-	c2 := complex64(v2.Complex())
-	r2, m2 := real(c2), imag(c2)
-	if t, k := v1.Type(), v1.Kind(); isInteger(t) {
-		hr, hi := float32(v1.Int()) != r2, 0 != m2
-		vd.writeElem(i1, v1, hr)
-		b2.Normal("(").Write(hr, r2).Plain("+").Writef(hi, "%gi", m2).Normal(")")
-	} else if isUInteger(t) {
-		hr, hi := float32(v1.Uint()) != r2, 0 != m2
-		if k == reflect.Uintptr {
-			vd.writeKeyPOD(i1, v1, hr, !hi)
-		} else {
+	if v2.Kind() == reflect.Complex64 {
+		c2 := complex64(v2.Complex())
+		r2, m2 := real(c2), imag(c2)
+		if t, k := v1.Type(), v1.Kind(); isInteger(t) {
+			hr, hi := float32(v1.Int()) != r2, 0 != m2
 			vd.writeElem(i1, v1, hr)
+			b2.Normal("(").Write(hr, r2).Plain("+").Writef(hi, "%gi", m2).Normal(")")
+			return true
+		} else if isUInteger(t) {
+			hr, hi := float32(v1.Uint()) != r2, 0 != m2
+			if k == reflect.Uintptr {
+				vd.writeKeyPOD(i1, v1, hr, !hi)
+			} else {
+				vd.writeElem(i1, v1, hr)
+			}
+			b2.Normal("(").Write(hr, r2).Plain("+").Writef(hi, "%gi", m2).Normal(")")
+			return true
+		} else if k == reflect.Float32 {
+			hr, hi := float32(v1.Float()) != r2, 0 != m2
+			vd.writeElem(i1, v1, hr)
+			b2.Normal("(").Write(hr, r2).Plain("+").Writef(hi, "%gi", m2).Normal(")")
+			return true
+		} else if k == reflect.Float64 {
+			hr, hi := v1.Float() != float64(r2), 0 != m2
+			vd.writeElem(i1, v1, hr)
+			b2.Normal("(").Write(hr, r2).Plain("+").Writef(hi, "%gi", m2).Normal(")")
+			return true
+		} else if k == reflect.Complex64 {
+			c1 := complex64(v1.Complex())
+			r1, m1 := real(c1), imag(c1)
+			hr, hi := r1 != r2, m1 != m2
+			b1.Normal("(").Write(hr, r1).Plain("+").Writef(hi, "%gi", m1).Normal(")")
+			b2.Normal("(").Write(hr, r2).Plain("+").Writef(hi, "%gi", m2).Normal(")")
+			return true
+		} else if k == reflect.Complex128 {
+			c1 := v1.Complex()
+			r1, m1 := real(c1), imag(c1)
+			hr, hi := r1 != float64(r2), m1 != float64(m2)
+			b1.Normal("(").Write(hr, r1).Plain("+").Writef(hi, "%gi", m1).Normal(")")
+			b2.Normal("(").Write(hr, r2).Plain("+").Writef(hi, "%gi", m2).Normal(")")
+			return true
 		}
-		b2.Normal("(").Write(hr, r2).Plain("+").Writef(hi, "%gi", m2).Normal(")")
-	} else if k == reflect.Float32 {
-		hr, hi := float32(v1.Float()) != r2, 0 != m2
-		vd.writeElem(i1, v1, hr)
-		b2.Normal("(").Write(hr, r2).Plain("+").Writef(hi, "%gi", m2).Normal(")")
-	} else if k == reflect.Float64 {
-		hr, hi := v1.Float() != float64(r2), 0 != m2
-		vd.writeElem(i1, v1, hr)
-		b2.Normal("(").Write(hr, r2).Plain("+").Writef(hi, "%gi", m2).Normal(")")
-	} else if k == reflect.Complex64 {
-		c1 := complex64(v1.Complex())
-		r1, m1 := real(c1), imag(c1)
-		hr, hi := r1 != r2, m1 != m2
-		b1.Normal("(").Write(hr, r1).Plain("+").Writef(hi, "%gi", m1).Normal(")")
-		b2.Normal("(").Write(hr, r2).Plain("+").Writef(hi, "%gi", m2).Normal(")")
-	} else if k == reflect.Complex128 {
-		c1 := v1.Complex()
-		r1, m1 := real(c1), imag(c1)
-		hr, hi := r1 != float64(r2), m1 != float64(m2)
-		b1.Normal("(").Write(hr, r1).Plain("+").Writef(hi, "%gi", m2).Normal(")")
-		b2.Normal("(").Write(hr, r2).Plain("+").Writef(hi, "%gi", m2).Normal(")")
-	} else {
-		vd.writeValDiffC(v1, v2, sw)
+	} else if v1.Kind() == reflect.Complex64 {
+		return vd.writeValDiffToComplex64(v2, v1, !sw)
 	}
+	return false
 }
 
-func (vd *tValueDiffer) writeValDiffToComplex128(v1, v2 reflect.Value, sw bool) {
+func (vd *tValueDiffer) writeValDiffToComplex128(v1, v2 reflect.Value, sw bool) bool {
 	b1, b2, i1, _ := vd.bufr(sw)
-	c2 := v2.Complex()
-	r2, m2 := real(c2), imag(c2)
-	if t, k := v1.Type(), v1.Kind(); isInteger(t) {
-		hr, hi := float64(v1.Int()) != r2, 0 != m2
-		vd.writeElem(i1, v1, hr)
-		b2.Normal("(").Write(hr, r2).Plain("+").Writef(hi, "%gi", m2).Normal(")")
-	} else if isUInteger(t) {
-		hr, hi := float64(v1.Uint()) != r2, 0 != m2
-		if k == reflect.Uintptr {
-			vd.writeKeyPOD(i1, v1, hr, !hi)
-		} else {
+	if v2.Kind() == reflect.Complex128 {
+		c2 := v2.Complex()
+		r2, m2 := real(c2), imag(c2)
+		if t, k := v1.Type(), v1.Kind(); isInteger(t) {
+			hr, hi := float64(v1.Int()) != r2, 0 != m2
 			vd.writeElem(i1, v1, hr)
+			b2.Normal("(").Write(hr, r2).Plain("+").Writef(hi, "%gi", m2).Normal(")")
+			return true
+		} else if isUInteger(t) {
+			hr, hi := float64(v1.Uint()) != r2, 0 != m2
+			if k == reflect.Uintptr {
+				vd.writeKeyPOD(i1, v1, hr, !hi)
+			} else {
+				vd.writeElem(i1, v1, hr)
+			}
+			b2.Normal("(").Write(hr, r2).Plain("+").Writef(hi, "%gi", m2).Normal(")")
+			return true
+		} else if k == reflect.Float32 {
+			hr, hi := v1.Float() != r2, 0 != m2
+			vd.writeElem(i1, v1, hr)
+			b2.Normal("(").Write(hr, r2).Plain("+").Writef(hi, "%gi", m2).Normal(")")
+			return true
+		} else if k == reflect.Float64 {
+			hr, hi := v1.Float() != r2, 0 != m2
+			vd.writeElem(i1, v1, hr)
+			b2.Normal("(").Write(hr, r2).Plain("+").Writef(hi, "%gi", m2).Normal(")")
+			return true
+		} else if k == reflect.Complex64 {
+			c1 := complex64(v1.Complex())
+			r1, m1 := real(c1), imag(c1)
+			hr, hi := float64(r1) != r2, float64(m1) != m2
+			b1.Normal("(").Write(hr, r1).Plain("+").Writef(hi, "%gi", m1).Normal(")")
+			b2.Normal("(").Write(hr, r2).Plain("+").Writef(hi, "%gi", m2).Normal(")")
+			return true
+		} else if k == reflect.Complex128 {
+			c1 := v1.Complex()
+			r1, m1 := real(c1), imag(c1)
+			hr, hi := r1 != r2, m1 != m2
+			b1.Normal("(").Write(hr, r1).Plain("+").Writef(hi, "%gi", m1).Normal(")")
+			b2.Normal("(").Write(hr, r2).Plain("+").Writef(hi, "%gi", m2).Normal(")")
+			return true
 		}
-		b2.Normal("(").Write(hr, r2).Plain("+").Writef(hi, "%gi", m2).Normal(")")
-	} else if k == reflect.Float32 {
-		hr, hi := v1.Float() != r2, 0 != m2
-		vd.writeElem(i1, v1, hr)
-		b2.Normal("(").Write(hr, r2).Plain("+").Writef(hi, "%gi", m2).Normal(")")
-	} else if k == reflect.Float64 {
-		hr, hi := v1.Float() != r2, 0 != m2
-		vd.writeElem(i1, v1, hr)
-		b2.Normal("(").Write(hr, r2).Plain("+").Writef(hi, "%gi", m2).Normal(")")
-	} else if k == reflect.Complex64 {
-		c1 := complex64(v1.Complex())
-		r1, m1 := real(c1), imag(c1)
-		hr, hi := float64(r1) != r2, float64(m1) != m2
-		b1.Normal("(").Write(hr, r1).Plain("+").Writef(hi, "%gi", m1).Normal(")")
-		b2.Normal("(").Write(hr, r2).Plain("+").Writef(hi, "%gi", m2).Normal(")")
-	} else if k == reflect.Complex128 {
-		c1 := v1.Complex()
-		r1, m1 := real(c1), imag(c1)
-		hr, hi := r1 != r2, m1 != m2
-		b1.Normal("(").Write(hr, r1).Plain("+").Writef(hi, "%gi", m1).Normal(")")
-		b2.Normal("(").Write(hr, r2).Plain("+").Writef(hi, "%gi", m2).Normal(")")
-	} else {
-		vd.writeValDiffC(v1, v2, sw)
+	} else if v1.Kind() == reflect.Complex128 {
+		return vd.writeValDiffToComplex128(v2, v1, !sw)
 	}
+	return false
 }
 
-func (vd *tValueDiffer) writeValDiffToPointer(v1, v2 reflect.Value, sw bool) {
-	_, _, i1, i2 := vd.bufr(sw)
-	if t := v1.Type(); isSimplePointer(t) && (t.Kind() == reflect.UnsafePointer || v2.Kind() == reflect.UnsafePointer) {
-		vd.writeElem(i1, v1, true)
-		vd.writeElem(i2, v2, true)
-	} else {
-		vd.writeValDiffC(v1, v2, sw)
-	}
-}
-
-func (vd *tValueDiffer) writeValDiffToArray(v1, v2 reflect.Value, sw bool) {
-	b1, b2, i1, i2 := vd.bufr(sw)
+func (vd *tValueDiffer) writeValDiffArrays(v1, v2 reflect.Value, sw bool) bool {
 	t1, t2 := v1.Type(), v2.Type()
 	k1, k2 := t1.Kind(), t2.Kind()
-	if (k1 == reflect.Array || (k1 == reflect.Slice && !v1.IsNil())) &&
-		(k2 == reflect.Array || (k2 == reflect.Slice && !v2.IsNil())) &&
-		convertible(t1.Elem(), t2.Elem()) {
-		tp1, id1, ml1 := attrElemArray(v1)
-		tp2, id2, ml2 := attrElemArray(v2)
-		tp, id := tp1 || tp2, id1 || id2
-		if tp {
-			vd.writeType(i1, v1.Type(), false)
-			vd.writeType(i2, v2.Type(), false)
-			b1.Normal("{")
-			b2.Normal("{")
-			defer b1.Normal("}")
-			defer b2.Normal("}")
-			if ml1 {
-				b1.Tab++
-				defer func() { b1.Tab--; b1.NL() }()
-				vd.Attrs[kNewLine+i1] = true
-			}
-			if ml2 {
-				b2.Tab++
-				defer func() { b2.Tab--; b2.NL() }()
-				vd.Attrs[kNewLine+i1] = true
-			}
-		} else {
-			b1.Normal("[")
-			b2.Normal("[")
-			defer b1.Normal("]")
-			defer b2.Normal("]")
-		}
-		eq := func(a, b reflect.Value) bool { return convertCompare(a, b) }
-		wd := func(a, b reflect.Value, sw bool) { vd.writeValDiff(a, b, sw) }
-		vd.writeDiffValuesArrayC(v1, v2, sw, tp, id, ml1, ml2, eq, wd)
-	} else {
-		vd.writeValDiffC(v1, v2, sw)
+	if !isArray(t1) || !isArray(t2) ||
+		(k1 == reflect.Array && k2 == reflect.Array && t1.Len() != t2.Len()) ||
+		(k1 == reflect.Slice && v1.IsNil()) ||
+		(k2 == reflect.Slice && v2.IsNil()) ||
+		!convertible(t1.Elem(), t2.Elem()) {
+		return false
 	}
+	eq := func(a, b reflect.Value) bool { return convertCompare(a, b) }
+	wd := func(a, b reflect.Value, s bool) { vd.writeValDiff(a, b, s) }
+	vd.writeTypeDiffValuesArray(v1, v2, sw, eq, wd)
+	return true
 }
 
-func (vd *tValueDiffer) writeDiffValuesArrayC(v1, v2 reflect.Value, sw, tp, id, ml1, ml2 bool,
-	eq func(a, b reflect.Value) bool,
-	wd func(a, b reflect.Value, sw bool)) {
-	b1, b2, i1, i2 := vd.bufr(sw)
-	var p1, p2 bool
-	for i, j := 0, 0; i < v1.Len() || i < v2.Len(); i++ {
-		g1, g2 := i < v1.Len(), i < v2.Len()
-		eq := g1 && g2 && eq(v1.Index(i), v2.Index(i))
-		if eq && id { // If equal, skip
-			vd.Attrs[kOmitSame] = true
-			// If all elems are skipped, show last elem's index (if it's NOT empty):
-			// IDX:...
-			if i+1 == v1.Len() && j == 0 {
-				if ml1 {
-					b1.NL()
-				}
-				b1.Normal(v1.Len()-1, ":...")
-			}
-			if i+1 == v2.Len() && j == 0 {
-				if ml2 {
-					b2.NL()
-				}
-				b2.Normal(v2.Len()-1, ":...")
-			}
-			continue
-		}
-		t1, t2 := g1 && isNonTrivialElem(v1.Index(i)), g2 && isNonTrivialElem(v2.Index(i))
-		t1, p1 = g1 && (t1 || p1 || (ml1 && (id || i == 0))), t1
-		t2, p2 = g2 && (t2 || p2 || (ml2 && (id || i == 0))), t2
-		if j > 0 {
-			if tp {
-				if g1 {
-					b1.Plain(",")
-				}
-				if g2 {
-					b2.Plain(",")
-				}
-			}
-			if g1 && (!tp || !t1) {
-				b1.Plain(" ")
-			}
-			if g2 && (!tp || !t2) {
-				b2.Plain(" ")
-			}
-		}
-		j++
-		if t1 {
-			b1.NL()
-		}
-		if t2 {
-			b2.NL()
-		}
-		if id {
-			if g1 {
-				b1.Write(!g2, i, ":")
-			}
-			if g2 {
-				b2.Write(!g1, i, ":")
-			}
-		}
-		if g1 && g2 {
-			if e1, e2 := v1.Index(i), v2.Index(i); eq {
-				vd.writeElem(i1, e1, false)
-				vd.writeElem(i2, e2, false)
-			} else {
-				wd(e1, e2, sw)
-			}
-		} else if g1 {
-			vd.writeElem(i1, v1.Index(i), true)
-		} else {
-			vd.writeElem(i2, v2.Index(i), true)
-		}
-	}
-}
-
-func (vd *tValueDiffer) writeValDiffToMap(v1, v2 reflect.Value, sw bool) {
+func (vd *tValueDiffer) writeValDiffMaps(v1, v2 reflect.Value, sw bool) bool {
 	t1, t2 := v1.Type(), v2.Type()
-	if t1.Kind() == reflect.Map && !v1.IsNil() && !v2.IsNil() &&
+	if t1.Kind() == reflect.Map && !v1.IsNil() && t2.Kind() == reflect.Map && !v2.IsNil() &&
 		(convertibleKeyTo(t1.Key(), t2.Key()) || convertibleKeyTo(t2.Key(), t1.Key())) &&
 		convertible(t1.Elem(), t2.Elem()) {
 		eq := func(a, b reflect.Value) bool { return convertCompare(a, b) }
-		wd := func(a, b reflect.Value, sw bool) { vd.writeValDiff(a, b, sw) }
+		wd := func(a, b reflect.Value, s bool) { vd.writeValDiff(a, b, s) }
 		vd.writeTypeDiffValuesMap(v1, v2, sw, eq, wd)
-	} else {
-		vd.writeValDiffC(v1, v2, sw)
+		return true
 	}
+	return false
 }
 
-func (vd *tValueDiffer) writeValDiffToStruct(v1, v2 reflect.Value, sw bool) {
-	if v1.Type() == v2.Type() {
+func (vd *tValueDiffer) writeValDiffStructs(v1, v2 reflect.Value, sw bool) bool {
+	if v1.Kind() == reflect.Struct && v1.Type() == v2.Type() {
 		eq := func(a, b reflect.Value) bool { return convertCompare(a, b) }
 		wd := func(a, b reflect.Value, sw bool) { vd.writeValDiff(a, b, sw) }
 		vd.writeTypeDiffValuesStruct(v1, v2, sw, eq, wd)
-	} else {
-		vd.writeValDiffC(v1, v2, sw)
+		return true
 	}
+	return false
 }
 
 func (vd *tValueDiffer) writeValDiffC(v1, v2 reflect.Value, sw bool) {
