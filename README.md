@@ -21,16 +21,17 @@ func TestA(t *testing.T) {
 }
 ```
 * Integrate with Vim
+
 If you're using *vim-go* and `:GoTest` command, you may find some messy codes in the diagnosis information. The following instructions will help a lot:
 1. Install plugin ["daidodo/Improved-AnsiEsc"](https://github.com/daidodo/Improved-AnsiEsc)
 2. Add this line to `.vimrc`:
 ```
  au BufReadPost * if getbufvar(winbufnr(0), "&buftype") == "quickfix" | set nospell | call AnsiEsc#AnsiEsc(0) | endif
 ```
-Basically you need to enables *AnsiEsc* so Vim can show highlighted information properly.
+Basically you need to enables *AnsiEsc* so Vim can show highlighted text properly.
 
 ## Package Assert
-*testa/assert* helps you write unit test code easily and efficiently. Full documentations are available [here](https://godoc.org/github.com/daidodo/testa/assert).
+*testa/assert* helps you write unit tests easily and efficiently. Full documentations are available [here](https://godoc.org/github.com/daidodo/testa/assert).
 
 Aside from compatibility with Package testing, one-line assertion and message, various and user-friendly APIs, there are other exceptional features you may find useful:
 
@@ -98,7 +99,7 @@ To add it to our diagnosis information, **assert.Caller** can help you:
  7 )
  8
  9 func myTest(t *testing.T, e, a int) {
-10     assert.Caller(1).Equal(t, e, a) // Show calling information 1 level up the chain
+10     assert.Caller(1).Equal(t, e, a) // Show callers information 1 level up the chain
 11 }
 12
 13 func TestA(t *testing.T) {
@@ -116,7 +117,7 @@ example_test.go:10: in example.myTest:
 ```
 
 ### EqualValue
-Different from *assert.Equal*, **assert.EqualValue** compares objects by values only, regardless of their types. So `int(100)` is equal to `uint(100)` in value, but not in type. This is *never* a trivial task as someone might think using `reflect.Value.Convert`. 
+Apart from *assert.Equal*, **assert.EqualValue** compares objects by values only, regardless of their types. So `int(100)` is equal to `uint(100)` in value, but not in type. This is *never* a trivial task as someone might think using `reflect.Value.Convert`. 
 
 As a counter-example, [stretchr/testify/assert](https://github.com/stretchr/testify) has a simplified version of *EqualValues* that may cause confusion:
 ```{.go}
@@ -139,9 +140,11 @@ The reason is obvious: after converting `int32(-1000000000)` to `int8`, it is `0
 
 And there are tons of other subtle corners along the way, and many results may seem surprising to some people.
 
-*testa/assert* implements *EqualValue* from the scratch, using intuitive and common sense, with regards to *reflect.DeepEqual*. The general rules are:
+*testa/assert* implements *EqualValue* from the scratch, using common knowledge and intuition, with regards to *reflect.DeepEqual*.
+
+The general rules are:
 * Boolean is comparable only to Boolean;
-* Math objects (signed/unsigned integers, floats, complexes) are compared mathematically, e.g. uint8(255) != int8(-1), int(1) == complex64(1+0i);
+* Math objects (signed/unsigned integers, floats, complexes) are compared mathematically, e.g. `uint8(255) != int8(-1)`, `int(1) == complex64(1+0i)`;
 * Different types of pointers are not equal to each other; But pointers are comparable to `unsafe.Pointer`;
 * Array and slice objects are equal in value if: a) they are both `nil`; or b) they both have zero length and their elements' types are convertible; or c) they have the same length and all corresponding elements are equal in value.
 * Maps are equal in value if: a) they are both `nil`; or b) they both have zero length and their keys and elements' types are both convertible, respectively; or c) they have the same length and all keys are **deeply equal** and the corresponding elements are equal in value.
