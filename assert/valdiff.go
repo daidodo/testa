@@ -325,12 +325,10 @@ func (vd *tValueDiffer) writeDiffValuesInterface(v1, v2 reflect.Value) {
 
 func (vd *tValueDiffer) writeDiffValuesPtr(v1, v2 reflect.Value) {
 	b1, b2 := vd.bufs()
-	e1, d1 := derefPtr(v1)
-	e2, d2 := derefPtr(v2)
-	if d1 && d2 {
+	if !v1.IsNil() && !v2.IsNil() {
 		b1.Normal("&")
 		b2.Normal("&")
-		vd.writeTypeDiffValues(e1, e2)
+		vd.writeTypeDiffValues(v1.Elem(), v2.Elem())
 	} else {
 		vd.writeElem(0, v1, true)
 		vd.writeElem(1, v2, true)
