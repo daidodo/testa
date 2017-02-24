@@ -27,7 +27,7 @@ func TestA(t *testing.T) {
 ```
  au BufReadPost * if getbufvar(winbufnr(0), "&buftype") == "quickfix" | set nospell | call AnsiEsc#AnsiEsc(0) | endif
 ```
-If you're using *vim-go* and `:GoTest` command, you may find some messy codes in the diagnosis window. Basically you need to enable *AnsiEsc* so Vim can show highlighted text properly.
+If you're using *vim-go* and `:GoTest` command, you may find some messy codes in the diagnosis window. Basically these instructions are meant to enable *AnsiEsc* so Vim can show highlighted text properly.
 
 ## Package Assert
 *testa/assert* helps you write unit tests easily and efficiently. Full documentations are available [here](https://godoc.org/github.com/daidodo/testa/assert).
