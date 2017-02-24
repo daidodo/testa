@@ -23,10 +23,8 @@ func TestA(t *testing.T) {
 * Integrate with Vim
 
 If you're using *vim-go* and `:GoTest` command, you may find some messy codes in the diagnosis window. The following instructions will help a lot:
-
-1. Install plugin ["daidodo/Improved-AnsiEsc"](https://github.com/daidodo/Improved-AnsiEsc)
-
-2. Add this line to `.vimrc`:
+  * Install plugin ["daidodo/Improved-AnsiEsc"](https://github.com/daidodo/Improved-AnsiEsc)
+  * Add this line to `.vimrc`:
 ```
  au BufReadPost * if getbufvar(winbufnr(0), "&buftype") == "quickfix" | set nospell | call AnsiEsc#AnsiEsc(0) | endif
 ```
