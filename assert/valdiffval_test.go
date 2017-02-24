@@ -1,6 +1,7 @@
 package assert
 
 import (
+	"errors"
 	"fmt"
 	"reflect"
 	"testing"
@@ -97,7 +98,7 @@ func TestWriteValDiff(t *testing.T) {
 			{H("float64") + "(10.25)", "(" + H("*int") + ")(" + sa + ")"}, {H("complex64") + "(2+0i)", "(" + H("*int") + ")(" + sa + ")"},
 			{H("complex64") + "(-1+1i)", "(" + H("*int") + ")(" + sa + ")"}, {H("complex64") + "(0+1i)", "(" + H("*int") + ")(" + sa + ")"},
 			{H("complex128") + "(3+0i)", "(" + H("*int") + ")(" + sa + ")"}, {H("complex128") + "(-2+2i)", "(" + H("*int") + ")(" + sa + ")"},
-			{H("complex128") + "(0+2i)", "(" + H("*int") + ")(" + sa + ")"}, {"(*int)(" + H(sa) + ")", "(*int)(" + H(sa) + ")"}},
+			{H("complex128") + "(0+2i)", "(" + H("*int") + ")(" + sa + ")"}, {"&" + H("0"), "&" + H("0")}},
 		{{H("<nil>"), H(sa)}, {H("int8") + "(-1)", "(" + H("*uint") + ")(" + sa + ")"}, {H("int16") + "(-10)", "(" + H("*uint") + ")(" + sa + ")"},
 			{H("int32") + "(-100)", "(" + H("*uint") + ")(" + sa + ")"}, {H("int64") + "(-1000)", "(" + H("*uint") + ")(" + sa + ")"},
 			{H("int") + "(-10000)", "(" + H("*uint") + ")(" + sa + ")"}, {H("uint8") + "(1)", "(" + H("*uint") + ")(" + sa + ")"},
@@ -107,8 +108,7 @@ func TestWriteValDiff(t *testing.T) {
 			{H("float64") + "(10.25)", "(" + H("*uint") + ")(" + sa + ")"}, {H("complex64") + "(2+0i)", "(" + H("*uint") + ")(" + sa + ")"},
 			{H("complex64") + "(-1+1i)", "(" + H("*uint") + ")(" + sa + ")"}, {H("complex64") + "(0+1i)", "(" + H("*uint") + ")(" + sa + ")"},
 			{H("complex128") + "(3+0i)", "(" + H("*uint") + ")(" + sa + ")"}, {H("complex128") + "(-2+2i)", "(" + H("*uint") + ")(" + sa + ")"},
-			{H("complex128") + "(0+2i)", "(" + H("*uint") + ")(" + sa + ")"}, {"(*" + H("int") + ")(" + sa + ")", "(*" + H("uint") + ")(" + sa + ")"},
-			{"(*uint)(" + H(sa) + ")", "(*uint)(" + H(sa) + ")"}},
+			{H("complex128") + "(0+2i)", "(" + H("*uint") + ")(" + sa + ")"}, {"(*" + H("int") + ")(" + sa + ")", "(*" + H("uint") + ")(" + sa + ")"}, {"&" + H("0"), "&" + H("0")}},
 		{{H("<nil>"), H("0xc8")}, {H("int8") + "(-1)", "(" + H("unsafe.Pointer") + ")(0xc8)"},
 			{H("int16") + "(-10)", "(" + H("unsafe.Pointer") + ")(0xc8)"}, {H("int32") + "(-100)", "(" + H("unsafe.Pointer") + ")(0xc8)"},
 			{H("int64") + "(-1000)", "(" + H("unsafe.Pointer") + ")(0xc8)"}, {H("int") + "(-10000)", "(" + H("unsafe.Pointer") + ")(0xc8)"},
@@ -391,6 +391,7 @@ func TestWriteValDiff2(t *testing.T) {
 	te((*[]map[[12]bool]float32)(nil), (*[]map[[3]A]Bool)(nil),
 		"(*[]map[[\x1b[41m12\x1b[0m]\x1b[41mbool\x1b[0m]\x1b[41mfloat32\x1b[0m)(nil)",
 		"(*[]map[[\x1b[41m3\x1b[0m]\x1b[41massert.A\x1b[0m]\x1b[41massert.Bool\x1b[0m)(nil)")
+	te(errors.New("abc"), errors.New("abde"), `&{s:"ab`+H("c")+`"}`, `&{s:"ab`+H("de")+`"}`)
 }
 
 func TestWriteValDiff3(t *testing.T) {
