@@ -22,13 +22,12 @@ func TestA(t *testing.T) {
 ```
 * Integrate with Vim
 
-If you're using *vim-go* and `:GoTest` command, you may find some messy codes in the diagnosis window. The following instructions will help a lot:
   * Install plugin ["daidodo/Improved-AnsiEsc"](https://github.com/daidodo/Improved-AnsiEsc)
   * Add this line to `.vimrc`:
 ```
  au BufReadPost * if getbufvar(winbufnr(0), "&buftype") == "quickfix" | set nospell | call AnsiEsc#AnsiEsc(0) | endif
 ```
-Basically you need to enable *AnsiEsc* so Vim can show highlighted text properly.
+If you're using *vim-go* and `:GoTest` command, you may find some messy codes in the diagnosis window. Basically you need to enable *AnsiEsc* so Vim can show highlighted text properly.
 
 ## Package Assert
 *testa/assert* helps you write unit tests easily and efficiently. Full documentations are available [here](https://godoc.org/github.com/daidodo/testa/assert).
