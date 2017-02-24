@@ -9,6 +9,21 @@ import (
 	assert2 "github.com/stretchr/testify/assert"
 )
 
+func TestNotEqualValueError(t *testing.T) {
+	e1 := errors.New("abc")
+	e2 := errors.New("abc")
+	e3 := errors.New("abd")
+	assert.NotEqual(t, fmt.Sprintf("%p", e1), fmt.Sprintf("%p", e2))
+	assert.NotEqualValue(t, e1, e3)
+	assert.NotEqualValue(t, e1, e2)
+}
+
+func TestNotEqualValue(t *testing.T) {
+	a := uint(100)
+	assert.NotEqualValue(t, 101, a)
+	assert.NotEqualValue(t, 100, a)
+}
+
 func TestEqualValuePointerInt2(t *testing.T) {
 	a, b := new(int), new(uint)
 	assert.Equal(t, a, b)
