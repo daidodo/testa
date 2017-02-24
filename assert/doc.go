@@ -74,3 +74,11 @@
 			Actual: 101
 */
 package assert
+
+//TODO:
+//Contain/NotContain
+//ContainValue/NotContainValue
+//GreaterThan/LessThan
+//GreaterEqual/LessEqual
+//Empty/NotEmpty
+//Error/NoError/EqualError
