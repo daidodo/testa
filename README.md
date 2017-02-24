@@ -23,7 +23,9 @@ func TestA(t *testing.T) {
 * Integrate with Vim
 
 If you're using *vim-go* and `:GoTest` command, you may find some messy codes in the diagnosis information. The following instructions will help a lot:
+
 1. Install plugin ["daidodo/Improved-AnsiEsc"](https://github.com/daidodo/Improved-AnsiEsc)
+
 2. Add this line to `.vimrc`:
 ```
  au BufReadPost * if getbufvar(winbufnr(0), "&buftype") == "quickfix" | set nospell | call AnsiEsc#AnsiEsc(0) | endif
@@ -35,10 +37,10 @@ Basically you need to enables *AnsiEsc* so Vim can show highlighted text properl
 
 Aside from compatibility with Package testing, one-line assertion and message, various and user-friendly APIs, there are other exceptional features you may find useful:
 
-### Highlighted information
-Tools tend to provide "full" information when an assertion fails, simply because they don't understand it.
+### Highlighted formatted information
+Tools tend to provide "full" or even messy information when an assertion fails, simply because they don't understand it.
 
-But *testa/assert* tries to understand the information, provide with what is only necessary, and  **highlight** the key part of it.
+But *testa/assert* tries to understand the information, provide with what is only necessary, make it well readable, and  **highlight** the key part of it.
 ```{.go}
 func TestA(t *testing.T) {
 	var a, b [5][5]int
