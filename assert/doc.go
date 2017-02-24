@@ -17,8 +17,17 @@
  */
 
 /*
-	Package assert provides useful tools for unit testing in Go. Many features are unique comparing
+	Package assert provides useful tools for unit testing in Go. Many features are unique compared
 	to other testing tools you can find.
+
+
+	Highlighted information
+
+	Tools tend to provide "full" information when an assertion fails, simply because they don't
+	understand it.
+
+	But testa/assert tries to understand the information, provide with what is only necessary, and
+	highlight the key part of it.
 
 
 	Caller
@@ -40,7 +49,7 @@
 		13 func TestA(t *testing.T) {
 		14     myTest(t, 1, 1)
 		15     myTest(t, 10, 10)
-		16     myTest(t, 100, 101) // This is the part we want to notice!
+		16     myTest(t, 100, 101) // This is the part we want to see!
 		17 }
 	will produce:
 		example_test.go:10: in example.myTest:
@@ -65,13 +74,46 @@
 		13 func TestA(t *testing.T) {
 		14     myTest(t, 1, 1)
 		15     myTest(t, 10, 10)
-		16     myTest(t, 100, 101)	// This is the part we want to notice!
+		16     myTest(t, 100, 101)	// This is the part we want to see!
 		17 }
 	will now produce:
 		example_test.go:16: in example.TestA:
 		example_test.go:10: in example.myTest:
 			Expect: 100
 			Actual: 101
+
+
+	EqualValue
+
+	Different from assert.Equal, assert.EqualValue compares objects by values only, regardless of
+	their types. So int(100) is equal to uint(100) in value, but not in type.
+
+	testa/assert implements EqualValue from the scratch, using intuitive and common sense, with
+	regards to reflect.DeepEqual. The general rules are:
+
+	Boolean is comparable only to Boolean;
+
+	Math objects (signed/unsigned integers, floats, complexes) are compared mathematically, e.g.
+	uint8(255) != int8(-1), int(1) == complex64(1+0i);
+
+	Different types of pointers are not equal to each other; But pointers are comparable to
+	unsafe.Pointer;
+
+	Array and slice objects are equal in value if: a) they are both nil; or b) they both have zero
+	length and their elements' types are convertible; or c) they have the same length and all
+	corresponding elements are equal in value;
+
+	Maps are equal in value if: a) they are both nil; or b) they both have zero length and their
+	keys and elements' types are both convertible, respectively; or c) they have the same length
+	and all keys are DEEPLY equal and the corresponding elements are equal in value;
+
+	Structs are equal in value if they have the same type and all corresponding fields are equal in
+	value;
+
+	As an exception, array or slice of byte or rune can compare to string;
+
+	All other objects are equal in value only when they are deeply equal defined by
+	reflect.DeepEqual.
 */
 package assert
 
