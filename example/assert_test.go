@@ -9,6 +9,33 @@ import (
 	assert2 "github.com/stretchr/testify/assert"
 )
 
+func TestEqualValuePointerInt2(t *testing.T) {
+	a, b := new(int), new(uint)
+	assert.Equal(t, a, b)
+	assert.EqualValue(t, a, b)
+	*a = 101
+	assert.Equal(t, a, b)
+	assert.EqualValue(t, a, b)
+}
+
+func TestEqualValuePointerInt(t *testing.T) {
+	a, b := new(int), new(int)
+	assert.Equal(t, a, b)
+	assert.EqualValue(t, a, b)
+	*a = 101
+	assert.Equal(t, a, b)
+	assert.EqualValue(t, a, b)
+}
+
+func TestEqualValueError(t *testing.T) {
+	e1 := errors.New("abc")
+	e2 := errors.New("abc")
+	e3 := errors.New("abd")
+	assert.NotEqual(t, fmt.Sprintf("%p", e1), fmt.Sprintf("%p", e2))
+	assert.EqualValue(t, e1, e2)
+	assert.EqualValue(t, e1, e3)
+}
+
 func TestEqualValBug(t *testing.T) {
 	a := int8(0)
 	b := int32(-1000000000)
