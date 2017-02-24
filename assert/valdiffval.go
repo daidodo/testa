@@ -68,9 +68,18 @@ func (vd *tValueDiffer) writeValDiffNumbers(v1, v2 reflect.Value, sw bool) bool 
 }
 
 func (vd *tValueDiffer) writeValDiffPointers(v1, v2 reflect.Value, sw bool) bool {
-	_, _, i1, i2 := vd.bufr(sw)
-	if (v1.Kind() == reflect.UnsafePointer && isSimplePointer(v2.Type())) ||
-		(v2.Kind() == reflect.UnsafePointer && isSimplePointer(v1.Type())) {
+	b1, b2, i1, i2 := vd.bufr(sw)
+	k1, t1, t2 := v1.Kind(), v1.Type(), v2.Type()
+	if k1 == reflect.Ptr && t1 == t2 {
+		if !v1.IsNil() && !v2.IsNil() {
+			b1.Normal("&")
+			b2.Normal("&")
+			vd.writeValDiff(v1.Elem(), v2.Elem(), sw)
+			return true
+		}
+	}
+	if (k1 == reflect.UnsafePointer && isSimplePointer(t2)) ||
+		(v2.Kind() == reflect.UnsafePointer && isSimplePointer(t1)) {
 		vd.writeElem(i1, v1, true)
 		vd.writeElem(i2, v2, true)
 		return true
