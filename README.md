@@ -3,7 +3,7 @@
 
 Testa is a Go library that aimed at easing testing development.
 
-Package *assert* is a powerful unit testing tool. Many features are unique compared to other testing tools you can find.
+Package *testa/assert* is a powerful unit testing tool. Many features are unique compared to other testing tools you can find.
 
 ## Usage
 * Install:
@@ -22,7 +22,7 @@ func TestA(t *testing.T) {
 ```
 * Integrate with Vim
 
-If you're using *vim-go* and `:GoTest` command, you may find some messy codes in the diagnosis information. The following instructions will help a lot:
+If you're using *vim-go* and `:GoTest` command, you may find some messy codes in the diagnosis window. The following instructions will help a lot:
 
 1. Install plugin ["daidodo/Improved-AnsiEsc"](https://github.com/daidodo/Improved-AnsiEsc)
 
@@ -30,7 +30,7 @@ If you're using *vim-go* and `:GoTest` command, you may find some messy codes in
 ```
  au BufReadPost * if getbufvar(winbufnr(0), "&buftype") == "quickfix" | set nospell | call AnsiEsc#AnsiEsc(0) | endif
 ```
-Basically you need to enables *AnsiEsc* so Vim can show highlighted text properly.
+Basically you need to enable *AnsiEsc* so Vim can show highlighted text properly.
 
 ## Package Assert
 *testa/assert* helps you write unit tests easily and efficiently. Full documentations are available [here](https://godoc.org/github.com/daidodo/testa/assert).
@@ -148,9 +148,9 @@ The general rules are:
 * Boolean is comparable only to Boolean;
 * Math objects (signed/unsigned integers, floats, complexes) are compared mathematically, e.g. `uint8(255) != int8(-1)`, `int(1) == complex64(1+0i)`;
 * Different types of pointers are not equal to each other; But pointers are comparable to `unsafe.Pointer`;
-* Array and slice objects are equal in value if: a) they are both `nil`; or b) they both have zero length and their elements' types are convertible; or c) they have the same length and all corresponding elements are equal in value.
-* Maps are equal in value if: a) they are both `nil`; or b) they both have zero length and their keys and elements' types are both convertible, respectively; or c) they have the same length and all keys are **deeply equal** and the corresponding elements are equal in value.
-* Structs are equal in value if they have the same type and all corresponding fields are equal in value.
-* As an exception, array or slice of `byte` or `rune` can compare to `string`.
+* Array and slice objects are equal in value if: a) they are both `nil`; or b) they both have zero length and their elements' types are convertible; or c) they have the same length and all corresponding elements are equal in value;
+* Maps are equal in value if: a) they are both `nil`; or b) they both have zero length and their keys and elements' types are both convertible, respectively; or c) they have the same length and all keys are **deeply equal** and the corresponding elements are equal in value;
+* Structs are equal in value if they have the same type and all corresponding fields are equal in value;
+* As an exception, array or slice of `byte` or `rune` can compare to `string`;
 * All other objects are equal in value only when they are deeply equal defined by *reflect.DeepEqual*.
 
