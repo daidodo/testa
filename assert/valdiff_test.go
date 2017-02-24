@@ -204,7 +204,6 @@ func TestWriteTypeDiffValues(t *testing.T) {
 		{v1: reflect.ValueOf(func() int { return 2 }), v2: reflect.ValueOf(func() int { return 1 })},
 		{v1: reflect.ValueOf(a), v2: reflect.ValueOf(a), cf: true},
 		{v1: reflect.ValueOf((*int)(nil)), v2: reflect.ValueOf(new(int))},
-		{v1: reflect.ValueOf(new(int)), v2: reflect.ValueOf(new(int))},
 		{v1: reflect.ValueOf(unsafe.Pointer(nil)), v2: reflect.ValueOf(unsafe.Pointer(new(int)))},
 		{v1: reflect.ValueOf(unsafe.Pointer(new(int))), v2: reflect.ValueOf(unsafe.Pointer(new(int)))},
 		{v1: reflect.ValueOf(A{}).Field(0), v2: reflect.ValueOf(A{a: 100}).Field(0), s2: "int(100)"},
