@@ -1,9 +1,24 @@
+/*
+ * Copyright (c) 2017 Zhao DAI <daidodo@gmail.com>
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or any
+ * later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see accompanying file LICENSE.txt
+ * or <http://www.gnu.org/licenses/>.
+ */
+
 package assert
 
-import (
-	"fmt"
-	"reflect"
-)
+import "reflect"
 
 func (vd *tValueDiffer) WriteValDiff(v1, v2 reflect.Value, tab int) {
 	b1, b2 := vd.bufs()
@@ -161,29 +176,6 @@ func (vd *tValueDiffer) writeValDiffToString(v1, v2 reflect.Value, sw bool) bool
 		return vd.writeValDiffToString(v2, v1, !sw)
 	}
 	return false
-}
-
-func (vd *tValueDiffer) writeDiffValuesString(v1, v2 reflect.Value, sw bool) {
-	b1, b2, _, _ := vd.bufr(sw)
-	s1, s2 := []rune(fmt.Sprintf("%#v", v1.String())), []rune(fmt.Sprintf("%#v", v2.String()))
-	s1, s2 = s1[1:len(s1)-1], s2[1:len(s2)-1] // skip front and end "
-	b1.Normal(`"`)
-	b2.Normal(`"`)
-	for i := 0; i < len(s1) || i < len(s2); i++ {
-		if i >= len(s1) {
-			b2.Highlightf("%c", s2[i])
-		} else if i >= len(s2) {
-			b1.Highlightf("%c", s1[i])
-		} else if s1[i] == s2[i] {
-			b1.Normalf("%c", s1[i])
-			b2.Normalf("%c", s2[i])
-		} else {
-			b1.Highlightf("%c", s1[i])
-			b2.Highlightf("%c", s2[i])
-		}
-	}
-	b1.Normal(`"`)
-	b2.Normal(`"`)
 }
 
 func (vd *tValueDiffer) writeValDiffToComplex64(v1, v2 reflect.Value, sw bool) bool {

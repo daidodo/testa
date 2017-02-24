@@ -20,6 +20,7 @@ package assert
 
 import (
 	"bytes"
+	"fmt"
 	"reflect"
 	"strings"
 )
@@ -308,6 +309,29 @@ func (vd *tValueDiffer) writeTypeDiffValues(v1, v2 reflect.Value) {
 		vd.writeElem(0, v1, true)
 		vd.writeElem(1, v2, true)
 	}
+}
+
+func (vd *tValueDiffer) writeDiffValuesString(v1, v2 reflect.Value, sw bool) {
+	b1, b2, _, _ := vd.bufr(sw)
+	s1, s2 := []rune(fmt.Sprintf("%#v", v1.String())), []rune(fmt.Sprintf("%#v", v2.String()))
+	s1, s2 = s1[1:len(s1)-1], s2[1:len(s2)-1] // skip front and end "
+	b1.Normal(`"`)
+	b2.Normal(`"`)
+	for i := 0; i < len(s1) || i < len(s2); i++ {
+		if i >= len(s1) {
+			b2.Highlightf("%c", s2[i])
+		} else if i >= len(s2) {
+			b1.Highlightf("%c", s1[i])
+		} else if s1[i] == s2[i] {
+			b1.Normalf("%c", s1[i])
+			b2.Normalf("%c", s2[i])
+		} else {
+			b1.Highlightf("%c", s1[i])
+			b2.Highlightf("%c", s2[i])
+		}
+	}
+	b1.Normal(`"`)
+	b2.Normal(`"`)
 }
 
 func (vd *tValueDiffer) writeDiffValuesInterface(v1, v2 reflect.Value) {
@@ -651,161 +675,6 @@ const (
 
 	kAttrSize
 )
-
-func valueEqual(v1, v2 reflect.Value) bool {
-	if !v1.IsValid() || !v2.IsValid() {
-		return v1.IsValid() == v2.IsValid()
-	}
-	if v1.CanInterface() && v2.CanInterface() {
-		return reflect.DeepEqual(v1.Interface(), v2.Interface())
-	}
-	v1, d1 := derefInterface(v1)
-	v2, d2 := derefInterface(v2)
-	if d1 || d2 {
-		return valueEqual(v1, v2)
-	}
-	if v1.Type() != v2.Type() {
-		return false
-	}
-	switch v1.Kind() {
-	case reflect.Bool:
-		return v1.Bool() == v2.Bool()
-	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
-		return v1.Int() == v2.Int()
-	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr:
-		return v1.Uint() == v2.Uint()
-	case reflect.Float32, reflect.Float64:
-		return v1.Float() == v2.Float()
-	case reflect.Complex64, reflect.Complex128:
-		return v1.Complex() == v2.Complex()
-	case reflect.String:
-		return v1.String() == v2.String()
-	case reflect.Chan, reflect.UnsafePointer:
-		return v1.Pointer() == v2.Pointer()
-	case reflect.Func:
-		return v1.IsNil() && v2.IsNil()
-	case reflect.Ptr:
-		if v1.IsNil() || v2.IsNil() {
-			return v1.IsNil() && v2.IsNil()
-		}
-		if v1.Pointer() == v2.Pointer() {
-			return true
-		}
-		return valueEqual(v1.Elem(), v2.Elem())
-	case reflect.Interface:
-		if v1.IsNil() || v2.IsNil() {
-			return v1.IsNil() == v2.IsNil()
-		}
-		return valueEqual(v1.Elem(), v2.Elem())
-	case reflect.Slice:
-		if v1.IsNil() != v2.IsNil() {
-			return false
-		}
-		if v1.Len() != v2.Len() {
-			return false
-		}
-		if v1.Pointer() == v2.Pointer() {
-			return true
-		}
-		fallthrough
-	case reflect.Array:
-		for i := 0; i < v1.Len(); i++ {
-			if !valueEqual(v1.Index(i), v2.Index(i)) {
-				return false
-			}
-		}
-		return true
-	case reflect.Map:
-		if v1.IsNil() != v2.IsNil() {
-			return false
-		}
-		if v1.Len() != v2.Len() {
-			return false
-		}
-		if v1.Pointer() == v2.Pointer() {
-			return true
-		}
-		for _, k := range v1.MapKeys() {
-			if e1, e2 := v1.MapIndex(k), v2.MapIndex(k); !valueEqual(e1, e2) {
-				return false
-			}
-		}
-		return true
-	case reflect.Struct:
-		for i, n := 0, v1.NumField(); i < n; i++ {
-			if !valueEqual(v1.Field(i), v2.Field(i)) {
-				return false
-			}
-		}
-		return true
-	default: // reflect.Invalid
-	}
-	return false
-}
-
-func mapKeyDiff(v1, v2 reflect.Value) (ks, ks1, ks2 []reflect.Value) {
-	if t1, t2 := v1.Type().Key(), v2.Type().Key(); t1 == t2 {
-		for _, k := range v1.MapKeys() {
-			if v2.MapIndex(k).IsValid() {
-				ks = append(ks, k)
-			} else {
-				ks1 = append(ks1, k)
-			}
-		}
-		for _, k := range v2.MapKeys() {
-			if !v1.MapIndex(k).IsValid() {
-				ks2 = append(ks2, k)
-			}
-		}
-	} else if convertibleKeyTo(t1, t2) {
-		s1, s2 := v1.MapKeys(), v2.MapKeys()
-		find := func(k1 reflect.Value, s []reflect.Value) bool {
-			for _, k2 := range s {
-				if valueEqual(k1, k2) {
-					return true
-				}
-			}
-			return false
-		}
-		for _, k := range s1 {
-			if find(k, s2) {
-				ks = append(ks, k)
-			} else {
-				ks1 = append(ks1, k)
-			}
-		}
-		for _, k := range s2 {
-			if !find(k, s1) {
-				ks2 = append(ks2, k)
-			}
-		}
-	} else if convertibleKeyTo(t2, t1) {
-		ks, ks2, ks1 = mapKeyDiff(v2, v1)
-	} else {
-		ks1, ks2 = v1.MapKeys(), v2.MapKeys()
-	}
-	return
-}
-
-func derefInterface(v reflect.Value) (r reflect.Value, d bool) {
-	if v.IsValid() && v.Kind() == reflect.Interface {
-		if !v.IsNil() {
-			return v.Elem(), true
-		} else if v.Type().Name() == "" {
-			return r, true
-		}
-	}
-	return v, d
-}
-
-func derefPtr(v reflect.Value) (r reflect.Value, d bool) {
-	if v.IsValid() && v.Kind() == reflect.Ptr && !v.IsNil() {
-		if e := v.Elem(); isComposite(e.Type()) {
-			return e, true
-		}
-	}
-	return v, false
-}
 
 func (vd *tValueDiffer) bufs() (b1, b2 *tFeatureBuf) {
 	return vd.bufi(0), vd.bufi(1)

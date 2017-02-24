@@ -1,3 +1,21 @@
+/*
+ * Copyright (c) 2017 Zhao DAI <daidodo@gmail.com>
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or any
+ * later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see accompanying file LICENSE.txt
+ * or <http://www.gnu.org/licenses/>.
+ */
+
 package assert
 
 import "reflect"
@@ -170,4 +188,68 @@ func convertibleKeyTo(f, t reflect.Type) bool {
 		return false
 	}
 	return f.ConvertibleTo(t)
+}
+
+func mapKeyDiff(v1, v2 reflect.Value) (ks, ks1, ks2 []reflect.Value) {
+	if t1, t2 := v1.Type().Key(), v2.Type().Key(); t1 == t2 {
+		for _, k := range v1.MapKeys() {
+			if v2.MapIndex(k).IsValid() {
+				ks = append(ks, k)
+			} else {
+				ks1 = append(ks1, k)
+			}
+		}
+		for _, k := range v2.MapKeys() {
+			if !v1.MapIndex(k).IsValid() {
+				ks2 = append(ks2, k)
+			}
+		}
+	} else if convertibleKeyTo(t1, t2) {
+		s1, s2 := v1.MapKeys(), v2.MapKeys()
+		find := func(k1 reflect.Value, s []reflect.Value) bool {
+			for _, k2 := range s {
+				if valueEqual(k1, k2) {
+					return true
+				}
+			}
+			return false
+		}
+		for _, k := range s1 {
+			if find(k, s2) {
+				ks = append(ks, k)
+			} else {
+				ks1 = append(ks1, k)
+			}
+		}
+		for _, k := range s2 {
+			if !find(k, s1) {
+				ks2 = append(ks2, k)
+			}
+		}
+	} else if convertibleKeyTo(t2, t1) {
+		ks, ks2, ks1 = mapKeyDiff(v2, v1)
+	} else {
+		ks1, ks2 = v1.MapKeys(), v2.MapKeys()
+	}
+	return
+}
+
+func derefInterface(v reflect.Value) (r reflect.Value, d bool) {
+	if v.IsValid() && v.Kind() == reflect.Interface {
+		if !v.IsNil() {
+			return v.Elem(), true
+		} else if v.Type().Name() == "" {
+			return r, true
+		}
+	}
+	return v, d
+}
+
+func derefPtr(v reflect.Value) (r reflect.Value, d bool) {
+	if v.IsValid() && v.Kind() == reflect.Ptr && !v.IsNil() {
+		if e := v.Elem(); isComposite(e.Type()) {
+			return e, true
+		}
+	}
+	return v, false
 }
