@@ -1,6 +1,5 @@
 # Testa
 [![GoDoc](https://godoc.org/github.com/daidodo/testa/assert?status.svg)](https://godoc.org/github.com/daidodo/testa/assert)
-[![Coverage Status](https://coveralls.io/repos/github/daidodo/testa/badge.svg)](https://coveralls.io/github/daidodo/testa)
 [![Report Card](https://goreportcard.com/badge/github.com/daidodo/testa)](https://goreportcard.com/badge/github.com/daidodo/testa)
 
 Testa is a Go library that aimed at easing testing development.
