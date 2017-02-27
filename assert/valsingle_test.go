@@ -856,7 +856,7 @@ func TestWriteTypeValue(t *testing.T) {
 		{v: reflect.ValueOf(Int(100)), e: "assert.Int(String of Int)"},
 		{v: reflect.ValueOf(Uint(100)), e: "assert.Uint(String of Uint)"},
 		{v: reflect.ValueOf(Uintptr(100)), e: "assert.Uintptr(String of Uintptr)"},
-		{v: reflect.ValueOf(Float(100))},
+		{v: reflect.ValueOf(Float(100)), e: "assert.Float(100)"},
 		{v: reflect.ValueOf(Complex(100.1 + 200.2i)), e: "assert.Complex(100.1+200.2i)"},
 		{v: reflect.ValueOf(Str("100")), e: `assert.Str("100")`},
 		{v: reflect.ValueOf(Chan(nil)), e: "(assert.Chan)(nil)"},
