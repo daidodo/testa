@@ -28,6 +28,19 @@ import (
 	"unsafe"
 )
 
+// NotEqualType asserts whether e and a have different types, regardless of their values.
+func NotEqualType(t *testing.T, e, a interface{}, m ...interface{}) {
+	CallerT{1, 1}.NotEqualType(t, e, a, m...)
+}
+
+// NotEqualType asserts whether e and a have different types, regardless of their values.
+func (c CallerT) NotEqualType(t *testing.T, e, a interface{}, m ...interface{}) {
+	if reflect.TypeOf(e) != reflect.TypeOf(a) {
+		return
+	}
+	fail(c, t, e, a, kNeT, m...)
+}
+
 // EqualType asserts whether e and a have the same type, regardless of their values.
 func EqualType(t *testing.T, e, a interface{}, m ...interface{}) {
 	CallerT{1, 1}.EqualType(t, e, a, m...)
@@ -195,6 +208,7 @@ const (
 	kEqV
 	kNeV
 	kEqT
+	kNeT
 )
 
 func fail(c CallerT, t *testing.T, expected, actual interface{}, res tRes, msg ...interface{}) {
@@ -217,6 +231,8 @@ func fail(c CallerT, t *testing.T, expected, actual interface{}, res tRes, msg .
 		writeFailNeV(&b, expected, actual)
 	case kEqT:
 		writeFailEqT(&b, expected, actual)
+	case kNeT:
+		writeFailNeT(&b, actual)
 	}
 	writeMessages(&b, msg...)
 	b.Tab--
@@ -281,6 +297,15 @@ func writeFailEqT(buf *tFeatureBuf, expected, actual interface{}) {
 	v.WriteDiffT(reflect.TypeOf(expected), reflect.TypeOf(actual), buf.Tab+1)
 	buf.NL().Normalf("Expect:\t%v", v.String(0))
 	buf.NL().Normalf("Actual:\t%v", v.String(1))
+	writeAttrs(buf, v)
+}
+
+func writeFailNeT(buf *tFeatureBuf, actual interface{}) {
+	var v tValueDiffer
+	v.WriteType(0, reflect.TypeOf(actual), buf.Tab+1)
+	buf.NL().Normal("Expect:\t").Highlight("DIFF to Actual")
+	buf.NL().Normalf("\t%v", v.String(0))
+	buf.NL().Normalf("Actual:\t%v", v.String(0))
 	writeAttrs(buf, v)
 }
 

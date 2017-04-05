@@ -28,6 +28,11 @@ func (vd *tValueDiffer) WriteTypeValue(idx int, v reflect.Value, tab int) {
 	vd.writeTypeValue(idx, v, false, false)
 }
 
+func (vd *tValueDiffer) WriteType(idx int, t reflect.Type, tab int) {
+	vd.bufi(idx).Tab = tab
+	vd.writeType(idx, t, false)
+}
+
 // writeTypeValue show full description of value v.
 // It show both type and value/contents of v. If v is a non-nil pointer of composite type (array,
 // slice, map or struct), it show "&" and the results of *v instead, which imitates the action of
