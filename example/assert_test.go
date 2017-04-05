@@ -9,6 +9,33 @@ import (
 	assert2 "github.com/stretchr/testify/assert"
 )
 
+func TestEqualType4(t *testing.T) {
+	a := make(map[string]int)
+	b := (*map[string]int)(nil)
+	assert.EqualType(t, b, a)
+}
+
+func TestEqualType3(t *testing.T) {
+	type Str string
+	a := make(map[string]int)
+	b := make(map[Str]bool)
+	assert.EqualType(t, b, a)
+}
+
+func TestEqualType2(t *testing.T) {
+	a := errors.New("abc")
+	b := errors.New("abd")
+	assert.EqualType(t, b, a)
+	assert.EqualType(t, nil, a)
+}
+
+func TestEqualType(t *testing.T) {
+	a := 100
+	b := uint(100)
+	assert.EqualType(t, 0, a)
+	assert.EqualType(t, b, a)
+}
+
 func TestNotEqualValueError(t *testing.T) {
 	e1 := errors.New("abc")
 	e2 := errors.New("abc")
