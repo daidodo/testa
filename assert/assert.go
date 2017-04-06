@@ -28,6 +28,32 @@ import (
 	"unsafe"
 )
 
+// NotZero asserts whether a is NOT 0.
+func NotZero(t *testing.T, a interface{}, m ...interface{}) {
+	CallerT{1, 1}.NotZero(t, a, m...)
+}
+
+// NotZero asserts whether a is NOT 0.
+func (c CallerT) NotZero(t *testing.T, a interface{}, m ...interface{}) {
+	if !isSameInValue(0, a) {
+		return
+	}
+	fail(c, t, 0, a, kNeV, m...)
+}
+
+// Zero asserts whether a is 0.
+func Zero(t *testing.T, a interface{}, m ...interface{}) {
+	CallerT{1, 1}.Zero(t, a, m...)
+}
+
+// Zero asserts whether a is 0.
+func (c CallerT) Zero(t *testing.T, a interface{}, m ...interface{}) {
+	if isSameInValue(0, a) {
+		return
+	}
+	fail(c, t, 0, a, kEqV, m...)
+}
+
 // NotEqualType asserts whether e and a have different types, regardless of their values.
 func NotEqualType(t *testing.T, e, a interface{}, m ...interface{}) {
 	CallerT{1, 1}.NotEqualType(t, e, a, m...)

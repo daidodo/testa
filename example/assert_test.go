@@ -9,6 +9,24 @@ import (
 	assert2 "github.com/stretchr/testify/assert"
 )
 
+func TestZero3(t *testing.T) {
+	var a chan int
+	assert.NotZero(t, a)
+	assert.Zero(t, a)
+}
+
+func TestZero2(t *testing.T) {
+	a := int8(0)
+	assert.Zero(t, a)
+	assert.NotZero(t, a)
+}
+
+func TestZero(t *testing.T) {
+	a := int8(8)
+	assert.NotZero(t, a)
+	assert.Zero(t, a)
+}
+
 func TestNotEqualType2(t *testing.T) {
 	var a, b *map[string]int
 	var c *map[string]uint
