@@ -370,7 +370,7 @@ func writeMessages(buf *tFeatureBuf, messages ...interface{}) {
 	if s, ok := messages[0].(string); ok {
 		m = fmt.Sprintf(s, messages[1:]...)
 	} else {
-		m = fmt.Sprint(messages...)
+		m = fmt.Sprint(messages[0]) + " " + fmt.Sprint(messages[1:]...)
 	}
 	for i := 0; i < buf.Tab; i++ {
 		h = h + "\t"
