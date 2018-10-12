@@ -401,9 +401,9 @@ func fa(a <-chan int, b chan int) {
 }
 
 func fb() {
-	fmt.Printf(f, func(int) string { return "" })
-	fmt.Printf(f, func(int) string { return "" })
-	fmt.Printf(f, (func(int) string)(nil))
+	//fmt.Printf(f, func(int) string { return "" })
+	//fmt.Printf(f, func(int) string { return "" })
+	//fmt.Printf(f, (func(int) string)(nil))
 	fmt.Printf(f, (*(func(int) string))(nil))
 	//a := func(int) string { return "1" }
 	//b := a
@@ -507,9 +507,9 @@ func fd() {
 	}
 	if true {
 		var a func(int) string
-		fmt.Printf(f, a)
+		//fmt.Printf(f, a)
 		a = func(int) string { return "1" }
-		fmt.Printf(f, a)
+		//fmt.Printf(f, a)
 		pa := &a
 		fmt.Printf(f, pa)
 		pa = nil
