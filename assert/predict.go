@@ -326,9 +326,29 @@ func convertCompareStruct(f, t reflect.Value) bool {
 }
 
 func convertCompareC(f, t reflect.Value) bool {
+	// Go 1.20+ permits slice->array and slice->*array conversions. This fallback
+	// must not honor them: slice/array equivalence is handled in convertCompareArray,
+	// so a value reaching here (e.g. a nil slice vs an array) is intentionally NOT
+	// "same in value". Without this guard, ConvertibleTo (false pre-1.20) lets a nil
+	// slice convert to a zero-length array and compare equal.
+	if isSliceArrayMix(f, t) {
+		return false
+	}
 	if !f.Type().ConvertibleTo(t.Type()) {
 		return false
 	}
 	a := f.Convert(t.Type())
 	return valueEqual(a, t)
+}
+
+// isSliceArrayMix reports whether f and t pair a slice with an array (or a
+// pointer-to-array) — the conversions newly allowed by Go 1.20.
+func isSliceArrayMix(f, t reflect.Value) bool {
+	arrayLike := func(v reflect.Value) bool {
+		k := v.Kind()
+		return k == reflect.Array ||
+			(k == reflect.Ptr && v.Type().Elem().Kind() == reflect.Array)
+	}
+	return (f.Kind() == reflect.Slice && arrayLike(t)) ||
+		(t.Kind() == reflect.Slice && arrayLike(f))
 }
